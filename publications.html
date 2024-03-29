@@ -145,24 +145,23 @@
     fetch('data/works.bib')
       .then(response => response.text())
       .then(bibtexText => {
-        // Use the parse function from the bibtexParse object
-        const bibEntries = bibtexParse.entries(bibtexText); // This line is changed
+        const bibEntries = bibtexParse.entries(bibtexText);
         const publicationsContainer = document.getElementById('bib-publications');
         publicationsContainer.innerHTML = ''; // Clear the loading message
         bibEntries.forEach(entry => {
-          // Your BibTeX fields here must match exactly how they are in the BibTeX file
-          const title = entry.entryTags.TITLE || entry.entryTags.title; // BibTeX fields may be in uppercase
-          const author = entry.entryTags.AUTHOR || entry.entryTags.author;
-          const journal = entry.entryTags.JOURNAL || entry.entryTags.journal || 'Journal Title Not Available';
-          const year = entry.entryTags.YEAR || entry.entryTags.year;
-          const doi = entry.entryTags.DOI || entry.entryTags.doi || 'DOI Not Available';
-
+          const title = entry.entryTags.title;
+          const authors = entry.entryTags.author; // Consider parsing to format the list of authors
+          const year = entry.entryTags.year;
+          const doi = entry.entryTags.doi;
+          const journal = entry.entryTags.journal;
+          
           const publicationElement = document.createElement('div');
           publicationElement.classList.add('publication-entry');
           publicationElement.innerHTML = `
             <h3>${title}</h3>
-            <p>${author}. <em>${journal}</em>, ${year}.</p>
+            <p>${authors}. (${year}). <em>${journal}</em>, ${volume}${number ? '(' + number + ')' : ''}, ${pages}.</p>
             <p>DOI: <a href="https://doi.org/${doi}" target="_blank">${doi}</a></p>
+            <p><a href="${url}" target="_blank">View Publication</a></p>
           `;
           publicationsContainer.appendChild(publicationElement);
         });
@@ -172,7 +171,9 @@
         document.getElementById('bib-publications').innerHTML = 'Failed to load publications.';
       });
   });
+    
 </script>
+
 
 
 
