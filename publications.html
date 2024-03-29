@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AmirAli Toghani</title>
     <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
+      <script src="https://cdn.jsdelivr.net/npm/bibtex-js@latest/dist/bibtex.min.js"></script>
     <style>
         body {
             font-family: 'Helvetica Neue', sans-serif;
@@ -136,74 +137,45 @@
             <h1>Publications</h1>
         </div>
     </div>
-    <div id="bib-publications">Loading publications...</div>
 
-    
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
+    <script>
+    const bibliography = document.getElementById('bib-publications');
+
     fetch('data/works.bib')
       .then(response => response.text())
-      .then(bibtexText => {
-        const bibEntries = parseBibTeX(bibtexText);
-        const publicationsContainer = document.getElementById('bib-publications');
-        publicationsContainer.innerHTML = ''; // Clear the loading message
+      .then(data => {
+        const parser = new BibTeX.Parser();
+        const bibData = parser.parse(data);
 
-        bibEntries.forEach(entry => {
-          const publicationElement = document.createElement('div');
-          publicationElement.classList.add('publication-entry');
-          publicationElement.innerHTML = `
-            <h3>${entry.title}</h3>
-            <p>Authors: ${entry.author}</p>
-            <p>Year: ${entry.year}</p>
-            <p>Journal: ${entry.journal}</p>
-            <p>DOI: <a href="https://doi.org/${entry.doi}" target="_blank">${entry.doi}</a></p>
-          `;
-          publicationsContainer.appendChild(publicationElement);
-        });
-      })
-      .catch(error => {
-        console.error('Error loading publications:', error);
-        document.getElementById('bib-publications').innerHTML = 'Failed to load publications.';
+        // Loop through each publication entry
+        for (const [key, entry] of Object.entries(bibData.entries)) {
+          const title = entry.fields.title;
+          const authors = entry.fields.author ? entry.fields.author.split(' and ') : [];
+          const year = entry.fields.year;
+          // Add other fields as needed (journal, volume, etc.)
+
+          // Create HTML elements for each publication
+          const publicationDiv = document.createElement('div');
+          publicationDiv.classList.add('publication-entry'); // Add class for styling
+
+          const titleElement = document.createElement('h3');
+          titleElement.textContent = title;
+          publicationDiv.appendChild(titleElement);
+
+          const authorList = document.createElement('ul');
+          for (const author of authors) {
+            const authorItem = document.createElement('li');
+            authorItem.textContent = author;
+            authorList.appendChild(authorItem);
+          }
+          publicationDiv.appendChild(authorList);
+
+          // Add additional elements (year, journal, etc.) with appropriate HTML tags
+
+          bibliography.appendChild(publicationDiv);
+        }
       });
-  });
-
-  function parseBibTeX(bibtex) {
-  const entries = [];
-  const regex = /@article\{([^,]+),\s*([^@]+?)\}\s*$/gms;
-
-  let match;
-  while ((match = regex.exec(bibtex)) !== null) {
-    const fieldsBlock = match[2];
-    const entry = {};
-
-    fieldsBlock.split(",").forEach(fieldLine => {
-      const fieldMatch = fieldLine.match(/^\s*([^=]+)\s*=\s*\{([^}]+)\}/);
-      if (fieldMatch) {
-        const key = fieldMatch[1].trim().toLowerCase();
-        const value = fieldMatch[2].trim().replace(/\s+/g, ' '); // Normalize whitespace
-        entry[key] = value;
-      }
-    });
-
-    if (Object.keys(entry).length > 0) {
-      entries.push(entry);
-    }
-  }
-
-  return entries.map(entry => ({
-    ...entry,
-    // Attempt to correct parsing for the author and journal fields
-    author: entry.author ? formatAuthors(entry.author) : 'Author information not available',
-    journal: entry.journal || 'Journal information not available'
-  }));
-}
-
-// Function to format authors from BibTeX author field
-function formatAuthors(authorsString) {
-  return authorsString.split(' and ').join(', ');
-}
-
-</script>
+  </script>
 
 
     <footer>
