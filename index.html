@@ -46,24 +46,38 @@
             color: black;
         }
 
-        main {
-            max-width: 800px;
+        .content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 1200px;
             margin-top: 50px;
-            text-align: justify;
         }
 
-        @media (max-width: 600px) {
-            header {
+        .text-section {
+            width: 60%;
+            text-align: left;
+        }
+
+        .image-section {
+            width: 40%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .image-section img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 800px) {
+            .content {
                 flex-direction: column;
-                align-items: flex-start;
             }
-            
-            nav ul {
-                padding-top: 20px;
-            }
-            
-            nav li {
-                margin: 5px 0;
+
+            .text-section, .image-section {
+                width: 100%;
             }
         }
     </style>
@@ -79,8 +93,13 @@
             </ul>
         </nav>
     </header>
-    <main>
-        <p>I'm AmirAli and I'm currently a PhD student @ Kamoun Lab @ The Sainsbury Lab, UK. I study how plants defend themselves against pathogens. My research focuses on NLR evolution and mechanistic biology. Throughout the years I've used many methods like biochemistry, structural biology, and bioinformatics to get around questions about NLR biology and evolution. But I can safely say I'm more of a computational biologist and like to maximize my efforts before getting into the lab! Well, take a look around and feel free to contact me if you have any questions or enquiries.</p>
-    </main>
+    <div class="content">
+        <div class="text-section">
+            <p>I'm AmirAli and I'm currently a PhD student @ Kamoun Lab @ The Sainsbury Lab, UK. I study how plants defend themselves against pathogens. My research focuses on NLR evolution and mechanistic biology. Throughout the years I've used many methods like biochemistry, structural biology, and bioinformatics to get around questions about NLR biology and evolution. But I can safely say I'm more of a computational biologist and like to maximize my efforts before getting into the lab! Well, take a look around and feel free to contact me if you have any questions or enquiries.</p>
+        </div>
+        <div class="image-section">
+            <img src="data/AmirAli-Toghani-IMG_5851.jpeg" alt="AmirAli Toghani">
+        </div>
+    </div>
 </body>
 </html>
