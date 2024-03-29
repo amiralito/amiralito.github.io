@@ -105,6 +105,18 @@
     text-decoration: none; /* Remove underline from links */
     color: inherit; /* Optional: ensures links use the footer's text color */
         }
+
+        .publication-entry {
+    margin-bottom: 20px;
+        }
+
+.publication-entry h3 {
+    font-weight: bold;
+        }
+
+.publication-entry p {
+    margin: 5px 0;
+        }
         
     </style>
 </head>   
@@ -126,6 +138,8 @@
     </div>
     <div id="bib-publications">Loading publications...</div>
 
+    
+<script src="https://cdn.jsdelivr.net/npm/bibtex-parse-js@latest"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     fetch('data/works.bib')
@@ -151,18 +165,6 @@
       });
   });
 
-  function parseBibTeX(bibtexText) {
-    // This is a placeholder for a real BibTeX parsing function
-    // You would need to implement parsing logic here or use a library
-    // For now, let's just return an example entry
-    return [{
-      title: 'Example Title',
-      author: 'Author, A.',
-      journal: 'Journal of Examples',
-      year: '2024',
-      doi: '10.1234/example.doi'
-    }];
-  }
 </script>
 
 
