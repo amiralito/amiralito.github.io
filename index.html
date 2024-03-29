@@ -13,6 +13,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh; /* Minimum height of 100% of the viewport height */
         }
 
         header {
@@ -50,6 +51,7 @@
 
         .content {
             display: flex;
+            flex: 1; /* Ensures that the content area can expand to fill available space */
             align-items: center;
             justify-content: space-between;
             width: 90%;
