@@ -88,13 +88,18 @@
             font-weight: 100; /* Thin weight */
             font-size: 15px;
             text-align: left; /* Align text to the left */
-            width: 100%; /* Ensure footer occupies full width */
+            width: 40%; /* Ensure footer occupies full width */
             display: block; /* Ensure footer is treated as a block-level element */
-            padding-left: 20px; /* Add some padding to move the text away from the very edge */
+            color: black;
         }
 
         footer span {
             margin-right: 20px; /* Adds space between footer entries */
+        }
+
+        footer a {
+    text-decoration: none; /* Remove underline from links */
+    color: inherit; /* Optional: ensures links use the footer's text color */
         }
         
     </style>
@@ -114,7 +119,7 @@
         <div class="text-section">
             <p>I'm currently a PhD student @ <a href="https://kamounlab.tumblr.com/"> Kamoun Lab </a> @ <a href="https://www.tsl.ac.uk/"> The Sainsbury Lab </a>, UK. 
                 I study how plants defend themselves against pathogens. My research focuses on NLR evolution and mechanistic biology. Throughout the years I've used many methods like biochemistry, structural biology, and mostly bioinformatics to get around questions about NLR biology and evolution.
-                Well, take a look around and feel free to contact me if you have any questions or enquiries.</p>
+                Well, take a look around and feel free to <a href="mailto:amirali.toghani@tsl.ac.uk">contact me</a> if you have any questions or enquiries.</p>
         </div>
         <div class="image-section">
             <img src="data/profile.jpg" alt="AmirAli Toghani">
@@ -122,7 +127,6 @@
     </div>
 
     <footer>
-        <span><a href="mailto:amirali.toghani@tsl.ac.uk">amirali.toghani@tsl.ac.uk</a></span>    
         <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
         <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span> 
     </footer>
