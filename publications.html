@@ -145,23 +145,30 @@
     fetch('data/works.bib')
       .then(response => response.text())
       .then(bibtexText => {
-        const bibEntries = bibtexParse.entries(bibtexText);
+        // Correcting the function call here
+        const bibEntries = bibtexParse.parse(bibtexText);
         const publicationsContainer = document.getElementById('bib-publications');
         publicationsContainer.innerHTML = ''; // Clear the loading message
+
         bibEntries.forEach(entry => {
-          const title = entry.entryTags.title;
-          const authors = entry.entryTags.author; // Consider parsing to format the list of authors
-          const year = entry.entryTags.year;
-          const doi = entry.entryTags.doi;
-          const journal = entry.entryTags.journal;
-          
+          // The library may parse the fields into a nested object called 'fields'
+          const title = entry.title || entry.fields.title;
+          const authors = entry.author || entry.fields.author; // You might need to format this list
+          const year = entry.year || entry.fields.year;
+          const doi = entry.doi || entry.fields.doi;
+          const journal = entry.journal || entry.fields.journal;
+          const volume = entry.volume || entry.fields.volume;
+          const number = entry.number || entry.fields.number;
+          const pages = entry.pages || entry.fields.pages;
+          const url = entry.url || entry.fields.url;
+
           const publicationElement = document.createElement('div');
           publicationElement.classList.add('publication-entry');
           publicationElement.innerHTML = `
             <h3>${title}</h3>
             <p>${authors}. (${year}). <em>${journal}</em>, ${volume}${number ? '(' + number + ')' : ''}, ${pages}.</p>
-            <p>DOI: <a href="https://doi.org/${doi}" target="_blank">${doi}</a></p>
-            <p><a href="${url}" target="_blank">View Publication</a></p>
+            ${doi ? `<p>DOI: <a href="https://doi.org/${doi}" target="_blank">${doi}</a></p>` : ''}
+            ${url ? `<p><a href="${url}" target="_blank">View Publication</a></p>` : ''}
           `;
           publicationsContainer.appendChild(publicationElement);
         });
@@ -171,11 +178,7 @@
         document.getElementById('bib-publications').innerHTML = 'Failed to load publications.';
       });
   });
-    
 </script>
-
-
-
 
     <footer>
         <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
