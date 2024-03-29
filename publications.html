@@ -122,10 +122,49 @@
     <div class="content">
         <div class="text-section">
             <h1>Publications</h1>
-            <p> My publications will be here. :)
         </div>
-        
     </div>
+    <div id="orcidPublications">Loading publications...</div>
+
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const orcidId = '0000-0002-0644-699X'; //
+    const apiUrl = `https://pub.orcid.org/v3.0/${orcidId}/works`;
+
+    fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const publicationsContainer = document.getElementById('orcidPublications');
+      publicationsContainer.innerHTML = ''; // Clear the loading message
+
+      // Check if there are works in the response
+      if (data.group && data.group.length > 0) {
+        data.group.forEach(group => {
+          const work = group['work-summary'][0];
+          const title = work.title.title.value;
+          const publicationYear = work['publication-date'] ? work['publication-date'].year.value : 'Unknown';
+
+          // Create a new element for each publication and append it to the container
+          const publicationElement = document.createElement('p');
+          publicationElement.textContent = `${title} (${publicationYear})`;
+          publicationsContainer.appendChild(publicationElement);
+        });
+      } else {
+        publicationsContainer.innerHTML = 'No publications found.';
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching ORCID publications:', error);
+      const publicationsContainer = document.getElementById('orcidPublications');
+      publicationsContainer.innerHTML = 'Failed to load publications.';
+    });
+  });
+</script>
+
     <footer>
         <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
         <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span>
