@@ -13,6 +13,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 90vh; /* Minimum height of 100% of the viewport height */
         }
 
         header {
@@ -50,6 +51,7 @@
 
         .content {
             display: flex;
+            flex: 1; /* Ensures that the content area can expand to fill available space */
             align-items: center;
             justify-content: space-between;
             width: 90%;
@@ -58,7 +60,7 @@
         }
 
         .text-section {
-            width: 60%;
+            width: 50%;
             text-align: left;
         }
 
@@ -82,8 +84,30 @@
                 width: 100%;
             }
         }
+        
+        footer {
+            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
+            font-weight: 200; /* Thin weight */
+            font-size: 12px;
+            text-align: left; /* Align text to the left */
+            width: 90%; /* Ensure footer occupies full width */
+            max-width: 1200px;
+            margin-top: 20px;
+            display: block; /* Ensure footer is treated as a block-level element */
+            color: black;
+        }
+
+        footer span {
+            margin-right: 40px; /* Adds space between footer entries */
+        }
+
+        footer a {
+    text-decoration: none; /* Remove underline from links */
+    color: inherit; /* Optional: ensures links use the footer's text color */
+        }
+        
     </style>
-</head>    
+</head>   
 <body>
     <header>
         <a href="index.html" class="site-name">AmirAli Toghani</a>
@@ -95,5 +119,18 @@
             </ul>
         </nav>
     </header>
+    <div class="content">
+        <div class="text-section">
+            <p> My research will be here. :)
+        </div>
+        
+    </div>
+    <footer>
+        <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
+        <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span>
+        <span><a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ"> Google Scholar</a></span>
+        <span>© AmirAli Toghani, 2024</span>
+    </footer>
+    
 </body>
 </html>
