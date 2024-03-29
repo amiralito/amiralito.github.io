@@ -153,8 +153,10 @@
           publicationElement.classList.add('publication-entry');
           publicationElement.innerHTML = `
             <h3>${entry.title}</h3>
-            <p>${entry.author}. (${entry.year}). <em>${entry.journal}</em>, ${entry.volume}${entry.number ? '(' + entry.number + ')' : ''}, ${entry.pages}.</p>
-            ${entry.doi ? `<p>DOI: <a href="https://doi.org/${entry.doi}" target="_blank">${entry.doi}</a></p>` : ''}
+            <p>Authors: ${entry.author}</p>
+            <p>Year: ${entry.year}</p>
+            <p>Journal: ${entry.journal}</p>
+            <p>DOI: <a href="https://doi.org/${entry.doi}" target="_blank">${entry.doi}</a></p>
           `;
           publicationsContainer.appendChild(publicationElement);
         });
@@ -167,24 +169,30 @@
 
   function parseBibTeX(bibtex) {
     const entries = [];
-    const regex = /@(\w+)\{([^,]+),([^@]+?)^\}/gms;
+    // Enhanced regex to better handle different BibTeX structures
+    const regex = /@article\{([^,]+),\s*([^@]+?)\}\s*$/gms;
 
     let match;
     while ((match = regex.exec(bibtex)) !== null) {
-      const entryType = match[1].toLowerCase();
-      const citationKey = match[2].trim();
-      const fields = match[3];
+      const fieldsBlock = match[2];
+      const entry = {};
 
-      const fieldRegex = /(\w+)\s*=\s*\{([^}]+)\}/gm;
-      let fieldMatch;
-      const entry = { citationKey, entryType };
-      while ((fieldMatch = fieldRegex.exec(fields)) !== null) {
-        const key = fieldMatch[1].trim().toLowerCase();
-        const value = fieldMatch[2].trim();
-        entry[key] = value.replace(/[\n\r]+/g, ' '); // Replace newlines with spaces
+      // Split the block into individual field assignments
+      fieldsBlock.split(",").forEach(fieldLine => {
+        // Split each field assignment into key and value
+        const fieldMatch = fieldLine.match(/^\s*([^=]+)\s*=\s*\{([^}]+)\}/);
+        if (fieldMatch) {
+          const key = fieldMatch[1].trim().toLowerCase();
+          const value = fieldMatch[2].trim().replace(/\s+/g, ' '); // Normalize whitespace
+          entry[key] = value;
+        }
+      });
+
+      if (Object.keys(entry).length > 0) {
+        entries.push(entry);
       }
-      entries.push(entry);
     }
+
     return entries;
   }
 </script>
