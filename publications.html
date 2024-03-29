@@ -168,33 +168,41 @@
   });
 
   function parseBibTeX(bibtex) {
-    const entries = [];
-    // Enhanced regex to better handle different BibTeX structures
-    const regex = /@article\{([^,]+),\s*([^@]+?)\}\s*$/gms;
+  const entries = [];
+  const regex = /@article\{([^,]+),\s*([^@]+?)\}\s*$/gms;
 
-    let match;
-    while ((match = regex.exec(bibtex)) !== null) {
-      const fieldsBlock = match[2];
-      const entry = {};
+  let match;
+  while ((match = regex.exec(bibtex)) !== null) {
+    const fieldsBlock = match[2];
+    const entry = {};
 
-      // Split the block into individual field assignments
-      fieldsBlock.split(",").forEach(fieldLine => {
-        // Split each field assignment into key and value
-        const fieldMatch = fieldLine.match(/^\s*([^=]+)\s*=\s*\{([^}]+)\}/);
-        if (fieldMatch) {
-          const key = fieldMatch[1].trim().toLowerCase();
-          const value = fieldMatch[2].trim().replace(/\s+/g, ' '); // Normalize whitespace
-          entry[key] = value;
-        }
-      });
-
-      if (Object.keys(entry).length > 0) {
-        entries.push(entry);
+    fieldsBlock.split(",").forEach(fieldLine => {
+      const fieldMatch = fieldLine.match(/^\s*([^=]+)\s*=\s*\{([^}]+)\}/);
+      if (fieldMatch) {
+        const key = fieldMatch[1].trim().toLowerCase();
+        const value = fieldMatch[2].trim().replace(/\s+/g, ' '); // Normalize whitespace
+        entry[key] = value;
       }
-    }
+    });
 
-    return entries;
+    if (Object.keys(entry).length > 0) {
+      entries.push(entry);
+    }
   }
+
+  return entries.map(entry => ({
+    ...entry,
+    // Attempt to correct parsing for the author and journal fields
+    author: entry.author ? formatAuthors(entry.author) : 'Author information not available',
+    journal: entry.journal || 'Journal information not available'
+  }));
+}
+
+// Function to format authors from BibTeX author field
+function formatAuthors(authorsString) {
+  return authorsString.split(' and ').join(', ');
+}
+
 </script>
 
 
