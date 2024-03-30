@@ -103,25 +103,26 @@
         }
 
         footer a {
-    text-decoration: none; /* Remove underline from links */
-    color: inherit; /* Optional: ensures links use the footer's text color */
-        }
-
-        .publication-entry {
-    margin-bottom: 20px;
-        }
-
-.publication-entry h3 {
-    font-weight: bold;
-        }
-
-.publication-entry p {
-    margin: 5px 0;
+            text-decoration: none; /* Remove underline from links */
+            color: inherit; /* Optional: ensures links use the footer's text color */
         }
 
         .publication {
-    width: 90%; /* Ensure footer occupies full width */
-    max-width: 1200px;
+            width: 90%; /* Ensure footer occupies full width */
+            max-width: 1200px;
+            margin-top: 5px; /* Adds some space above the authors list */
+        }
+
+        .publication-details {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Adjust the space between elements as needed */
+        }
+        
+        .publication-details h4,
+        .publication-details span,
+        .publication-details a {
+            margin: 0; /* Removes default margin from headings and paragraphs */
         }
         
     </style>
