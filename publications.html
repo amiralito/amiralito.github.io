@@ -115,14 +115,23 @@
         .publication-details {
             display: flex;
             align-items: center;
-            gap: 10px; /* Reduce the space between elements as needed */
-            color: black;
+            gap: 20px; /* Reduce the space between elements as needed */
         }
         
         .publication-details h4,
         .publication-details span,
         .publication-details a {
             margin: 0; /* Removes default margin from headings and paragraphs */
+            color: black;
+        }
+
+                .publication h3, .publication h4, .publication p, .publication div {
+            margin-bottom: 10px; /* Adjust the bottom margin to reduce space between lines */
+            line-height: 1.2; /* Adjust line height for tighter text */
+        }
+        
+        .publication div {
+            margin: 0; /* Remove margin from div elements if not needed */
         }
         
     </style>
@@ -146,7 +155,7 @@
 
 
     <section class="publication">
-        <h3>Activation of plant immunity through conversion of a helper NLR homodimer into a resistosome</h3>
+        <h2>Activation of plant immunity through conversion of a helper NLR homodimer into a resistosome</h2>
         <div class="publication-details">
             <h4>2023</h4>
             <div>bioRxiv</div>
