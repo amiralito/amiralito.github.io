@@ -15,6 +15,21 @@
             flex-direction: column;
             align-items: center;
             min-height: 90vh; /* Minimum height of 100% of the viewport height */
+            animation: fadeIn 0.5s ease-in-out 0s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease-in-out 0s forwards; /* Animation for fade-out effect */
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
         }
 
         header {
@@ -272,6 +287,25 @@
         <span><a href="https://www.linkedin.com/in/amirali-toghani/"> LinkedIn</a></span>
         <span>© AmirAli Toghani, 2024</span>
     </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const links = document.querySelectorAll('a');
+
+        links.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault(); // Prevent the default link behavior
+                const destination = this.href; // Get the link's target
+
+                document.body.classList.add('fade-out'); // Apply the fade-out effect
+
+                setTimeout(function () {
+                    window.location.href = destination;
+                }, 500); // Delay the navigation to allow the fade-out effect to complete
+            });
+        });
+    });
+    </script>
     
 </body>
 </html>
