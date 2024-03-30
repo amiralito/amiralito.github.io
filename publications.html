@@ -138,46 +138,9 @@
         </div>
     </div>
 
-    <script>
-    const bibliography = document.getElementById('bib-publications');
-
-    fetch('data/works.bib')
-      .then(response => response.text())
-      .then(data => {
-        const parser = new BibTeX.Parser();
-        const bibData = parser.parse(data);
-
-        // Loop through each publication entry
-        for (const [key, entry] of Object.entries(bibData.entries)) {
-          const title = entry.fields.title;
-          const authors = entry.fields.author ? entry.fields.author.split(' and ') : [];
-          const year = entry.fields.year;
-          // Add other fields as needed (journal, volume, etc.)
-
-          // Create HTML elements for each publication
-          const publicationDiv = document.createElement('div');
-          publicationDiv.classList.add('publication-entry'); // Add class for styling
-
-          const titleElement = document.createElement('h3');
-          titleElement.textContent = title;
-          publicationDiv.appendChild(titleElement);
-
-          const authorList = document.createElement('ul');
-          for (const author of authors) {
-            const authorItem = document.createElement('li');
-            authorItem.textContent = author;
-            authorList.appendChild(authorItem);
-          }
-          publicationDiv.appendChild(authorList);
-
-          // Add additional elements (year, journal, etc.) with appropriate HTML tags
-
-          bibliography.appendChild(publicationDiv);
-        }
-      });
-  </script>
-
-
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pcooksey/bibtex-js@1.0.0/src/bibtex_js.js"></script>
+    <bibtex src="data/works.bib"></bibtex>
+    
     <footer>
         <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
         <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span>
