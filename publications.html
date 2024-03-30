@@ -141,30 +141,16 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pcooksey/bibtex-js@1.0.0/src/bibtex_js.js"></script>
     <bibtex src="data/works.bib"></bibtex>
     <div id="bibtex_display"></div>
-
-        <script type="text/javascript">
-        // Custom JavaScript to reformat bibliography entries
-        window.onload = function() {
-            setTimeout(function() {
-                var bibEntries = document.querySelectorAll('.bibtexentry');
-                bibEntries.forEach(function(entry) {
-                    var title = entry.querySelector('.title').innerText;
-                    var year = entry.querySelector('.year').innerText;
-                    var authors = entry.querySelector('.author').innerText;
-                    var journal = entry.querySelector('.journal').innerText;
-                    var url = entry.querySelector('.bibtexVar-url').innerText;
-
-                    var newEntryHtml = '<div class="custom-bib-entry">' +
-                                        '<strong>' + title + '</strong> (' + year + ')' +
-                                        '<div>' + authors + '</div>' +
-                                        '<em>' + journal + '</em>' +
-                                        '<a href="' + url + '">View Online</a>' +
-                                        '</div>';
-
-                    entry.innerHTML = newEntryHtml;
-                });
-            }, 1000); // Adjust the timeout as needed
-        };
+    
+    <script type="text/bibtex-template" id="bibtex_template">
+        @article{
+            <div class="bibtex-entry">
+                <div class="bibtex-title"><a href="{url}">{title}</a></div>
+                <div class="bibtex-year">{year}</div>
+                <div class="bibtex-authors">{author}</div>
+                <div class="bibtex-journal">{journal}</div>
+            </div>
+        }
     </script>
     
     <footer>
