@@ -90,6 +90,18 @@
             height: auto;
         }
 
+        .figure-legend {
+            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
+            font-weight: 300; /* Thin weight */
+            font-size: 13px;
+            text-align: left; /* Align text to the left */
+            width: 90%; /* Ensure footer occupies full width */
+            max-width: 1200px;
+            margin-top: 5px;
+            display: block; /* Ensure footer is treated as a block-level element */
+            color: black;
+        }
+
         @media (max-width: 800px) {
             .content {
                 flex-direction: column;
@@ -137,7 +149,17 @@
     <div class="content">
         <div class="text-section">
             <h1>Research</h1>
-            <p> My research will be here. In the meantime, you can check out the publications to get an idea :)
+
+            <h2>Phylogenomics of Plant Immune Receptors</h2>
+            <p> Plants have a variety of immune receptors that detect pathogen invasions and provide immunity. 
+                These receptors can be located on the cell surface, such as leucine-rich repeat receptor kinases (LRR-RKs), or within the cytoplasm, like nucleotide-binding leucine-rich repeat receptors (NLRs). 
+                My research focuses on the diversity and evolution of plant NLR and LRR-RK immune receptors at both interspecies and intraspecies levels [1,2].</p>
+        </div>
+        <div class="image-section">
+            <img src="data/F1.png" alt="Figure 1">
+        </div>
+        <div class ="figure-legend">
+            <p><b>Phylogenetics of NLR networks.</b> Contreras et al., 2023. DOI: <a href="https://doi.org/10.15252/embr.202357495"> 10.15252/embr.202357495 (X)</a></p>
         </div>
         
     </div>
