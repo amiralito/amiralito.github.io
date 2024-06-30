@@ -90,30 +90,6 @@
             height: auto;
         }
 
-        .rotating-background {
-            position: fixed;
-            top: 50%;
-            left: 90%;
-            width: 400px;
-            height: 400px;
-            background-image: url('data/NRC2_top.png');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            transform: translate(-50%, -50%);
-            animation: rotate 30s linear infinite;
-            z-index: 1;
-            pointer-events: none; /* Ensure it doesn't interfere with other elements */
-        }
-
-        @keyframes rotate {
-            from {
-                transform: translate(-50%, -50%) rotate(0deg);
-            }
-            to {
-                transform: translate(-50%, -50%) rotate(360deg);
-            }
-        }
 
         @media (max-width: 800px) {
             .content {
@@ -124,6 +100,22 @@
                 width: 100%;
             }
         }
+
+        .pic-background {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100px; /* Adjust the size as needed */
+    height: 100px; /* Adjust the size as needed */
+    background-image: url('data/NRC2_top.png'); /* Ensure the path is correct */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translate(-50%, -50%);
+    opacity: 1; /* Set transparency */
+    z-index: -1; /* Ensure it stays in the background */
+    pointer-events: none; /* Ensure it doesn't interfere with other elements */
+}
         
         footer {
             font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
@@ -161,6 +153,7 @@
     </header>
     
     <div class="rotating-background"></div>
+
     <div class="content">
         <div class="text-section">
             <h1>About me</h1>
