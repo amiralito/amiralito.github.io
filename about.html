@@ -13,7 +13,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 90vh; /* Minimum height of 100% of the viewport height */
+            justify-content: center; /* Center content vertically */
+            min-height: 100vh; /* Full viewport height */
             animation: fadeIn 0.5s ease-in-out 0s forwards; /* Animation for fade-in effect */
         }
 
@@ -66,9 +67,8 @@
 
         .content {
             display: flex;
-            flex: 1; /* Ensures that the content area can expand to fill available space */
-            align-items: flex-start;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: center; /* Center content horizontally */
             width: 90%;
             max-width: 1200px;
             margin-top: 50px;
@@ -89,7 +89,6 @@
         .pic-background {
             width: 100%; /* Make the image fit the container */
             height: auto;
-            opacity: 0.5; /* Set transparency */
         }
 
         .legend {
@@ -105,6 +104,7 @@
         @media (max-width: 800px) {
             .content {
                 flex-direction: column;
+                align-items: center; /* Center items in column layout */
             }
 
             .text-section, .image-wrapper {
@@ -155,12 +155,7 @@
         </nav>
     </header>
     
-
     <div class="content">
-        <div class="image-wrapper">
-            <img src="data/NRC2_dimer_v1.png" alt="NbNRC2 homodimer" class="pic-background">
-            <div class="legend">NbNRC2 homodimer. PDB: <a href="https://www.rcsb.org/structure/8RFH">8RFH</a></div>
-        </div>
         <div class="text-section">
             <h1>About me</h1>
             <p>I completed my undergraduate studies in Horticultural Sciences and Engineering with a minor in Biotechnology at Isfahan University of Technology (IUT). 
@@ -170,6 +165,10 @@
             <p>Given my passion for immunology and plant-microbe interactions, following my graduation in 2021, I started a new chapter at TSL with the Kamoun Lab as a pre-doctoral student. 
                 My time as a pre-doc saw me delving into a range of projects, from tissue-specific transcriptomics of plant NLRs and computational structural biology to phylogenomics and motif analyses in plant CC-type NLRs. 
                 In 2023, I started my PhD with the Kamoun Lab, where I continue to build on my pre-doctoral research while exploring new avenues in the evolution of plant immune receptors. To learn more about my research, please visit the research section!</p>
+        </div>
+        <div class="image-wrapper">
+            <img src="data/NRC2_dimer_v1.png" alt="NbNRC2 homodimer" class="pic-background">
+            <div class="legend">NbNRC2 homodimer. PDB: <a href="https://www.rcsb.org/structure/8RFH">8RFH</a></div>
         </div>
     </div>
     <footer>
