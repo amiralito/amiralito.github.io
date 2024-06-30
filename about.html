@@ -115,11 +115,13 @@
             }
 
             .pic-background {
-                position: static;
-                margin: 0px auto 0; /* Center the image below the text */
+                position: relative; /* Make it relative to be part of the content flow */
+                top: 0; /* Reset the top positioning */
+                right: 0; /* Reset the right positioning */
+                transform: none; /* Reset the transform */
+                margin: 0 auto 20px; /* Center the image above the text */
                 display: block; /* Ensure it is treated as a block-level element */
             }
-        }
 
         }
 
