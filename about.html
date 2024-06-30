@@ -90,12 +90,16 @@
             height: auto;
         }
 
+        .image-wrapper {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center align items in the column */
+        }
+        
         .pic-background {
-            position: absolute;
-            top: 50%;
-            right: 10%;
-            width: 600px; /* Adjust the size as needed */
-            height: 600px; /* Adjust the size as needed */
+            width: 100%; /* Make the image fit the container */
+            height: auto;
             background-image: url('data/NRC2_dimer_v1.png'); /* Ensure the path is correct */
             background-size: contain;
             background-repeat: no-repeat;
@@ -110,6 +114,9 @@
             font-weight: 200; /* Thin weight */
             font-size: 12px;
             color: black;
+            text-align: left; /* Align text to the left */
+            margin-top: 10px; /* Space between image and legend */
+            width: 100%; /* Ensure the legend takes the full width of the image */
         }
         
         @media (max-width: 800px) {
@@ -122,20 +129,12 @@
             }
 
             .pic-background {
-                position: relative; /* Make it relative to be part of the content flow */
-                top: 0; /* Reset the top positioning */
-                right: 0; /* Reset the right positioning */
-                transform: none; /* Reset the transform */
-                margin: 0 auto 10px; /* Center the image above the text */
-                display: block; /* Ensure it is treated as a block-level element */
+                width: 100%; /* Adjust size for smaller screens */
+                height: auto; /* Maintain aspect ratio */
             }
 
             .legend {
-                font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-                font-weight: 200; /* Thin weight */
-                font-size: 12px;
-                text-align: center; /* Align text to the left */
-                color: black;
+                font-size: 12px; /* Adjust font size for smaller screens */
             }
 
         }
@@ -187,10 +186,10 @@
             <h1>About me</h1>
             <p>I completed my undergraduate studies in Horticultural Sciences and Engineering with a minor in Biotechnology at Isfahan University of Technology (IUT). 
                 Throughout my undergraduate journey, I engaged in various research initiatives, including effector discovery in the wheat fungal pathogen <i>Pyrenophora tritici-repentis</i>. 
-                My time at IUT culminated in my bachelor's thesis titled "The Effect of Environmental Factors on Phalaenopsis Orchid Flowering."</p>
+                My time at IUT culminated in my bachelor's thesis, "The Effect of Environmental Factors on Phalaenopsis Orchid Flowering."</p>
             
             <p>Given my passion for immunology and plant-microbe interactions, following my graduation in 2021, I started a new chapter at TSL with the Kamoun Lab as a pre-doctoral student. 
-                My time as a pre-doc saw me delving into a range of projects, from tissue-specific transcriptomics of plant NLRs and computational structural biology to phylogenomics and motif analyses in plant CC-type NLRs. 
+                My time as a pre-doc saw me delving into various projects, from tissue-specific transcriptomics of plant NLRs and computational structural biology to phylogenomics and motif analyses in plant CC-type NLRs. 
                 In 2023, I started my PhD with the Kamoun Lab, where I continue to build on my pre-doctoral research while exploring new avenues in the evolution of plant immune receptors. To learn more about my research, please visit the research section!</p>
         </div>
         
