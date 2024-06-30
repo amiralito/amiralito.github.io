@@ -132,6 +132,36 @@
     text-decoration: none; /* Remove underline from links */
     color: inherit; /* Optional: ensures links use the footer's text color */
         }
+
+        .reference {
+            width: 90%; /* Ensure footer occupies full width */
+            max-width: 1200px;
+        }
+
+        .reference-details {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Reduce the space between elements as needed */
+        }
+        
+        .reference-details span,
+        .reference-details a {
+            margin: 0; /* Removes default margin from headings and paragraphs */
+            color: black;
+        }
+
+        
+        .reference-details {
+            margin-bottom: 0px; /* Adjust this value as needed */
+        }
+        
+        .reference p {
+            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
+            font-weight: 400; /* Thin weight */
+            font-size: 12px;
+            margin-top: 0; /* If you want to reduce space before the paragraph */
+            margin-bottom: 10px; /* Adjust this value as needed for space after the paragraph */
+        }
         
     </style>
 </head>   
@@ -193,6 +223,19 @@
         </div>
         </section>
 
+    <section class="reference">
+        <div class="reference-details">
+            <div>[1]</div>
+            <p>Torres-Ascurra et al., <a href="https://doi.org/10.1101/2024.06.16.598756"> Functional diversification of a wild potato immune receptor at its center of origin.</a> 2023.</p>
+        </div>
+    </section>
+    
+  <section class="reference">
+        <div class="reference-details">
+            <div>[2]</div>
+            <p>Lüdke et al., <a href="https://doi.org/10.1101/2023.12.14.571630"> A root-specific NLR network confers resistance to plant parasitic nematodes.</a> 2023.</p>
+        </div>
+    </section>
 
 
     <footer>
