@@ -13,8 +13,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* Center content vertically */
-            min-height: 100vh; /* Full viewport height */
+            min-height: 90vh; /* Minimum height of 100% of the viewport height */
+            color: black;
             animation: fadeIn 0.5s ease-in-out 0s forwards; /* Animation for fade-in effect */
         }
 
@@ -67,16 +67,23 @@
 
         .content {
             display: flex;
+            flex: 1; /* Ensures that the content area can expand to fill available space */
             align-items: center;
-            justify-content: center; /* Center content horizontally */
+            justify-content: space-between;
             width: 90%;
             max-width: 1200px;
             margin-top: 50px;
+            color: black;
         }
 
         .text-section {
             width: 50%;
             text-align: left;
+            color: black;
+        }
+
+        .text-section a {
+            color: black;
         }
 
         .image-wrapper {
