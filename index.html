@@ -144,6 +144,7 @@
   </div>
 
   <script>
+    // Fade-out on internal navigation
     document.querySelectorAll('a[data-route]').forEach(a => {
       a.addEventListener('click', function (e) {
         if (e.metaKey || e.ctrlKey) return;
@@ -155,6 +156,15 @@
         document.body.addEventListener('transitionend', () => { if (!fired) { fired = true; go(); } }, { once: true });
         setTimeout(() => { if (!fired) go(); }, 450);
       });
+    });
+
+    // Ensure fade-out is cleared when returning via back/forward navigation (bfcache)
+    window.addEventListener('pageshow', function () {
+      document.body.classList.remove('fade-out');
+    });
+    // Also clear on normal reload just in case
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.classList.remove('fade-out');
     });
   </script>
 </body>
