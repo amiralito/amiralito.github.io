@@ -15,7 +15,7 @@
       --bg: #ffffff;
       --text: #0b0b0b;
       --muted: #5e5e5e;
-      --grid: 1500px;
+      --grid: 1280px;
       --gutter: clamp(16px, 4vw, 32px);
     }
 
@@ -37,9 +37,10 @@
     .hero { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: start; gap: clamp(40px, 10vw, 140px); min-height: 70vh; }
 
     /* Left column */
+    .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
     .name { font-weight: 800; font-size: clamp(38px, 8vw, 92px); line-height: .95; margin: 0 0 12px; letter-spacing: 0; }
 
-    .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 18px; margin: clamp(4px,1.2vh,12px) 0 clamp(16px,2.6vh,28px); }
+    .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0; }
     .nav-bracket { width: 48px; height: 96px; opacity: .9; }
     .nav-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
     .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(16px,1.6vw,20px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
@@ -48,7 +49,7 @@
       outline: none;
     }
 
-    .tagline { max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(28px, 8vh, 56px) 0 0; }
+    .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(28px, 8vh, 56px) 0 0; }
 
     /* Right column image & caption */
     figure.structure { margin: 0; justify-self: end; max-width: clamp(420px, 38vw, 620px); }
@@ -72,6 +73,7 @@
       align-items: center;
       margin-top: 40px;
       color: var(--muted);
+      font-size: clamp(12px, 1.1vw, 14px);
     }
     .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
     .social a { color: inherit; text-decoration: none; font-weight: 200; }
@@ -80,6 +82,11 @@
     /* Responsiveness */
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; gap: 40px; min-height: auto; }
+      .intro { grid-template-columns: 1fr; align-items: start; }
+      .nav-block { margin: 0 0 16px; }
+      .tagline { grid-column: 1; margin-top: 16px; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
       .nav-block { margin-bottom: 40px; }
       footer { flex-direction: column; align-items: flex-start; }
     }
@@ -89,7 +96,7 @@
   <div class="wrap">
     <main class="hero" id="main">
       <!-- Left column -->
-      <section aria-label="Introductory information">
+      <section class="intro" aria-label="Introductory information">
         <h1 class="name">AmirAli<br />Toghani</h1>
 
         <div class="nav-block" aria-label="Primary">
@@ -109,7 +116,7 @@
         <img src="data/NbNRC2a.png" width="900" height="900" alt="NRC2 resistosome complex, PDB 9FP6" />
         <figcaption class="caption">
           <strong>NRC2 Resistosome</strong>
-          <small>PDB:<a href="https://www.rcsb.org/structure/pdb_00009fp6" target="_blank" rel="noopener">9FP6</a></small>
+          <small>PDB: 9FP6</small>
         </figcaption>
       </figure>
     </main>
