@@ -33,21 +33,18 @@
 
     .wrap { max-width: var(--grid); margin: 0 auto; padding: 60px var(--gutter) 24px; }
 
-    /* Layout: fixed vertical alignment for hero */
-    .hero { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: start; gap: clamp(40px, 10vw, 140px); min-height: 70vh; }
+    /* Layout: two columns centered vertically */
+    .hero { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: center; gap: clamp(40px, 10vw, 140px); min-height: 80vh; }
 
     /* Left column */
     .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
     .name { font-weight: 800; font-size: clamp(38px, 8vw, 92px); line-height: .95; margin: 0 0 12px; letter-spacing: 0; }
 
     .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0; }
-    .nav-bracket { width: 48px; height: 96px; opacity: .9; }
-    .nav-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
+    .nav-bracket { width: 48px; height: 96px; opacity: .9; position: relative; top: 8px; }
+    .nav-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; justify-content: space-between; height: 96px; }
     .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(16px,1.6vw,20px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
-    .nav-list a:hover, .nav-list a:focus-visible {
-      transform: translateX(8px);
-      outline: none;
-    }
+    .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
     .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(28px, 8vh, 56px) 0 0; }
 
@@ -55,26 +52,13 @@
     figure.structure { margin: 0; justify-self: end; max-width: clamp(420px, 38vw, 620px); }
     .structure img { width: 100%; height: auto; display: block; }
     .caption { margin-top: 8px; }
-    .caption strong {
-      font-weight: 600;
-      font-size: 16px;
-    }
-    .caption small {
-      font-weight: 200;
-      color: var(--muted);
-      font-size: 14px;
-    }
+    .caption strong { font-weight: 600; font-size: 16px; }
+    .caption small { font-weight: 200; color: var(--muted); font-size: 14px; }
+    .caption a { color: inherit; text-decoration: none; }
+    .caption a:hover, .caption a:focus-visible { text-decoration: underline; }
 
     /* Footer */
-    footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      margin-top: 40px;
-      color: var(--muted);
-      font-size: clamp(12px, 1.1vw, 14px);
-    }
+    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
     .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
     .social a { color: inherit; text-decoration: none; font-weight: 200; }
     .social a:hover, .social a:focus-visible { text-decoration: underline; }
@@ -83,11 +67,9 @@
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; gap: 40px; min-height: auto; }
       .intro { grid-template-columns: 1fr; align-items: start; }
-      .nav-block { margin: 0 0 16px; }
+      .nav-bracket { top: 0; height: 84px; }
+      .nav-list { height: 84px; }
       .tagline { grid-column: 1; margin-top: 16px; }
-      footer { flex-direction: column; align-items: flex-start; }
-    }
-      .nav-block { margin-bottom: 40px; }
       footer { flex-direction: column; align-items: flex-start; }
     }
   </style>
@@ -116,7 +98,7 @@
         <img src="data/NbNRC2a.png" width="900" height="900" alt="NRC2 resistosome complex, PDB 9FP6" />
         <figcaption class="caption">
           <strong>NRC2 Resistosome</strong>
-          <small>PDB: 9FP6</small>
+          <small>PDB: <a href="https://www.rcsb.org/structure/9FP6" target="_blank" rel="noopener">9FP6</a></small>
         </figcaption>
       </figure>
     </main>
