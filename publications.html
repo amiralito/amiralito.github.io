@@ -54,8 +54,8 @@
     .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
     /* Right category nav (Papers / Posters / Protocols / Datasets) */
-    .cat-block { grid-column: 1; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin-top: 6px; }
-    .cat-bracket { width: 48px; height: 140px; opacity: .9; }
+    .cat-block { grid-column: 1; position: sticky; top: 120px; align-self: start; }
+    /* cat-bracket removed per new design */
     .cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
     .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
     .cat-list a:hover, .cat-list a:focus-visible { transform: translateX(8px); }
@@ -102,20 +102,18 @@
     /* Responsive */
     @media (max-width: 900px) {
       .wrap { padding: 28px var(--gutter) 24px; }
-      
       .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
       .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
       .nav-bracket { height: 84px; width: 42px; top: 0; }
-      .cat-block { grid-template-columns: auto 1fr; margin-top: 12px; }
-      .cat-bracket { height: 120px; width: 42px; }
-      .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
-      .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
 
       .content { grid-template-columns: 1fr; gap: 18px; }
+      .cat-block { grid-column: 1; position: static; margin-top: 12px; }
+      .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
       .list { grid-column: 1; }
       .pub { grid-template-columns: 1fr; }
       .pub-meta { text-align: left; }
 
+      .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
       .to-top { right: 14px; bottom: 14px; }
     }
       .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
@@ -126,7 +124,7 @@
       .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
       .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
 
-      .content { grid-template-columns: 2fr; gap: 18px; }
+      .content { grid-template-columns: 1fr; gap: 18px; }
       .pub { grid-template-columns: 1fr; }
       .pub-meta { text-align: left; }
 
@@ -178,7 +176,6 @@
     <!-- Content grid: legend already present at left, sections list at right -->
     <div class="content">
       <aside class="cat-block" aria-label="Publication categories">
-        <img class="cat-bracket" src="data/bracket2.svg" alt="Category bracket" />
         <ul class="cat-list">
           <li><a href="#papers">Papers</a></li>
           <li><a href="#posters">Posters</a></li>
