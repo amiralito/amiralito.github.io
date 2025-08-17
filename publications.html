@@ -23,6 +23,7 @@
       --nav-gap-mobile: 5px;
       --cat-offset: 4vh; /* vertical tweak for right bracket group */
       --rail-width: 25%; /* LEFT rail width: controls where the main body starts */
+      --content-lift: -24px;   /* pull the publications block up */
     }
 
     * { box-sizing: border-box; }
@@ -64,7 +65,14 @@
     .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(20px, 8vh, 80px) 0 0; }
 
     /* Content layout: legend (aside) + list */
-    .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .content {
+    display: grid;
+    grid-template-columns: var(--rail-width) 1fr;  /* left rail | list */
+    gap: clamp(30px, 8vw, 80px);
+    align-items: start;
+    margin-top: var(--content-lift);               /* << lift up */
+    }
+
     .list { grid-column: 2; }
     .list { grid-column: 2; }
     .legend { color: var(--text); }
