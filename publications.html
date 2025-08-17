@@ -54,7 +54,7 @@
     .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
     /* Right category nav (Papers / Posters / Protocols / Datasets) */
-    .cat-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin-top: var(--cat-offset); }
+    .cat-block { grid-column: 1; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin-top: 6px; }
     .cat-bracket { width: 48px; height: 140px; opacity: .9; }
     .cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
     .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
@@ -64,6 +64,7 @@
 
     /* Content layout: legend (aside) + list */
     .content { display: grid; grid-template-columns: 1fr 3fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .list { grid-column: 2; }
     .legend { color: var(--text); }
     .legend h3 { font-size: 16px; margin: 0 0 8px; }
     .legend p { color: var(--muted); font-size: 14px; margin: 2px 0; }
@@ -73,7 +74,7 @@
 
     /* Publication items */
     .pub-list { display: grid; gap: 20px; }
-    .pub { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 18px; padding: 10px 0 18px; border-bottom: 1px solid rgba(0,0,0,.06); }
+    .pub { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 18px; padding: 10px 0 18px; border-bottom: 1px solid rgba(0,0,0,.06); }
     .pub:last-child { border-bottom: none; }
 
     .pub-title { font-weight: 600; font-size: clamp(16px, 1.6vw, 20px); margin: 0 0 6px; }
@@ -82,7 +83,7 @@
 
     .authors { font-size: 14px; color: var(--muted); margin-top: 2px; }
 
-    .pub-meta { text-align: right; color: var(--muted); font-size: 14px; }
+    .pub-meta { text-align: right; color: var(--muted); font-size: 14px; align-self: baseline; white-space: nowrap; }
     .pub-meta .journal { display: block; }
     .pub-meta .year { display: block; font-weight: 600; color: var(--text); }
 
@@ -101,6 +102,7 @@
     /* Responsive */
     @media (max-width: 900px) {
       .wrap { padding: 28px var(--gutter) 24px; }
+      
       .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
       .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
       .nav-bracket { height: 84px; width: 42px; top: 0; }
@@ -170,6 +172,11 @@
       </section>
 
       <!-- Right column: category nav -->
+      
+    </main>
+
+    <!-- Content grid: legend already present at left, sections list at right -->
+    <div class="content">
       <aside class="cat-block" aria-label="Publication categories">
         <img class="cat-bracket" src="data/bracket2.svg" alt="Category bracket" />
         <ul class="cat-list">
@@ -179,11 +186,6 @@
           <li><a href="#datasets">Datasets</a></li>
         </ul>
       </aside>
-    </main>
-
-    <!-- Content grid: legend already present at left, sections list at right -->
-    <div class="content">
-      <div class="legend" aria-label="Legend details" hidden></div>
 
       <div class="list">
         <section id="papers">
