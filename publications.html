@@ -21,6 +21,7 @@
       --gutter: clamp(16px, 4vw, 32px);
       --nav-gap-desktop: 5px;
       --nav-gap-mobile: 5px;
+      --cat-offset: 4vh; /* vertical tweak for right bracket group */
     }
 
     * { box-sizing: border-box; }
@@ -41,8 +42,8 @@
     .hero { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: start; gap: clamp(40px, 10vw, 140px); min-height: 32vh; }
 
     .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
-    .name { font-weight: 800; font-size: clamp(28px, 5.2vw, 56px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; }
-    .home-link { color: inherit; text-decoration: none; }
+    .name { font-weight: 800; font-size: clamp(26px, 4.6vw, 48px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; white-space: nowrap; }
+    .home-link { color: inherit; text-decoration: none; white-space: nowrap; }
     .home-link:hover, .home-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
     /* Left site nav (About / Research / Publications) */
@@ -53,7 +54,7 @@
     .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
     /* Right category nav (Papers / Posters / Protocols / Datasets) */
-    .cat-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; }
+    .cat-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin-top: var(--cat-offset); }
     .cat-bracket { width: 48px; height: 140px; opacity: .9; }
     .cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
     .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
@@ -62,7 +63,7 @@
     .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(20px, 8vh, 80px) 0 0; }
 
     /* Content layout: legend (aside) + list */
-    .content { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .content { display: grid; grid-template-columns: 1fr 3fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
     .legend { color: var(--text); }
     .legend h3 { font-size: 16px; margin: 0 0 8px; }
     .legend p { color: var(--muted); font-size: 14px; margin: 2px 0; }
@@ -100,6 +101,21 @@
     /* Responsive */
     @media (max-width: 900px) {
       .wrap { padding: 28px var(--gutter) 24px; }
+      .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
+      .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
+      .nav-bracket { height: 84px; width: 42px; top: 0; }
+      .cat-block { grid-template-columns: auto 1fr; margin-top: 12px; }
+      .cat-bracket { height: 120px; width: 42px; }
+      .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
+      .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
+
+      .content { grid-template-columns: 1fr; gap: 18px; }
+      .list { grid-column: 1; }
+      .pub { grid-template-columns: 1fr; }
+      .pub-meta { text-align: left; }
+
+      .to-top { right: 14px; bottom: 14px; }
+    }
       .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
       .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
       .nav-bracket { height: 84px; width: 42px; top: 0; }
@@ -169,7 +185,7 @@
     <div class="content">
       <div class="legend" aria-label="Legend details" hidden></div>
 
-      <div>
+      <div class="list">
         <section id="papers">
           <h2>Papers</h2>
           <div class="pub-list">
