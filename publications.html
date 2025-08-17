@@ -1,505 +1,293 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmirAli Toghani</title>
-    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pcooksey/bibtex-js@1.0.0/src/bibtex_js.js"></script>
-    <style>
-        body {
-            font-family: 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 90vh; /* Minimum height of 100% of the viewport height */
-            animation: fadeIn 0.5s ease-in-out 0s forwards;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Publications — AmirAli Toghani</title>
+  <meta name="description" content="Publications by AmirAli Toghani — titles link to external pages; organized into Papers, Posters, Protocols, and Datasets." />
+  <link rel="icon" href="/favicon.ico" />
+  
+  <!-- Adobe Fonts: Area family -->
+  <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
+  <!-- Material Symbols for back-to-top arrow -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_up" />
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0b0b0b;
+      --muted: #5e5e5e;
+      --grid: 1280px;
+      --gutter: clamp(16px, 4vw, 32px);
+      --nav-gap-desktop: 5px;
+      --nav-gap-mobile: 5px;
+    }
 
-        .fade-out {
-            animation: fadeOut 0.5s ease-in-out 0s forwards; /* Animation for fade-out effect */
-        }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'area-normal', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      transition: opacity .4s ease;
+    }
+    body.fade-out { opacity: 0; }
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
+    .wrap { max-width: var(--grid); margin: 0 auto; padding: 40px var(--gutter) 24px; }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 20px;
-        }
+    /* Header / hero layout */
+    .hero { display: grid; grid-template-columns: 0.95fr 1.05fr; align-items: start; gap: clamp(40px, 10vw, 140px); min-height: 32vh; }
 
-        .site-name {
-            font-size: 24px;
-            font-weight: bold;
-            text-decoration: none;
-            color: black;
-        }
+    .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
+    .name { font-weight: 800; font-size: clamp(28px, 5.2vw, 56px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; }
+    .home-link { color: inherit; text-decoration: none; }
+    .home-link:hover, .home-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
-        nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
+    /* Left site nav (About / Research / Publications) */
+    .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0; }
+    .nav-bracket { width: 48px; height: 96px; opacity: .9; position: relative; top: 6px; }
+    .nav-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
+    .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
+    .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
-        nav li {
-            margin-left: 20px;
-            font-weight: 300;
-        }
+    /* Right category nav (Papers / Posters / Protocols / Datasets) */
+    .cat-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; }
+    .cat-bracket { width: 48px; height: 140px; opacity: .9; }
+    .cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
+    .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
+    .cat-list a:hover, .cat-list a:focus-visible { transform: translateX(8px); }
 
-        nav a {
-            text-decoration: none;
-            color: black;
-        }
+    .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(20px, 8vh, 80px) 0 0; }
 
-        .content {
-            display: flex;
-            flex: 1; /* Ensures that the content area can expand to fill available space */
-            align-items: center;
-            justify-content: space-between;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 50px;
-        }
+    /* Content layout: legend (aside) + list */
+    .content { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .legend { color: var(--text); }
+    .legend h3 { font-size: 16px; margin: 0 0 8px; }
+    .legend p { color: var(--muted); font-size: 14px; margin: 2px 0; }
 
-        .text-section {
-            width: 50%;
-            text-align: left;
-        }
+    section { padding: 10px 0 28px; scroll-margin-top: 90px; }
+    h2 { font-size: clamp(22px, 2.4vw, 32px); margin: 0 0 14px; }
 
-        .image-section {
-            width: 40%;
-            display: flex;
-            justify-content: center;
-        }
+    /* Publication items */
+    .pub-list { display: grid; gap: 20px; }
+    .pub { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 18px; padding: 10px 0 18px; border-bottom: 1px solid rgba(0,0,0,.06); }
+    .pub:last-child { border-bottom: none; }
 
-        .image-section img {
-            max-width: 100%;
-            height: auto;
-        }
+    .pub-title { font-weight: 600; font-size: clamp(16px, 1.6vw, 20px); margin: 0 0 6px; }
+    .pub-title a { color: inherit; text-decoration: none; }
+    .pub-title a:hover, .pub-title a:focus-visible { text-decoration: underline; }
 
-        @media (max-width: 800px) {
-            .content {
-                flex-direction: column;
-            }
+    .authors { font-size: 14px; color: var(--muted); margin-top: 2px; }
 
-            .text-section, .image-section {
-                width: 100%;
-            }
-        }
-        
-        footer {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 200; /* Thin weight */
-            font-size: 12px;
-            text-align: left; /* Align text to the left */
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-            margin-top: 20px;
-            margin-bottom: 40px;
-            display: block; /* Ensure footer is treated as a block-level element */
-            color: black;
-        }
+    .pub-meta { text-align: right; color: var(--muted); font-size: 14px; }
+    .pub-meta .journal { display: block; }
+    .pub-meta .year { display: block; font-weight: 600; color: var(--text); }
 
-        footer span {
-            margin-right: 40px; /* Adds space between footer entries */
-        }
+    /* Back to top arrow */
+    .to-top { position: fixed; right: 20px; bottom: 20px; width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.12); display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .to-top .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .to-top.show { opacity: 1; pointer-events: auto; }
+    .to-top:hover { transform: translateY(-2px); }
 
-        footer a {
-            text-decoration: none; /* Remove underline from links */
-            color: inherit; /* Optional: ensures links use the footer's text color */
-        }
+    /* Footer */
+    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
+    .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
+    .social a { color: inherit; text-decoration: none; font-weight: 200; }
+    .social a:hover, .social a:focus-visible { text-decoration: underline; }
 
-        .publication {
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-        }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .wrap { padding: 28px var(--gutter) 24px; }
+      .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
+      .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
+      .nav-bracket { height: 84px; width: 42px; top: 0; }
+      .cat-block { grid-template-columns: auto 1fr; }
+      .cat-bracket { height: 120px; width: 42px; }
+      .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
+      .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
 
-        .publication-details {
-            display: flex;
-            align-items: center;
-            gap: 20px; /* Reduce the space between elements as needed */
-        }
-        
-        .publication-details h4,
-        .publication-details span,
-        .publication-details a {
-            margin: 0; /* Removes default margin from headings and paragraphs */
-            color: black;
-        }
+      .content { grid-template-columns: 1fr; gap: 18px; }
+      .pub { grid-template-columns: 1fr; }
+      .pub-meta { text-align: left; }
 
-        .publication h2 {
-            margin-bottom: 0px; /* Adjust this value as needed */
-        }
-        
-        .publication-details {
-            margin-bottom: 0px; /* Adjust this value as needed */
-        }
-        
-        .publication p {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 400; /* Thin weight */
-            font-size: 15px;
-            margin-top: 0; /* If you want to reduce space before the paragraph */
-            margin-bottom: 40px; /* Adjust this value as needed for space after the paragraph */
-        }
-        
-    </style>
-</head>   
+      .to-top { right: 14px; bottom: 14px; }
+    }
+
+    @media (max-width: 600px) {
+      .name { font-size: clamp(26px, 8.5vw, 44px); }
+      .nav-bracket { height: 76px; width: 36px; }
+      .cat-bracket { height: 108px; width: 36px; }
+    }
+
+    @media (max-width: 420px) {
+      :root { --gutter: 16px; }
+      .name { font-size: clamp(24px, 8.8vw, 40px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
 <body>
-    <header>
-        <a href="index.html" class="site-name">AmirAli Toghani</a>
-        <nav>
-            <ul>
-                <li><a href="about.html">About</a></li>
-                <li><a href="research.html">Research</a></li>
-                <li><a href="publications.html">Publications</a></li>
-            </ul>
-        </nav>
-    </header>
-    
+  <a class="skip" href="#main" style="position:absolute;left:-9999px;">Skip to content</a>
+  <div class="wrap">
+    <main class="hero" id="main">
+      <!-- Left column: name + site nav -->
+      <section class="intro" aria-label="Publications header">
+        <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</a></h1>
+
+        <div class="nav-block" aria-label="Primary navigation">
+          <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
+          <ul class="nav-list">
+            <li><a href="about.html" data-route>About</a></li>
+            <li><a href="research.html" data-route>Research</a></li>
+            <li><a href="publications.html" data-route>Publications</a></li>
+          </ul>
+        </div>
+
+        <p class="tagline">Legend<br />
+          <span style="color:var(--muted); font-size:14px;">† Authors contributed equally to this work.<br />* Corresponding author(s).</span>
+        </p>
+      </section>
+
+      <!-- Right column: category nav -->
+      <aside class="cat-block" aria-label="Publication categories">
+        <img class="cat-bracket" src="data/bracket2.svg" alt="Category bracket" />
+        <ul class="cat-list">
+          <li><a href="#papers">Papers</a></li>
+          <li><a href="#posters">Posters</a></li>
+          <li><a href="#protocols">Protocols</a></li>
+          <li><a href="#datasets">Datasets</a></li>
+        </ul>
+      </aside>
+    </main>
+
+    <!-- Content grid: legend already present at left, sections list at right -->
     <div class="content">
-        <div class="text-section">
-            <h1>Publications</h1>
-        </div>
+      <div class="legend" aria-label="Legend details" hidden></div>
+
+      <div>
+        <section id="papers">
+          <h2>Papers</h2>
+          <div class="pub-list">
+            <!-- SAMPLE ITEMS — replace with real data -->
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">A conserved small RNA-generating gene cluster undergoes sequence diversification and contributes to plant immunity</a></h3>
+                <div class="authors">Li Feng†, Yingnan Hou†, <strong>AmirAli Toghani</strong>, Zhixue Wang, Bozeng Tang, Nicola Atkinson, Hui Li, Yue Qiao, Yan Wang, Jian Hua, Jixian Zhai, Wenbo Ma*</div>
+              </div>
+              <div class="pub-meta"><span class="journal">bioRxiv</span><span class="year">2025</span></div>
+            </article>
+
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">Can AI modelling of protein structures distinguish between sensor and helper NLR immune receptors?</a></h3>
+                <div class="authors"><strong>AmirAli Toghani</strong>, Raoul Frijters, Tolga O Bozkurt, Ryohei Terauchi, Sophien Kamoun*, Yu Sugihara*</div>
+              </div>
+              <div class="pub-meta"><span class="journal">New Phytologist</span><span class="year">2025</span></div>
+            </article>
+
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">An effector from the potato late blight pathogen bridges ENTH-domain protein TOL9a to an activated helper NLR to suppress immunity</a></h3>
+                <div class="authors">Jogi Madhukprakash, <strong>AmirAli Toghani</strong>, Hsuan Pai, Madia Harvey, Adam R. Bentham, Benjamin A. Seager, Enoch Lok Him Yuen, Juan Carlos De la, David M. Lawson, Clare E. M. Stevenson, Angel Vergara-Cruces, Lida Derevnina, Tolga O. Bozkurt, Mark J. Banfield, Sophien Kamoun*, Mauricio P. Contreras*</div>
+              </div>
+              <div class="pub-meta"><span class="journal">bioRxiv</span><span class="year">2025</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="posters">
+          <h2>Posters</h2>
+          <div class="pub-list">
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">Poster title example</a></h3>
+                <div class="authors">A. Toghani, Team</div>
+              </div>
+              <div class="pub-meta"><span class="journal">Conference</span><span class="year">2024</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="protocols">
+          <h2>Protocols</h2>
+          <div class="pub-list">
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">Protocol title example</a></h3>
+                <div class="authors">A. Toghani, Lab</div>
+              </div>
+              <div class="pub-meta"><span class="journal">Protocol Exchange</span><span class="year">2023</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="datasets">
+          <h2>Datasets</h2>
+          <div class="pub-list">
+            <article class="pub">
+              <div>
+                <h3 class="pub-title"><a href="#" target="_blank" rel="noopener">Dataset title example</a></h3>
+                <div class="authors">A. Toghani, Collaborators</div>
+              </div>
+              <div class="pub-meta"><span class="journal">Zenodo</span><span class="year">2022</span></div>
+            </article>
+          </div>
+        </section>
+      </div>
     </div>
 
-        <section class="publication">
-        <p>† Authors contributed equally to this work.</p>
-        <p>* Corresponding author(s).</p>
-
-    </section>
-    
-        <section class="publication">
-        <h2>A conserved small RNA-generating gene cluster undergoes sequence diversification and contributes to plant immunity</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>bioRxiv</div>
-            <h5><a href="https://doi.org/10.1101/2025.07.20.665670">View Online</a></h5>
-        </div>
-        <p>Li Feng†, Yingnan Hou†*, <b>AmirAli Toghani</b>, Zhixue Wang, Bozeng Tang, Nicola Atkinson, Hui Li, Yue Qiao, Yan Wang, Jian Hua, Jixian Zhai, Wenbo Ma*</p>
-        
-    </section>
-    
-        <section class="publication">
-        <h2>Can AI modelling of protein structures distinguish between sensor and helper NLR immune receptors?</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>New Phytologist</div>
-            <h5><a href="https://doi.org/10.1111/nph.70391">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Raoul Frijters, Tolga O Bozkurt, Ryohei Terauchi, Sophien Kamoun*, Yu Sugihara*</p>
-        
-    </section>
-    
-        <section class="publication">
-        <h2>An effector from the potato late blight pathogen bridges ENTH-domain protein TOL9a to an activated helper NLR to suppress immunity</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>bioRxiv</div>
-            <h5><a href="https://doi.org/10.1101/2025.07.06.663370">View Online</a></h5>
-        </div>
-        <p>Jogi Madhuprakash, <b>AmirAli Toghani</b>, Hsuan Pai, Madia Harvey, Adam R. Bentham, Benjamin A. Seager, Enoch Lok Him Yuen, Juan Carlos De la, David M. Lawson, Clare E. M. Stevenson, Angel Vergara-Cruces, Lida Derevnina, Tolga O. Bozkurt, Mark J. Banfield, Sophien Kamoun*, Mauricio P. Contreras*</p>
-        
-    </section>
-    
-            
-    <section class="publication">
-        <h2>A root-specific NLR network mediates immune signaling of resistance genes against plant parasitic nematodes</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>The Plant Cell</div>
-            <h5><a href="https://doi.org/10.1093/plcell/koaf145">View Online</a></h5>
-        </div>
-        <p>Daniel Lüdke, Toshiyuki Sakai, Jiorgos Kourelis, <b>AmirAli Toghani</b>, Hiroaki Adachi, Andres Posbeyikian, Raoul Frijters, Hsuan Pai, Adeline Harant, Karin Ernst, Martin Ganal, Adriaan Verhage, Chih-Hang Wu, Sophien Kamoun*</p>
-    </section>
-
-
-        <section class="publication">
-        <h2>Helper NLR immune protein NRC3 evolved to evade inhibition by a cyst nematode virulence effector</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>PLOS Genetics</div>
-            <h5><a href="https://doi.org/10.1371/journal.pgen.1011653">View Online</a></h5>
-        </div>
-        <p>Yu Sugihara, Jiorgos Kourelis, Mauricio P Contreras, Hsuan Pai, Adeline Harant, Muniyandi Selvaraj, <b>AmirAli Toghani</b>, Claudia Martinez-Anaya*, Sophien Kamoun*</p>
-    </section>
-    
-        <section class="publication">
-        <h2>The autoactivity of tomato helper NLR immune proteins of the NRC clade is unaltered in prf mutants of Nicotiana benthamiana</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>bioRxiv</div>
-            <h5><a href="https://doi.org/10.1101/2025.03.11.642614">View Online</a></h5>
-        </div>
-        <p>Daniel Lüdke, Hsuan Pai, <b>AmirAli Toghani</b>, Adeline Harant, Chih-Hang Wu, Sophien Kamoun*</p>
-        
-    </section>
-
-        <section class="publication">
-        <h2>A hierarchical immune receptor network in lettuce reveals contrasting patterns of evolution in sensor and helper NLRs</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>bioRxiv</div>
-            <h5><a href="https://doi.org/10.1101/2025.02.25.639832">View Online</a></h5>
-        </div>
-        <p>Hsuan Pai, Toshiyuki Sakai, Andres Posbeyikian, Raoul Frijters, Yu Sugihara, Mauricio P Contreras, Jiorgos Kourelis, Hiroaki Adachi, Sophien Kamoun*, <b>AmirAli Toghani*</b></p>
-        
-    </section>
-
-        <section class="publication">
-        <h2>A disease resistance protein triggers oligomerization of its NLR helper into a hexameric resistosome to mediate innate immunity</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>Science Advances</div>
-            <h5><a href="https://doi.org/10.1126/sciadv.adr2594">View Online</a></h5>
-        </div>
-        <p>Jogi Madhuprakash*, <b>AmirAli Toghani</b>, Mauricio P Contreras, Andres Posbeyikian, Jake Richardson, Jiorgos Kourelis, Tolga O Bozkurt, Michael W Webster*, Sophien Kamoun*</p>
-    </section>
-
-            
-        <section class="publication">
-        <h2>Activation of plant immunity through conversion of a helper NLR homodimer into a resistosome</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>PLOS Biology</div>
-            <h5><a href="https://doi.org/10.1371/journal.pbio.3002868">View Online</a></h5>
-        </div>
-        <p>Muniyandi Selvaraj, <b>AmirAli Toghani</b>, Hsuan Pai, Yu Sugihara, Jiorgos Kourelis, Enoch Lok Him Yuen, Tarhan Ibrahim, He Zhao, Rongrong Xie, Abbas Maqbool, Juan Carlos De la Concepcion, Mark J Banfield, Lida Derevnina, Benjamin Petre, David M Lawson, Tolga O Bozkurt, Chih-Hang Wu, Sophien Kamoun*, Mauricio P Contreras*</p>
-    </section>
-
-
-        <section class="publication">
-        <h2>A helper NLR targets organellar membranes to trigger immunity</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>bioRxiv</div>
-            <h5><a href="https://doi.org/10.1101/2024.09.19.613839">View Online</a></h5>
-        </div>
-        <p>Tarhan Ibrahim†, Enoch L.H. Yuen†, Hung-Yu Wang†, Freddie J. King†, <b>AmirAli Toghani†</b>, Jiorgos Kourelis†, Cristina Vuolo, Vanda Adamkova, Baptiste Castel, Jonathan DG Jones, Chih-Hang Wu, Sophien Kamoun*, Tolga O Bozkurt*</p>
-        
-    </section>
-
-            
-        <section class="publication">
-        <h2>Subfunctionalization of NRC3 altered the genetic structure of the Nicotiana NRC network</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>PLOS Genetics</div>
-            <h5><a href="https://doi.org/10.1371/journal.pgen.1011402">View Online</a></h5>
-        </div>
-        <p>Ching-Yi Huang, Yu-Seng Huang, Yu Sugihara, Hung-Yu Wang, Lo-Ting Huang, Juan Carlos Lopez-Agudelo, Yi-Feng Chen, Kuan-Yu Lin, Bing-Jen Chiang, <b>AmirAli Toghani</b>, Jiorgos Kourelis, Chun-Hsiung Wang, Lida Derevnina, Chih-Hang Wu*</p>
-    </section>
-
-
-    <section class="publication">
-        <h2>REVIEW: NLR receptors in plant immunity: making sense of the alphabet soup</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>EMBO reports</div>
-            <h5><a href="https://doi.org/10.15252/embr.202357495">View Online</a></h5>
-        </div>
-        <p>Mauricio P Contreras*, Daniel Lüdke, Hsuan Pai, <b>AmirAli Toghani</b>, Sophien Kamoun*</p>
-    </section>
-
-    
-    <section class="publication">
-        <h2>Functional diversification of a wild potato immune receptor at its center of origin</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>Science</div>
-            <h5><a href="https://doi.org/10.1126/science.adg5261">View Online</a></h5>
-        </div>
-        <p>Yerisf C Torres Ascurra, Lisha Zhang, <b>AmirAli Toghani</b>, Chenlei Hua, Nandeesh Jalahalli Rangegowda, Andres Posbeyikian, Hsuan Pai, Xiao Lin, Pieter J Wolters, Doret Wouters, Reinhoud de Blok, Niels Steigenga, Maxence JM Paillart, Richard GF Visser, Sophien Kamoun, Thorsten Nürnberger*, Vivianne GAA Vleeshouwers*</p>
-    </section>
-
-    <section class="publication">
-        <h2>Resurrection of plant disease resistance proteins via helper NLR bioengineering</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>Science Advances</div>
-            <h5><a href="https://doi.org/10.1126/sciadv.adg3861">View Online</a></h5>
-        </div>
-        <p>Mauricio P Contreras, Hsuan Pai, Muniyandi Selvaraj, <b>AmirAli Toghani</b>, David M Lawson, Yasin Tumtas, Cian Duggan, Enoch Lok Him Yuen, Clare EM Stevenson, Adeline Harant, Abbas Maqbool, Chih-Hang Wu, Tolga O Bozkurt, Sophien Kamoun*, Lida Derevnina*</p>
-    </section>
-
-
-    <section class="publication">
-        <h2>An atypical NLR protein modulates the NRC immune receptor network in Nicotiana benthamiana</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>PLOS Genetics</div>
-            <h5><a href="https://doi.org/10.1371/journal.pgen.1010500">View Online</a></h5>
-        </div>
-        <p>Hiroaki Adachi*, Toshiyuki Sakai, Adeline Harant, Hsuan Pai, Kodai Honda, <b>AmirAli Toghani</b>, Jules Claeys, Cian Duggan, Tolga O Bozkurt, Chih-hang Wu*, Sophien Kamoun*</p>
-    </section>
-
-
-
-<div class="content">
-        <div class="text-section">
-            <h1>Protocols</h1>
-        </div>
-    </div>
-
-    <section class="publication">
-        <h2>Phylogenomics of Plant NLR Immune Receptors to Identify Functionally Conserved Sequence Motifs</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>Bio-protocol</div>
-            <h5><a href="https://doi.org/10.21769/BioProtoc.5023">View Online</a></h5>
-        </div>
-        <p>Toshiyuki Sakai, <b>AmirAli Toghani</b>, Hiroaki Adachi*</p>
-    </section>
-    
-
-    
-        <div class="content">
-        <div class="text-section">
-            <h1>Datasets</h1>
-        </div>
-    </div>
-
-
-
-        <section class="publication">
-        <h2>Deep-learning-based annotation of 230 superasterid genomes reveals a harmonized dataset of 91,366 NLRs</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>Dryad</div>
-            <h5><a href="https://doi.org/10.5061/dryad.sxksn03d6">View Online (Dryad)</a></h5>
-            <h5><a href="https://doi.org/10.5281/zenodo.14720918">View Online (Zenodo)</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Yu Sugihara, Sophien Kamoun</p>
-    </section>
-
-            
-        <section class="publication">
-        <h2>Functional annotation of 180 RefSeq reference plant proteomes reveals a dataset of 113,684 NLR proteins</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>Zenodo</div>
-            <h5><a href="https://zenodo.org/doi/10.5281/zenodo.13627394">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Sophien Kamoun</p>
-    </section>
-
-            
-    <section class="publication">
-        <h2>AlphaFold 3 predicted NLR resistosome structures</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>Zenodo</div>
-            <h5><a href="https://zenodo.org/doi/10.5281/zenodo.11546021">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Tolga O Bozkurt, Sophien Kamoun</p>
-    </section>
-
-
-        <section class="publication">
-        <h2>NLRome dataset from 124 genomes of plants in the Solanaceae family</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>Zenodo</div>
-            <h5><a href="https://zenodo.org/doi/10.5281/zenodo.10354349">View Online</a></h5>
-        </div>
-        <p>Yu Sugihara, <b>AmirAli Toghani</b>, Sophien Kamoun, Jiorgos Kourelis</p>
-    </section>
-    
-
-
-    
-    <div class="content">
-        <div class="text-section">
-            <h1>Poster Presentations</h1>
-        </div>
-    </div>
-
-
-    <section class="publication">
-        <h2>A hierarchical immune receptor network in lettuce reveals contrasting patterns of evolution in sensor and helper NLRs</h2>
-        <div class="publication-details">
-            <h4>2025</h4>
-            <div>IS-MPMI, Cologne, Germany</div>
-            <h5><a href="https://doi.org/10.5281/zenodo.15837929">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani*</b>, Hsuan Pai, Toshiyuki Sakai, Andres Posbeyikian, Raoul Frijters, Yu Sugihara, Mauricio P Contreras, Jiorgos Kourelis, Hiroaki Adachi, Sophien Kamoun*</p>
-    </section>
-
-    
-    <section class="publication">
-        <h2>Evolutionary diversification of protein-protein interaction interfaces: A case study on an NLR immune receptor network</h2>
-        <div class="publication-details">
-            <h4>2024</h4>
-            <div>BSPP Plant Pathology, Oxford, UK</div>
-            <div>Molecular mechanisms in evolution and ecology, Heidelberg, Germany</div>
-            <h5><a href="https://zenodo.org/doi/10.5281/zenodo.13365606">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Muniyandi Selvaraj, Mauricio P Contreras, Ioanna Morianou, Hsuan Pai, Sophien Kamoun*</p>
-    </section>
-    
-
-    <section class="publication">
-        <h2>What is driving the diversification of the N-terminal α1-helix of NRC helper NLRs?</h2>
-        <div class="publication-details">
-            <h4>2023</h4>
-            <div>BSPP Plant Pathology, Birmingham, UK</div>
-            <h5><a href="https://doi.org/10.5281/zenodo.8318588">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, Mauricio P Contreras, Yu Sugihara, Jiorgos Kourelis, Hiroaki Adachi, Sophien Kamoun*</p>
-    </section>
-
-    <section class="publication">
-        <h2>Phylogenetically conserved TIR-NLR proteins induce transcriptional reprogramming</h2>
-        <div class="publication-details">
-            <h4>2022</h4>
-            <div>Mendel Early Career Symposium (Mendel ECR), Vienna, Austria</div>
-            <h5><a href="https://doi.org/10.5281/zenodo.6556359">View Online</a></h5>
-        </div>
-        <p><b>AmirAli Toghani</b>, A. Cristina Barragan, Mauricio P Contreras, Hsuan Pai, Toshiyuki Sakai, Jules Claeys, Hiroaki Adachi, Daniel Lüdke, Sophien Kamoun*</p>
-    </section>
-    
     <footer>
-        <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
-        <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span>
-        <span><a href="https://www.linkedin.com/in/amirali-toghani/"> LinkedIn</a></span>
-        <span><a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ"> Google Scholar</a></span>
-        <span><a href="https://github.com/amiralito"> GitHub</a></span>
-
-        <span>© AmirAli Toghani, 2025</span>
+      <nav class="social" aria-label="Social links">
+        <a href="https://twitter.com/" target="_blank" rel="noopener">Twitter (X)</a>
+        <a href="https://bsky.app/" target="_blank" rel="noopener">Bluesky</a>
+        <a href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://scholar.google.com/" target="_blank" rel="noopener">Google Scholar</a>
+        <a href="https://github.com/amiralito" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div style="font-weight:200">© AmirAli Toghani, 2025</div>
     </footer>
+  </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const links = document.querySelectorAll('a');
+  <button class="to-top" aria-label="Back to top" title="Back to top">
+    <span class="material-symbols-outlined">keyboard_arrow_up</span>
+  </button>
 
-        links.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault(); // Prevent the default link behavior
-                const destination = this.href; // Get the link's target
-
-                document.body.classList.add('fade-out'); // Apply the fade-out effect
-
-                setTimeout(function () {
-                    window.location.href = destination;
-                }, 500); // Delay the navigation to allow the fade-out effect to complete
-            });
-        });
+  <script>
+    // Internal fade-out for page-to-page navigation (same behavior as index)
+    document.querySelectorAll('a[data-route]').forEach(a => {
+      a.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey) return;
+        e.preventDefault();
+        const url = this.getAttribute('href');
+        document.body.classList.add('fade-out');
+        const go = () => window.location.href = url;
+        let fired = false;
+        document.body.addEventListener('transitionend', () => { if (!fired) { fired = true; go(); } }, { once: true });
+        setTimeout(() => { if (!fired) go(); }, 450);
+      });
     });
-    </script>
-    
+
+    // Show/Hide Back-to-top on scroll
+    const toTop = document.querySelector('.to-top');
+    const revealAt = 120; // px
+    const onScroll = () => {
+      if (window.scrollY > revealAt) toTop.classList.add('show');
+      else toTop.classList.remove('show');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Scroll to top smoothly
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // bfcache/back button — ensure fade-out is cleared when navigating back
+    window.addEventListener('pageshow', function () { document.body.classList.remove('fade-out'); });
+    document.addEventListener('DOMContentLoaded', function () { document.body.classList.remove('fade-out'); });
+  </script>
 </body>
 </html>
