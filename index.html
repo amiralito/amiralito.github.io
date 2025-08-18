@@ -33,7 +33,9 @@
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       transition: opacity .4s ease;
     }
-    body.fade-out { opacity: 0; }
+    /* Fade states */
+    body.preload { opacity: 0; }  /* hidden on first paint, then fade in */
+    body.fade-out { opacity: 0; }  /* fade on navigation */
 
     .wrap { max-width: var(--grid); margin: 0 auto; padding: 60px var(--gutter) 24px; }
 
@@ -101,10 +103,12 @@
 
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
+      body.preload { opacity: 1 !important; } /* no fade-in for reduced motion */
     }
   </style>
 </head>
-<body>
+<body class="preload">
+  <noscript><style>body{opacity:1 !important}</style></noscript>
   <div class="wrap">
     <main class="hero" id="main">
       <!-- Left column -->
@@ -160,14 +164,15 @@
       });
     });
 
-    // Ensure fade-out is cleared when returning via back/forward navigation (bfcache)
-    window.addEventListener('pageshow', function () {
-      document.body.classList.remove('fade-out');
-    });
-    // Also clear on normal reload just in case
-    document.addEventListener('DOMContentLoaded', function () {
-      document.body.classList.remove('fade-out');
-    });
+    // Reveal (fade-in) on load & when coming back via bfcache
+    const reveal = () => document.body.classList.remove('fade-out','preload');
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
+    } else {
+      requestAnimationFrame(reveal);
+    }
+    window.addEventListener('pageshow', () => reveal());
   </script>
 </body>
 </html>
