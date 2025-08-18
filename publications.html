@@ -62,6 +62,9 @@
     .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
     .cat-list a:hover, .cat-list a:focus-visible { transform: translateX(8px); }
 
+    .cat-media { margin-top: 16px; }
+    .cat-img { display: block; width: 100%; max-width: 220px; height: auto; }
+
     .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(20px, 8vh, 80px) 0 0; }
 
     /* Content layout: legend (aside) + list */
@@ -107,6 +110,21 @@
     /* Responsive */
     @media (max-width: 900px) {
       .wrap { padding: 28px var(--gutter) 24px; }
+      .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
+      .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
+      .nav-bracket { height: 84px; width: 42px; top: 0; }
+      .cat-block { grid-template-columns: auto 1fr; }
+      .nav-list, .cat-list { gap: var(--nav-gap-mobile); }
+      .tagline { grid-column: 1 / -1; margin-top: 16px; font-size: 16px; }
+
+      .content { grid-template-columns: 1fr; gap: 18px; }
+      .pub { grid-template-columns: 1fr; }
+      .pub-meta { text-align: left; }
+
+      .list { margin-top: 0; }
+      .cat-img { width: min(70vw, 260px); max-width: none; }
+      .to-top { right: 14px; bottom: 14px; }
+    }
       .hero { grid-template-columns: 1fr; gap: 28px; min-height: auto; }
       .intro { grid-template-columns: 1fr auto; align-items: center; column-gap: 16px; }
       .nav-bracket { height: 84px; width: 42px; top: 0; }
@@ -174,6 +192,9 @@
           <li><a href="#protocols">Protocols</a></li>
           <li><a href="#datasets">Datasets</a></li>
         </ul>
+        <figure class="cat-media">
+          <img class="cat-img" src="data/AVRcap1b_ENTH.png" alt="AVRcap1b ENTH structure" />
+        </figure>
       </aside>
 
       <div class="list">
