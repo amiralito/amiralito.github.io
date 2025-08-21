@@ -20,6 +20,7 @@
       --nav-gap-desktop: 10px;
       --nav-gap-mobile: 5px;
       --rail-width: 25%; /* controls where the main body starts (same behavior as publications) */
+      --about-top-gap: 36px;
     }
 
     * { box-sizing: border-box; }
@@ -54,6 +55,7 @@
     .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
     .about { grid-column: 2; max-width: 68ch; }
     .about p { margin: 0 0 1.05em; line-height: 1.6; }
+    .about { grid-column: 2; max-width: 68ch; margin-top: var(--about-top-gap); }
 
     /* Photo */
     figure.portrait { margin: 18px 0 0; }
@@ -89,6 +91,9 @@
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
       body.preload { opacity: 1 !important; }
+
+      @media (max-width: 900px) {
+      .about { grid-column: 1; max-width: 70ch; margin-top: 20px; }
     }
   </style>
 </head>
