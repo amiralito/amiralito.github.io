@@ -1,209 +1,166 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmirAli Toghani</title>
-    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 90vh; /* Minimum height of 100% of the viewport height */
-            color: black;
-            animation: fadeIn 0.5s ease-in-out 0s forwards; /* Animation for fade-in effect */
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — AmirAli Toghani</title>
+  <meta name="description" content="About AmirAli Toghani — background, research interests, and personal notes." />
+  <link rel="icon" href="/favicon.ico" />
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+  <!-- Adobe Fonts: Area family -->
+  <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
 
-        .fade-out {
-            animation: fadeOut 0.5s ease-in-out 0s forwards; /* Animation for fade-out effect */
-        }
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0b0b0b;
+      --muted: #5e5e5e;
+      --grid: 1280px;
+      --gutter: clamp(16px, 4vw, 32px);
+      --nav-gap-desktop: 5px;
+      --nav-gap-mobile: 5px;
+      --rail-width: 25%; /* controls where the main body starts (same behavior as publications) */
+    }
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: 'area-normal', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      transition: opacity .4s ease; /* used for fades */
+    }
+    body.preload { opacity: 0; }  /* fade-in on load */
+    body.fade-out { opacity: 0; }  /* fade-out on navigate */
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 20px;
-        }
+    .wrap { max-width: var(--grid); margin: 0 auto; padding: 40px var(--gutter) 24px; }
 
-        .site-name {
-            font-size: 24px;
-            font-weight: bold;
-            text-decoration: none;
-            color: black;
-        }
+    /* Header / hero */
+    .hero { display: grid; grid-template-columns: 1fr; align-items: start; gap: clamp(24px, 6vw, 80px); }
+    .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
+    .name { font-weight: 800; font-size: clamp(26px, 4.6vw, 48px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; }
+    .home-link { color: inherit; text-decoration: none; }
+    .home-link:hover, .home-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
-        nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
+    .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0; }
+    .nav-bracket { width: 48px; height: 96px; opacity: .9; position: relative; top: 6px; }
+    .nav-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
+    .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
+    .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
-        nav li {
-            margin-left: 20px;
-            font-weight: 300;
-        }
+    /* Body layout: left rail + about text */
+    .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .about { grid-column: 2; max-width: 68ch; }
+    .about p { margin: 0 0 1.05em; line-height: 1.6; }
 
-        nav a {
-            text-decoration: none;
-            color: black;
-        }
+    /* Photo */
+    figure.portrait { margin: 18px 0 0; }
+    .portrait img { width: 100%; height: auto; display: block; }
+    .portrait figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); }
 
-        .content {
-            display: flex;
-            flex: 1; /* Ensures that the content area can expand to fill available space */
-            align-items: center;
-            justify-content: space-between;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 50px;
-            color: black;
-        }
+    /* Footer */
+    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
+    .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
+    .social a { color: inherit; text-decoration: none; font-weight: 200; }
+    .social a:hover, .social a:focus-visible { text-decoration: underline; }
 
-        .text-section {
-            width: 50%;
-            text-align: left;
-            color: black;
-        }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .wrap { padding: 28px var(--gutter) 24px; }
+      .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
+      .nav-bracket { height: 84px; width: 42px; top: 0; }
 
-        .text-section a {
-            color: black;
-        }
+      .content { grid-template-columns: 1fr; gap: 18px; }
+      .about { grid-column: 1; max-width: 70ch; }
+    }
 
-        .image-wrapper {
-            width: 40%;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Align items to the left */
-        }
+    @media (max-width: 600px) {
+      .name { font-size: clamp(26px, 8.5vw, 44px); }
+      .nav-bracket { height: 76px; width: 36px; }
+    }
 
-        .pic-background {
-            width: 100%; /* Make the image fit the container */
-            height: auto;
-        }
+    @media (max-width: 420px) {
+      :root { --gutter: 16px; }
+      .name { font-size: clamp(24px, 8.8vw, 40px); }
+    }
 
-        .legend {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 200; /* Thin weight */
-            font-size: 14px;
-            color: black;
-            text-align: left; /* Align text to the left */
-            margin-top: 10px; /* Space between image and legend */
-            width: 100%; /* Ensure the legend takes the full width of the image */
-        }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+      body.preload { opacity: 1 !important; }
+    }
+  </style>
+</head>
+<body class="preload">
+  <noscript><style>body{opacity:1 !important}</style></noscript>
+  <div class="wrap">
+    <main class="hero" id="main">
+      <section class="intro" aria-label="About header">
+        <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</a></h1>
 
-        @media (max-width: 800px) {
-            .content {
-                flex-direction: column;
-                align-items: center; /* Center items in column layout */
-            }
+        <div class="nav-block" aria-label="Primary navigation">
+          <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
+          <ul class="nav-list">
+            <li><a href="about.html" data-route>About</a></li>
+            <li><a href="research.html" data-route>Research</a></li>
+            <li><a href="publications.html" data-route>Publications</a></li>
+          </ul>
+        </div>
+      </section>
+    </main>
 
-            .text-section, .image-wrapper {
-                width: 100%;
-            }
-
-            .pic-background {
-                width: 100%; /* Adjust size for smaller screens */
-                height: auto; /* Maintain aspect ratio */
-            }
-
-            .legend {
-                font-size: 14px; /* Adjust font size for smaller screens */
-            }
-        }
-
-        footer {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 200; /* Thin weight */
-            font-size: 12px;
-            text-align: left; /* Align text to the left */
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-            margin-top: 20px;
-            display: block; /* Ensure footer is treated as a block-level element */
-            color: black;
-        }
-
-        footer span {
-            margin-right: 40px; /* Adds space between footer entries */
-        }
-
-        footer a {
-            text-decoration: none; /* Remove underline from links */
-            color: inherit; /* Optional: ensures links use the footer's text color */
-        }
-    </style>
-</head>   
-<body>
-    <header>
-        <a href="index.html" class="site-name">AmirAli Toghani</a>
-        <nav>
-            <ul>
-                <li><a href="about.html">About</a></li>
-                <li><a href="research.html">Research</a></li>
-                <li><a href="publications.html">Publications</a></li>
-            </ul>
-        </nav>
-    </header>
-    
     <div class="content">
-        <div class="text-section">
-            <h1>About me</h1>
-            <p>I completed my undergraduate studies in Horticultural Sciences and Engineering with a minor in Biotechnology at Isfahan University of Technology (IUT). 
-                Throughout my undergraduate journey, I engaged in various research initiatives, including effector discovery in the wheat fungal pathogen <i>Pyrenophora tritici-repentis</i>. 
-                My time at IUT culminated in my bachelor's thesis, "The Effect of Environmental Factors on Phalaenopsis Orchid Flowering."</p>
-            
-            <p>Given my passion for immunology and plant-microbe interactions, following my graduation in 2021, I <a href="https://kamounlab.tumblr.com/post/666376500997701632/new-starters-2021-we-welcome-amirali-toghani-for">started a new chapter</a> at TSL with the Kamoun Lab as a pre-doctoral student. 
-                During my pre-doc, I contributed to various projects, from tissue-specific transcriptomics of plant NLRs and computational structural biology to phylogenomics and motif analyses in plant CC-type NLRs. 
-                In 2023, I started my PhD with the Kamoun Lab, where I continue to build up on my pre-doctoral research while also exploring new avenues in studying the evolution of plant immune receptors.</p>
-        </div>
-        <div class="image-wrapper">
-            <img src="data/NRC2_dimer_v1.png" alt="NbNRC2 homodimer" class="pic-background">
-            <div class="legend"><b>NbNRC2 homodimer</b>. PDB: <a href="https://www.rcsb.org/structure/8RFH">8RFH</a></div>
-        </div>
+      <aside aria-hidden="true"></aside>
+
+      <article class="about">
+        <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,28px);font-weight:600">About</h2>
+        <p>I studied Horticultural Sciences and Engineering, with a minor in Biotechnology, at Isfahan University of Technology, where I first became fascinated by the world of plants and their interactions with microbes. My curiosity about plant immunity eventually led me to Norwich, where I joined the Kamoun Lab at The Sainsbury Laboratory (TSL) in 2021 as a pre-doctoral researcher. After almost two wonderful years of predoc, I started my PhD in the Kamoun Lab in 2023.</p>
+        <p>My research explores the molecular evolution and mechanisms of plant immune receptors. For more about my current projects, please check out the Research tab.</p>
+        <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
+
+        <figure class="portrait">
+          <img src="data/IMG_5851.jpeg" width="1600" height="1067" alt="AmirAli Toghani" />
+          <figcaption>Credit: Stephen Bornemann (TSL)</figcaption>
+        </figure>
+      </article>
     </div>
+
     <footer>
-        <span><a href="https://twitter.com/amiralito_">Twitter (X)</a></span> 
-        <span><a href="https://bsky.app/profile/amiralito.bsky.social">Bluesky</a></span>
-        <span><a href="https://www.linkedin.com/in/amirali-toghani/">LinkedIn</a></span>
-        <span><a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ">Google Scholar</a></span>
-        <span><a href="https://github.com/amiralito">GitHub</a></span>
-        <span>© AmirAli Toghani, 2025</span>
+      <nav class="social" aria-label="Social links">
+        <a href="https://twitter.com/amiralito_" target="_blank" rel="noopener">Twitter (X)</a>
+        <a href="https://bsky.app/profile/amiralito.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+        <a href="https://www.linkedin.com/in/amirali-toghani/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ" target="_blank" rel="noopener">Google Scholar</a>
+        <a href="https://github.com/amiralito" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div style="font-weight:200">© AmirAli Toghani, 2025</div>
     </footer>
+  </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const links = document.querySelectorAll('a');
-
-        links.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault(); // Prevent the default link behavior
-                const destination = this.href; // Get the link's target
-
-                document.body.classList.add('fade-out'); // Apply the fade-out effect
-
-                setTimeout(function () {
-                    window.location.href = destination;
-                }, 500); // Delay the navigation to allow the fade-out effect to complete
-            });
-        });
+  <script>
+    // Fade-out on internal navigation
+    document.querySelectorAll('a[data-route]').forEach(a => {
+      a.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey) return;
+        e.preventDefault();
+        const url = this.getAttribute('href');
+        document.body.classList.add('fade-out');
+        const go = () => window.location.href = url;
+        let fired = false;
+        document.body.addEventListener('transitionend', () => { if (!fired) { fired = true; go(); } }, { once: true });
+        setTimeout(() => { if (!fired) go(); }, 450);
+      });
     });
-    </script>
+
+    // Reveal (fade-in) on load & when coming back via bfcache
+    const reveal = () => document.body.classList.remove('fade-out','preload');
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
+    } else {
+      requestAnimationFrame(reveal);
+    }
+    window.addEventListener('pageshow', () => reveal());
+  </script>
 </body>
 </html>
