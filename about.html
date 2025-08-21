@@ -69,14 +69,7 @@
     .social a:hover, .social a:focus-visible { text-decoration: underline; }
 
     /* Responsive */
-    @media (max-width: 900px) {
-      .wrap { padding: 28px var(--gutter) 24px; }
-      .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
-      .nav-bracket { height: 84px; width: 42px; top: 0; }
-
-      .content { grid-template-columns: 1fr; gap: 18px; }
-      .about { grid-column: 1; max-width: 70ch; }
-    }
+    @media (max-width: 900px) {$1.about { grid-column: 1; max-width: 70ch; margin-top: 20px; }$2}
 
     @media (max-width: 600px) {
       .name { font-size: clamp(26px, 8.5vw, 44px); }
@@ -91,9 +84,6 @@
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
       body.preload { opacity: 1 !important; }
-
-      @media (max-width: 900px) {
-      .about { grid-column: 1; max-width: 70ch; margin-top: 20px; }
     }
   </style>
 </head>
@@ -102,7 +92,7 @@
   <div class="wrap">
     <main class="hero" id="main">
       <section class="intro" aria-label="About header">
-        <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</h1>
+        <h1 class="name"><a href="index.html" class="home-link">AmirAli<br />Toghani</a></h1>
 
         <div class="nav-block" aria-label="Primary navigation">
           <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
