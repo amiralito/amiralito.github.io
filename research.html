@@ -24,6 +24,7 @@
       --rail-width: 28%; /* left rail width (like Publications/About) */
       --sticky-top: 250px; /* where the left list sticks */
       --main-top-gap: 60px; /* space between header and content start */
+      --section-gap: 30px; /* gap between sections */
     }
 
     * { box-sizing: border-box; }
@@ -65,6 +66,7 @@
     .main h2 { font-size: clamp(22px, 2.4vw, 32px); margin: 0 0 12px; }
     .main h3 { font-size: clamp(18px, 2vw, 24px); margin: 22px 0 8px; }
     .main p { line-height: 1.6; margin: 0 0 1.05em; }
+    .main section + section { margin-top: var(--section-gap); }
 
     /* Make links look like site style */
     .main a { color: inherit; text-decoration: none; }
@@ -162,7 +164,7 @@
           <p>Plants have a variety of immune receptors that detect pathogen invasions and provide immunity. These receptors can be located on the cell surface, such as leucine-rich repeat receptor kinases and proteins (RLKs and RLPs, PRRs), or within the cytoplasm, like nucleotide-binding leucine-rich repeat receptors (NLRs). My research focuses on exploring the diversity of plant immune receptors and other immunity-associated genes at both inter and intraspecies levels <a href="#references">[1–4]</a>.</p>
           <figure class="block">
             <img src="data/F1.png" alt="Phylogenetics of NLR networks" />
-            <figcaption><strong>Phylogenetics of NLR networks.</strong> Contreras et al., 2023. <a href="https://doi.org/10.15252/embr.202357495" target="_blank" rel="noopener">doi:10.15252/embr.202357495</a></figcaption>
+            <figcaption><strong>Phylogenetics of NLR networks.</strong> <a href="https://doi.org/10.15252/embr.202357495" target="_blank" rel="noopener">Contreras et al., 2023.</a></figcaption>
           </figure>
         </section>
 
@@ -171,7 +173,7 @@
           <p>With the massive expansion and diversity of plant immune receptors we often look into the evolutionary history of gene families to understand how plants and pathogens co-evolve with each other. My research focuses on understanding the differential evolutionary pace of immune receptor types and families <a href="#references">[3,5,6]</a>.</p>
           <figure class="block">
             <img src="data/molecular_evo.png" alt="Positive selection signatures in sensor and helper NRCs" />
-            <figcaption><strong>Sensor and Helper NRCs show different signatures of positive selection.</strong> Pai et al., 2025. <a href="https://doi.org/10.1101/2025.02.25.639832" target="_blank" rel="noopener">doi:10.1101/2025.02.25.639832</a></figcaption>
+            <figcaption><strong>Sensor and Helper NRCs show different signatures of positive selection.</strong> <a href="https://doi.org/10.1101/2025.02.25.639832" target="_blank" rel="noopener">Pai et al., 2025.</a></figcaption>
           </figure>
         </section>
 
@@ -180,7 +182,7 @@
           <p>Recent advances in structural modeling have enabled high-throughput computational structural analysis of plant immune receptors and pathogen effectors. My research focuses on studying the structural basis of the resting and activated states of plant NLRs, PRRs, and structural diversity of pathogen effectors <a href="#references">[6–8]</a>.</p>
           <figure class="block">
             <img src="data/F3.png" alt="AlphaFold 3 predicts lipid-bound NbNRC2 resistosome" />
-            <figcaption><strong>AlphaFold 3 can predict a high-confidence lipid-bound NbNRC2 resistosome.</strong> Madhuprakash et al., 2024. <a href="https://doi.org/10.1126/sciadv.adr2594" target="_blank" rel="noopener">doi:10.1126/sciadv.adr2594</a></figcaption>
+            <figcaption><strong>AlphaFold 3 can predict a high-confidence lipid-bound NbNRC2 resistosome.</strong> <a href="https://doi.org/10.1126/sciadv.adr2594" target="_blank" rel="noopener">Madhuprakash et al., 2024.</a></figcaption>
           </figure>
         </section>
 
