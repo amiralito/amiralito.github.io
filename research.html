@@ -1,302 +1,260 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmirAli Toghani</title>
-    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Helvetica Neue', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 90vh; /* Minimum height of 100% of the viewport height */
-            animation: fadeIn 0.5s ease-in-out 0s forwards;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Research — AmirAli Toghani</title>
+  <meta name="description" content="Research by AmirAli Toghani — phylogenomics, molecular evolution, and computational structural biology of plant immunity." />
+  <link rel="icon" href="/favicon.ico" />
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+  <!-- Adobe Fonts: Area family -->
+  <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
+  <!-- Material Symbols for back-to-top arrow -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_up" />
 
-        .fade-out {
-            animation: fadeOut 0.5s ease-in-out 0s forwards; /* Animation for fade-out effect */
-        }
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0b0b0b;
+      --muted: #5e5e5e;
+      --grid: 1280px;
+      --gutter: clamp(16px, 4vw, 32px);
+      --nav-gap-desktop: 5px;
+      --nav-gap-mobile: 5px;
+      --rail-width: 25%; /* left rail width (like Publications/About) */
+      --sticky-top: 120px; /* where the left list sticks */
+    }
 
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'area-normal', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      transition: opacity .4s ease; /* fade in/out */
+    }
+    body.preload { opacity: 0; }
+    body.fade-out { opacity: 0; }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 20px;
-        }
+    .wrap { max-width: var(--grid); margin: 0 auto; padding: 40px var(--gutter) 24px; }
 
-        .site-name {
-            font-size: 24px;
-            font-weight: bold;
-            text-decoration: none;
-            color: black;
-        }
+    /* Header / hero */
+    .hero { display: grid; grid-template-columns: 1fr; align-items: start; gap: clamp(24px, 6vw, 80px); }
+    .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
+    .name { font-weight: 800; font-size: clamp(26px, 4.6vw, 48px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; }
+    .home-link { color: inherit; text-decoration: none; }
+    .home-link:hover, .home-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
-        nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
+    .nav-block { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; margin: 0; }
+    .nav-bracket { width: 48px; height: 96px; opacity: .9; position: relative; top: 6px; }
+    .nav-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
+    .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
+    .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
-        nav li {
-            margin-left: 20px;
-            font-weight: 300;
-        }
+    /* Body layout: left sticky list + content */
+    .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    .rail { grid-column: 1; position: sticky; top: var(--sticky-top); align-self: start; }
+    .rail ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    .rail a { color: inherit; text-decoration: none; font-size: 14px; }
+    .rail a:hover, .rail a:focus-visible { text-decoration: underline; }
 
-        nav a {
-            text-decoration: none;
-            color: black;
-        }
+    .main { grid-column: 2; }
+    .main h2 { font-size: clamp(22px, 2.4vw, 32px); margin: 0 0 12px; }
+    .main h3 { font-size: clamp(18px, 2vw, 24px); margin: 22px 0 8px; }
+    .main p { line-height: 1.6; margin: 0 0 1.05em; }
 
-        .content {
-            display: flex;
-            flex: 1; /* Ensures that the content area can expand to fill available space */
-            align-items: center;
-            justify-content: space-between;
-            width: 90%;
-            max-width: 1200px;
-            margin-top: 50px;
-        }
+    /* Make links look like site style */
+    .main a { color: inherit; text-decoration: none; }
+    .main a:hover, .main a:focus-visible { text-decoration: underline; }
 
-        .text-section {
-            width: 100%;
-            text-align: left;
-        }
+    /* Figures */
+    figure.block { margin: 12px 0 6px; }
+    .block img { width: 100%; height: auto; display: block; }
+    .block figcaption { margin-top: 6px; font-size: 14px; color: var(--muted); }
 
-        .image-section {
-            width: 100%;
-            display: flex;
-            justify-content: left;
-        }
+    .refs-link { margin: 8px 0 22px; font-size: 14px; color: var(--muted); }
 
-        .image-section img {
-            max-width: 100%;
-            height: auto;
-        }
+    /* References */
+    .references { margin-top: 36px; }
+    .references ol { margin: 8px 0 0 20px; }
+    .references li { margin: 0 0 6px; }
+    .references a { color: inherit; text-decoration: none; }
+    .references a:hover, .references a:focus-visible { text-decoration: underline; }
 
-        .figure-legend {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 300; /* Thin weight */
-            font-size: 13px;
-            text-align: left; /* Align text to the left */
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-            margin-top: 5px;
-            display: block; /* Ensure footer is treated as a block-level element */
-            color: black;
-        }
+    /* Footer */
+    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
+    .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
+    .social a { color: inherit; text-decoration: none; font-weight: 200; }
+    .social a:hover, .social a:focus-visible { text-decoration: underline; }
 
-        @media (max-width: 800px) {
-            .content {
-                flex-direction: column;
-            }
+    /* Back to top arrow */
+    .to-top { position: fixed; right: 20px; bottom: 20px; width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.12); display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .to-top .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .to-top.show { opacity: 1; pointer-events: auto; }
+    .to-top:hover { transform: translateY(-2px); }
 
-            .text-section, .image-section {
-                width: 100%;
-            }
-        }
-        
-        footer {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 200; /* Thin weight */
-            font-size: 12px;
-            text-align: left; /* Align text to the left */
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            display: block; /* Ensure footer is treated as a block-level element */
-            color: black;
-        }
+    /* Responsive */
+    @media (max-width: 900px) {
+      .wrap { padding: 28px var(--gutter) 24px; }
+      .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
+      .nav-bracket { height: 84px; width: 42px; top: 0; }
+      .content { grid-template-columns: 1fr; gap: 18px; }
+      .rail { position: static; }
+      .main { grid-column: 1; }
+    }
 
-        footer span {
-            margin-right: 40px; /* Adds space between footer entries */
-        }
+    @media (max-width: 600px) {
+      .name { font-size: clamp(26px, 8.5vw, 44px); }
+      .nav-bracket { height: 76px; width: 36px; }
+    }
 
-        footer a {
-    text-decoration: none; /* Remove underline from links */
-    color: inherit; /* Optional: ensures links use the footer's text color */
-        }
+    @media (max-width: 420px) {
+      :root { --gutter: 16px; }
+    }
 
-        .reference {
-            width: 90%; /* Ensure footer occupies full width */
-            max-width: 1200px;
-        }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+      body.preload { opacity: 1 !important; }
+    }
+  </style>
+</head>
+<body class="preload">
+  <noscript><style>body{opacity:1 !important}</style></noscript>
+  <div class="wrap">
+    <main class="hero" id="main">
+      <section class="intro" aria-label="Research header">
+        <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</a></h1>
 
-        .reference-details {
-            display: flex;
-            align-items: center;
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 400; /* Thin weight */
-            font-size: 12px;
-            gap: 10px; /* Reduce the space between elements as needed */
-        }
-        
-        .reference-details span,
-        .reference-details a {
-            margin: 0; /* Removes default margin from headings and paragraphs */
-            color: black;
-        }
-
-        
-        .reference-details {
-            margin-bottom: 0px; /* Adjust this value as needed */
-        }
-        
-        .reference p {
-            font-family: 'Reddit Mono', sans-serif; /* Using Roboto as an example */
-            font-weight: 400; /* Thin weight */
-            font-size: 12px;
-            margin-top: 0; /* If you want to reduce space before the paragraph */
-            margin-bottom: 10px; /* Adjust this value as needed for space after the paragraph */
-        }
-        
-    </style>
-</head>   
-<body>
-    <header>
-        <a href="index.html" class="site-name">AmirAli Toghani</a>
-        <nav>
-            <ul>
-                <li><a href="about.html">About</a></li>
-                <li><a href="research.html">Research</a></li>
-                <li><a href="publications.html">Publications</a></li>
-            </ul>
-        </nav>
-    </header>
-    <section class="content">
-        <div class="text-section">
-            <h1>Research</h1>
-    
-
-            <h2>1. Phylogenomics of Plant Immune Receptors</h2>
-            <p> Plants have a variety of immune receptors that detect pathogen invasions and provide immunity. 
-                These receptors can be located on the cell surface, such as leucine-rich repeat receptor kinases (LRR-RKs), or within the cytoplasm, like nucleotide-binding leucine-rich repeat receptors (NLRs). 
-                My research focuses on the diversity and evolution of plant NLR and LRR-RK immune receptors at both interspecies and intraspecies levels [1,2].</p>
-            <div class="image-section">
-            <img src="data/F1.png" alt="Figure 1">
-            </div>
-            <div class ="figure-legend">
-                <p><b>Phylogenetics of NLR networks.</b> Contreras et al., 2023. DOI: <a href="https://doi.org/10.15252/embr.202357495"> 10.15252/embr.202357495</a></p>
-            </div>
+        <div class="nav-block" aria-label="Primary navigation">
+          <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
+          <ul class="nav-list">
+            <li><a href="about.html" data-route>About</a></li>
+            <li><a href="research.html" data-route>Research</a></li>
+            <li><a href="publications.html" data-route>Publications</a></li>
+          </ul>
         </div>
+      </section>
+    </main>
+
+    <div class="content">
+      <!-- Left sticky list -->
+      <aside class="rail" aria-label="On this page">
+        <ul>
+          <li><a href="#research">Research</a></li>
+          <li><a href="#phylogenomics">Phylogenomics</a></li>
+          <li><a href="#molecular-evolution">Molecular Evolution</a></li>
+          <li><a href="#computational-structural-biology">Computational Structural Biology</a></li>
+          <li><a href="#references">References</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main content -->
+      <article class="main">
+        <section id="research">
+          <h2>Research</h2>
+          <p>In my research, I aim to bridge bioinformatics approaches—including phylogenomics and computational structural biology—to generate hypotheses and ask new questions. By integrating insights from structural biology, biochemistry, and evolutionary analysis, we aim to capture the big picture while keeping the finer details in focus. The main facets of my work can be summarized as:</p>
         </section>
 
-    <section class="content">
-        <div class="text-section">
-            <h2>2. Sequence Motifs and Diversification of Plant CC-type NLRs</h2>
-            <p> Immune receptors often contain conserved sequence patterns essential for their functions, known as sequence motifs. One example is the N-terminal MADA motif found in approximately 20% of plant CC-NLRs [3]. 
-                My research focuses on examining the conservation and diversification of these sequence motifs across various NLR lineages [4,5].</p>
-            <div class="image-section">
-            <img src="data/F2.png" alt="Figure 2">
-            </div>
-            <div class ="figure-legend">
-                <p><b>The NRC homodimerization interface has diversified throughout the evolution of NRC clade.</b> Selvaraj et al., 2024. DOI: <a href="https://doi.org/10.1371/journal.pbio.3002868"> 10.1371/journal.pbio.3002868</a></p>
-            </div>
-        </div>
+        <section id="phylogenomics">
+          <h3>1. Phylogenomics of Plant Immune Receptors</h3>
+          <p>Plants have a variety of immune receptors that detect pathogen invasions and provide immunity. These receptors can be located on the cell surface, such as leucine-rich repeat receptor kinases and proteins (RLKs and RLPs, PRRs), or within the cytoplasm, like nucleotide-binding leucine-rich repeat receptors (NLRs). My research focuses on exploring the diversity of plant immune receptors and other immunity-associated genes at both inter and intraspecies levels [1–4].</p>
+          <figure class="block">
+            <img src="data/F1.png" alt="Phylogenetics of NLR networks" />
+            <figcaption><strong>Phylogenetics of NLR networks.</strong> Contreras et al., 2023. <a href="https://doi.org/10.15252/embr.202357495" target="_blank" rel="noopener">doi:10.15252/embr.202357495</a></figcaption>
+          </figure>
+          <p class="refs-link"><a href="#references">See references [1–4]</a></p>
         </section>
 
-
-    <section class="content">
-        <div class="text-section">
-            <h2>3. Computational Structural Biology</h2>
-            <p> Recent advances in structural modelling have enabled high-throughput computational structural analysis of plant immune receptors. 
-                My research focuses on studying the stoichiometry of activated and resting-state plant NLRs through structural modelling and analysis [6].</p>
-            <div class="image-section">
-            <img src="data/F3.png" alt="Figure 3">
-            </div>
-            <div class ="figure-legend">
-                <p><b>AlphaFold 3 can predict a high-confidence lipid-bound NbNRC2 resistosome. </b> Madhuprakash et al., 2024. DOI: <a href="https://doi.org/10.1126/sciadv.adr2594"> 10.1126/sciadv.adr2594</a></p>
-            </div>
-        </div>
+        <section id="molecular-evolution">
+          <h3>2. Molecular Evolution of Plant Immune Receptors and Pathogen Effectors</h3>
+          <p>With the massive expansion and diversity of plant immune receptors we often look into the evolutionary history of gene families to understand how plants and pathogens co-evolve with each other. My research focuses on understanding the differential evolutionary pace of immune receptor types and families [3,5,6].</p>
+          <figure class="block">
+            <img src="data/molecular_evo.png" alt="Positive selection signatures in sensor and helper NRCs" />
+            <figcaption><strong>Sensor and Helper NRCs show different signatures of positive selection.</strong> Pai et al., 2025. <a href="https://doi.org/10.1101/2025.02.25.639832" target="_blank" rel="noopener">doi:10.1101/2025.02.25.639832</a></figcaption>
+          </figure>
+          <p class="refs-link"><a href="#references">See references [3,5,6]</a></p>
         </section>
 
+        <section id="computational-structural-biology">
+          <h3>3. Computational Structural Biology</h3>
+          <p>Recent advances in structural modeling have enabled high-throughput computational structural analysis of plant immune receptors and pathogen effectors. My research focuses on studying the structural basis of the resting and activated states of plant NLRs, PRRs, and structural diversity of pathogen effectors [6–8].</p>
+          <figure class="block">
+            <img src="data/F3.png" alt="AlphaFold 3 predicts lipid-bound NbNRC2 resistosome" />
+            <figcaption><strong>AlphaFold 3 can predict a high-confidence lipid-bound NbNRC2 resistosome.</strong> Madhuprakash et al., 2024. <a href="https://doi.org/10.1126/sciadv.adr2594" target="_blank" rel="noopener">doi:10.1126/sciadv.adr2594</a></figcaption>
+          </figure>
+          <p class="refs-link"><a href="#references">See references [6–8]</a></p>
+        </section>
 
-    
-    <section class="reference">
-        <h4>References</h4>
-        <div class="reference-details">
-            <p>1. Torres-Ascurra et al., <a href="https://doi.org/10.1101/2024.06.16.598756"> Functional diversification of a wild potato immune receptor at its center of origin.</a> 2023.</p>
-        </div>
-    </section>
-    
-  <section class="reference">
-        <div class="reference-details">
-            <p>2. Lüdke et al., <a href="https://doi.org/10.1101/2023.12.14.571630"> A root-specific NLR network confers resistance to plant parasitic nematodes.</a> 2023.</p>
-        </div>
-    </section>
-
-
-    <section class="reference">
-        <div class="reference-details">
-            <p>3. Adachi et al., <a href="https://doi.org/10.7554/eLife.49956"> An N-terminal motif in NLR immune receptors is functionally conserved across distantly related plant species.</a> 2019.</p>
-        </div>
-    </section>
-
-    <section class="reference">
-        <div class="reference-details">
-            <p>4. Sakai et al., <a href="https://doi.org/10.21769/BioProtoc.5023"> Phylogenomics of Plant NLR Immune Receptors to Identify Functionally Conserved Sequence Motifs.</a> 2024.</p>
-        </div>
-    </section>
-
-    <section class="reference">
-        <div class="reference-details">
-            <p>5. Selvaraj et al., <a href="https://doi.org/10.1371/journal.pbio.3002868"> Activation of plant immunity through conversion of a helper NLR homodimer into a resistosome.</a> 2024.</p>
-        </div>
-    </section>
-
-    <section class="reference">
-        <div class="reference-details">
-            <p>6. Madhuprakash et al., <a href="https://doi.org/10.1126/sciadv.adr2594"> A disease resistance protein triggers oligomerization of its NLR helper into a hexameric resistosome to mediate innate immunity.</a> 2024.</p>
-        </div>
-    </section>
-
-    
+        <section id="references" class="references">
+          <h3>References</h3>
+          <ol>
+            <li id="ref-1">Contreras et al., <a href="https://doi.org/10.15252/embr.202357495" target="_blank" rel="noopener">NLR receptors in plant immunity: making sense of the alphabet soup.</a> 2023.</li>
+            <li id="ref-2">Torres-Ascurra et al., <a href="https://doi.org/10.1101/2024.06.16.598756" target="_blank" rel="noopener">Functional diversification of a wild potato immune receptor at its center of origin.</a> 2023.</li>
+            <li id="ref-3">Pai et al., <a href="https://doi.org/10.1101/2025.02.25.639832" target="_blank" rel="noopener">A hierarchical immune receptor network in lettuce reveals contrasting patterns of evolution in sensor and helper NLRs.</a> 2025.</li>
+            <li id="ref-4">Feng et al., <a href="https://doi.org/10.1101/2025.07.20.665670" target="_blank" rel="noopener">A conserved small RNA-generating gene cluster undergoes sequence diversification and contributes to plant immunity.</a> 2025.</li>
+            <li id="ref-5">Selvaraj et al., <a href="https://doi.org/10.1371/journal.pbio.3002868" target="_blank" rel="noopener">Activation of plant immunity through conversion of a helper NLR homodimer into a resistosome.</a> 2024.</li>
+            <li id="ref-6">Madhukprakash et al., <a href="https://doi.org/10.1101/2025.07.06.663370" target="_blank" rel="noopener">An effector from the potato late blight pathogen bridges ENTH-domain protein TOL9a to an activated helper NLR to suppress immunity.</a> 2025.</li>
+            <li id="ref-7">Madhuprakash et al., <a href="https://doi.org/10.1126/sciadv.adr2594" target="_blank" rel="noopener">A disease resistance protein triggers oligomerization of its NLR helper into a hexameric resistosome to mediate innate immunity.</a> 2024.</li>
+            <li id="ref-8">Toghani et al., <a href="https://doi.org/10.1111/nph.70391" target="_blank" rel="noopener">Can AI modelling of protein structures distinguish between sensor and helper NLR immune receptors?</a> 2025.</li>
+          </ol>
+        </section>
+      </article>
+    </div>
 
     <footer>
-        <span><a href="https://twitter.com/amiralito_"> Twitter (X)</a></span> 
-        <span><a href="https://bsky.app/profile/amiralito.bsky.social"> Bluesky</a></span>
-        <span><a href="https://www.linkedin.com/in/amirali-toghani/"> LinkedIn</a></span>
-        <span><a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ"> Google Scholar</a></span>
-        <span><a href="https://github.com/amiralito"> GitHub</a></span>
-
-        <span>© AmirAli Toghani, 2025</span>
+      <nav class="social" aria-label="Social links">
+        <a href="https://twitter.com/amiralito_" target="_blank" rel="noopener">Twitter (X)</a>
+        <a href="https://bsky.app/profile/amiralito.bsky.social" target="_blank" rel="noopener">Bluesky</a>
+        <a href="https://www.linkedin.com/in/amirali-toghani/" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://scholar.google.com/citations?hl=en&user=Rn24m-QAAAAJ" target="_blank" rel="noopener">Google Scholar</a>
+        <a href="https://github.com/amiralito" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <div style="font-weight:200">© AmirAli Toghani, 2025</div>
     </footer>
+  </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const links = document.querySelectorAll('a');
+  <button class="to-top" aria-label="Back to top" title="Back to top">
+    <span class="material-symbols-outlined">keyboard_arrow_up</span>
+  </button>
 
-        links.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault(); // Prevent the default link behavior
-                const destination = this.href; // Get the link's target
-
-                document.body.classList.add('fade-out'); // Apply the fade-out effect
-
-                setTimeout(function () {
-                    window.location.href = destination;
-                }, 500); // Delay the navigation to allow the fade-out effect to complete
-            });
-        });
+  <script>
+    // Fade-out on internal navigation (same as other pages)
+    document.querySelectorAll('a[data-route]').forEach(a => {
+      a.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey) return;
+        e.preventDefault();
+        const url = this.getAttribute('href');
+        document.body.classList.add('fade-out');
+        const go = () => window.location.href = url;
+        let fired = false;
+        document.body.addEventListener('transitionend', () => { if (!fired) { fired = true; go(); } }, { once: true });
+        setTimeout(() => { if (!fired) go(); }, 450);
+      });
     });
-    </script>
-    
+
+    // Show/Hide Back-to-top on scroll
+    const toTop = document.querySelector('.to-top');
+    const revealAt = 120; // px
+    const onScroll = () => {
+      if (window.scrollY > revealAt) toTop.classList.add('show');
+      else toTop.classList.remove('show');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Smooth scroll to top
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // Reveal (fade-in) on load & when coming back via bfcache
+    const reveal = () => document.body.classList.remove('fade-out','preload');
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
+    } else {
+      requestAnimationFrame(reveal);
+    }
+    window.addEventListener('pageshow', () => reveal());
+  </script>
 </body>
 </html>
