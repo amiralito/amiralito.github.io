@@ -65,9 +65,13 @@
     /* Left sticky rail */
     .rail { grid-column: 1; position: sticky; top: var(--sticky-top); align-self: start; }
     .rail h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+    
     .rail ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
     .rail a { color: inherit; text-decoration: none; font-size: clamp(15px,1.3vw,18px); }
     .rail a:hover, .rail a:focus-visible { text-decoration: underline; }
+
+    .rail .cv-list { margin: 6px 0 0 18px; gap: 6px; }
+    .rail .cv-list a { font-size: 13px; opacity: 0.9; }
 
     /* Main column */
     .about { grid-column: 2; max-width: 68ch; margin-top: var(--about-top-gap); }
@@ -139,7 +143,6 @@
     <div class="content">
       <!-- Left sticky rail -->
       <aside class="rail" aria-label="On this page">
-        <h3>On this page</h3>
         <ul>
           <li><a href="#about">About</a></li>
           <li><a href="#short-cv">Short CV</a>
