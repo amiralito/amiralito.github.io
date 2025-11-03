@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>About — AmirAli Toghani</title>
-  <meta name="description" content="About AmirAli Toghani — background, research interests, and personal notes." />
+  <meta name="description" content="About AmirAli Toghani — background, research interests, and Short CV." />
   <meta name="theme-color" content="#ffffff">
   
   <!-- Favicon / site icon -->
@@ -27,10 +27,12 @@
       --nav-gap-mobile: 5px;
       --rail-width: 28%; /* controls where the main body starts (same behavior as publications) */
       --about-top-gap: 100px;
+      --sticky-top: 250px; /* where the left list sticks */
+      --section-gap: 26px; /* space between sections in main */
     }
 
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { height: 100%; scroll-behavior: smooth; }
     body {
       margin: 0;
       font-family: 'area-normal', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
@@ -59,9 +61,18 @@
 
     /* Body layout: left rail + about text */
     .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
-    .about { grid-column: 2; max-width: 68ch; }
-    .about p { margin: 0 0 1.05em; line-height: 1.6; }
+
+    /* Left sticky rail */
+    .rail { grid-column: 1; position: sticky; top: var(--sticky-top); align-self: start; }
+    .rail h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .rail ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
+    .rail a { color: inherit; text-decoration: none; font-size: clamp(15px,1.3vw,18px); }
+    .rail a:hover, .rail a:focus-visible { text-decoration: underline; }
+
+    /* Main column */
     .about { grid-column: 2; max-width: 68ch; margin-top: var(--about-top-gap); }
+    .about p { margin: 0 0 1.05em; line-height: 1.6; }
+    .about section + section { margin-top: var(--section-gap); }
 
     .about a { color: inherit; text-decoration: none; }
     .about a:visited { color: inherit; }
@@ -71,6 +82,9 @@
     figure.portrait { margin: 18px 0 0; }
     .portrait img { width: 100%; height: auto; display: block; }
     .portrait figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); }
+
+    /* Lists inside CV */
+    .cv-list { margin: 8px 0 0 18px; }
 
     /* Footer */
     footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
@@ -84,8 +98,9 @@
       .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
       .nav-bracket { height: 84px; width: 42px; top: 0; }
       .content { grid-template-columns: 1fr; gap: 18px; }
+      .rail { position: static; }
       .about { grid-column: 1; max-width: 70ch; margin-top: 20px; }
-    }$2}
+    }
 
     @media (max-width: 600px) {
       .name { font-size: clamp(26px, 8.5vw, 44px); }
@@ -122,18 +137,61 @@
     </main>
 
     <div class="content">
-      <aside aria-hidden="true"></aside>
+      <!-- Left sticky rail -->
+      <aside class="rail" aria-label="On this page">
+        <h3>On this page</h3>
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#short-cv">Short CV</a>
+            <ul class="cv-list">
+              <li><a href="#education">Education</a></li>
+              <li><a href="#talks">Seminars &amp; Talks</a></li>
+              <li><a href="#awards">Honours &amp; Awards</a></li>
+            </ul>
+          </li>
+        </ul>
+      </aside>
 
       <article class="about">
-        <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,28px);font-weight:600">About</h2>
-        <p>I studied Horticultural Sciences and Engineering, with a minor in Biotechnology, at Isfahan University of Technology, where I first became fascinated by the world of plants and their interactions with microbes. My curiosity about plant immunity eventually led me to Norwich, where I joined the <a href="https://kamounlab.tumblr.com/" target="_blank" rel="noopener">Kamoun Lab</a> at <a href="https://www.tsl.ac.uk/" target="_blank" rel="noopener">The Sainsbury Laboratory (TSL)</a>, UK, in 2021 as a pre-doctoral researcher. After almost two wonderful years as a predoc, I began my PhD in the Kamoun Lab in 2023.</p>
-        <p>My research explores the molecular evolution and mechanisms of plant immune receptors. For more about my current projects, please check out the <a href="research.html" data-route>Research</a> tab.</p>
-        <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
+        <section id="about">
+          <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,28px);font-weight:600">About</h2>
+          <p>I studied Horticultural Sciences and Engineering, with a minor in Biotechnology, at Isfahan University of Technology, where I first became fascinated by the world of plants and their interactions with microbes. My curiosity about plant immunity eventually led me to Norwich, where I joined the <a href="https://kamounlab.tumblr.com/" target="_blank" rel="noopener">Kamoun Lab</a> at <a href="https://www.tsl.ac.uk/" target="_blank" rel="noopener">The Sainsbury Laboratory (TSL)</a>, UK, in 2021 as a pre-doctoral researcher. After almost two wonderful years as a predoc, I began my PhD in the Kamoun Lab in 2023.</p>
+          <p>My research explores the molecular evolution and mechanisms of plant immune receptors. For more about my current projects, please check out the <a href="research.html" data-route>Research</a> tab.</p>
+          <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
 
-        <figure class="portrait">
-          <img src="data/IMG_5851.png" width="1600" height="1067" alt="AmirAli Toghani" />
-          <figcaption>Credit: Phil Robinson (JIC)</figcaption>
-        </figure>
+          <figure class="portrait">
+            <img src="data/IMG_5851.png" width="1600" height="1067" alt="AmirAli Toghani" />
+            <figcaption>Credit: Phil Robinson (JIC)</figcaption>
+          </figure>
+        </section>
+
+        <section id="short-cv">
+          <h2 style="margin:16px 0 8px;font-size:clamp(20px,2.2vw,28px);font-weight:600">Short CV</h2>
+
+          <h3 id="education" style="margin:12px 0 6px;font-size:clamp(18px,2vw,22px);font-weight:600">Education:</h3>
+          <ul>
+            <li>The Sainsbury Laboratory, Norwich, PhD Molecular Biology, 2023–Now</li>
+            <li>Isfahan University of Technology, Isfahan, BSc Horticultural Sciences, Minor Biotechnology, 2017–2021</li>
+            <li>National Organization for Development of Exceptional Talents (Sampad), Shahid Ejei High School, Isfahan, 2009–2016</li>
+          </ul>
+
+          <h3 id="talks" style="margin:16px 0 6px;font-size:clamp(18px,2vw,22px);font-weight:600">Seminars and Talks:</h3>
+          <ul>
+            <li>Functional Multi-Omics symposium, Quadram Institute, Norwich, 2025</li>
+            <li>Regional Student Group Iran, International Society of Computational Biology (ISCB), 2025</li>
+            <li>TSL Symposium - Plant resistance to pathogens in the face of climate change, Norwich, 2024</li>
+            <li>JIC/TSL Student Annual Science Meeting, Norwich, 2023 and 2025</li>
+          </ul>
+
+          <h3 id="awards" style="margin:16px 0 6px;font-size:clamp(18px,2vw,22px);font-weight:600">Honours and Awards:</h3>
+          <ul>
+            <li>Poster Award JIC/TSL Annual Science Meeting, 2022 and 2025</li>
+            <li>ASAPbio Poster Competition Winner, 2024</li>
+            <li>TSL Student Research Award, 2024</li>
+            <li>Poster Award BSPP/MBPP, Birmingham, 2023</li>
+            <li>TSL Student Engagement Award, 2023</li>
+          </ul>
+        </section>
       </article>
     </div>
 
