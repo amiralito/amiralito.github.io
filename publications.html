@@ -14,9 +14,9 @@
   <link rel="icon" href="/favicon.ico" sizes="any"> <!-- fallback -->
   
   <!-- Adobe Fonts: Area family -->
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin>
+  <link rel="preconnect" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
-  <!-- Material Symbols for back-to-top arrow -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_up" />
 
   <style>
     :root {
@@ -27,7 +27,6 @@
       --gutter: clamp(16px, 4vw, 32px);
       --nav-gap-desktop: 10px;
       --nav-gap-mobile: 5px;
-      --cat-offset: 4vh; /* vertical tweak for right bracket group */
       --rail-width: 28%; /* LEFT rail width: controls where the main body starts */
       --list-lift: -135px; /* lift ONLY the publications list, not the left categories */
     }
@@ -42,6 +41,7 @@
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       transition: opacity .4s ease;
     }
+    body.preload { opacity: 0; }
     body.fade-out { opacity: 0; }
 
     .wrap { max-width: var(--grid); margin: 0 auto; padding: 40px var(--gutter) 24px; }
@@ -50,7 +50,7 @@
     .hero { display: grid; grid-template-columns: 1fr; align-items: start; gap: clamp(24px, 6vw, 80px); min-height: auto; }
 
     .intro { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: clamp(18px, 3vw, 36px); }
-    .name { font-weight: 800; font-size: clamp(26px, 4.6vw, 48px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; /* allow wrap */ }
+    .name { font-weight: 800; font-size: clamp(26px, 4.6vw, 48px); line-height: 1; margin: 0 0 12px; letter-spacing: 0; }
     .home-link { color: inherit; text-decoration: none; }
     .home-link:hover, .home-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 
@@ -63,20 +63,88 @@
 
     /* Right category nav (Papers / Posters / Protocols / Datasets) */
     .cat-block { grid-column: 1; position: sticky; top: 120px; align-self: start; max-width: 450px; }
-    /* cat-bracket removed per new design */
     .cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
     .cat-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
     .cat-list a:hover, .cat-list a:focus-visible { transform: translateX(8px); }
+    .cat-list a.active { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
     .tagline { grid-column: 1 / -1; max-width: 52ch; font-weight: 400; line-height: 1.5; font-size: clamp(16px, 2vw, 18px); color: var(--text); margin: clamp(20px, 8vh, 80px) 0 0; }
 
     /* Content layout: legend (aside) + list */
     .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
     .list { grid-column: 2; margin-top: var(--list-lift); }
-    .list { grid-column: 2; margin-top: var(--list-lift); }
     .legend { color: var(--text); }
     .legend h3 { font-size: 16px; margin: 0 0 8px; }
     .legend p { color: var(--muted); font-size: 14px; margin: 2px 0; }
+
+    /* Filter & Search Bar */
+    .filter-bar { margin-bottom: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .search-wrapper { position: relative; display: flex; align-items: center; max-width: 100%; }
+    .search-icon { position: absolute; left: 14px; color: var(--muted); pointer-events: none; }
+    .search-input {
+      width: 100%;
+      padding: 10px 36px 10px 40px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: transparent;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .search-input:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 1px var(--text);
+    }
+    .search-input::placeholder { color: var(--muted); opacity: 0.85; }
+    .search-clear {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+      display: none;
+      line-height: 1;
+    }
+    .search-clear:hover { color: var(--text); }
+    .year-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .year-btn {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 4px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+    .year-btn:hover { color: var(--text); border-color: rgba(0, 0, 0, 0.35); }
+    .year-btn.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+      font-weight: 500;
+    }
+    .filter-status { font-size: 13px; color: var(--muted); min-height: 18px; }
+    .no-results { padding: 36px 0; text-align: left; color: var(--muted); font-size: 15px; }
+    .reset-btn {
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      background: none;
+      border: 1px solid var(--text);
+      padding: 5px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all .2s ease;
+    }
+    .reset-btn:hover { background: var(--text); color: var(--bg); }
 
     section { padding: 10px 0 28px; scroll-margin-top: 90px; }
     h2 { font-size: clamp(22px, 2.4vw, 32px); margin: 0 0 14px; }
@@ -92,15 +160,12 @@
 
     .authors { font-size: 14px; color: var(--muted); margin-top: 2px; }
 
-    .pub-meta { text-align: left; color: var(--muted); font-size: 14px; align-self: start; white-space: normal; margin-top: 6px; display: inline-flex; gap: 10px; }
-    .pub-meta .journal { display: inline-block; }
-    .pub-meta .year { display: inline-block; font-weight: 600; color: var(--text); }
-    .pub-meta .journal { display: block; }
-    .pub-meta .year { display: block; font-weight: 600; color: var(--text); }
+    .pub-meta { text-align: left; color: var(--muted); font-size: 14px; align-self: start; white-space: normal; margin-top: 6px; display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+    .pub-meta .journal { color: var(--muted); }
+    .pub-meta .year { font-weight: 600; color: var(--text); }
 
     /* Back to top arrow */
     .to-top { position: fixed; right: 20px; bottom: 20px; width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.12); display: grid; place-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
-    .to-top .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     .to-top.show { opacity: 1; pointer-events: auto; }
     .to-top:hover { transform: translateY(-2px); }
 
@@ -142,10 +207,12 @@
 
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; animation: none !important; }
+      body.preload { opacity: 1 !important; }
     }
   </style>
 </head>
-<body>
+<body class="preload">
+  <noscript><style>body{opacity:1 !important}</style></noscript>
   <a class="skip" href="#main" style="position:absolute;left:-9999px;">Skip to content</a>
   <div class="wrap">
     <main class="hero" id="main">
@@ -154,11 +221,11 @@
         <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</a></h1>
 
         <div class="nav-block" aria-label="Primary navigation">
-          <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
+          <img class="nav-bracket" src="data/bracket.svg" alt="" aria-hidden="true" />
           <ul class="nav-list">
             <li><a href="about.html" data-route>About</a></li>
             <li><a href="research.html" data-route>Research</a></li>
-            <li><a href="publications.html" data-route><strong>Publications</strong></a></li>
+            <li><a href="publications.html" aria-current="page" data-route><strong>Publications</strong></a></li>
           </ul>
         </div>
 
@@ -183,6 +250,29 @@
       </aside>
 
       <div class="list">
+        <!-- Filter & Search Controls -->
+        <div class="filter-bar" role="search" aria-label="Filter publications">
+          <div class="search-wrapper">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="pub-search" class="search-input" placeholder="Search by title, author, or journal..." aria-label="Search publications" />
+            <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" title="Clear">✕</button>
+          </div>
+          <div class="year-filters" role="group" aria-label="Filter by year">
+            <button type="button" class="year-btn active" data-year="all">All</button>
+            <button type="button" class="year-btn" data-year="2026">2026</button>
+            <button type="button" class="year-btn" data-year="2025">2025</button>
+            <button type="button" class="year-btn" data-year="2024">2024</button>
+            <button type="button" class="year-btn" data-year="2023">2023</button>
+            <button type="button" class="year-btn" data-year="2022">2022</button>
+          </div>
+          <div id="filter-status" class="filter-status" aria-live="polite"></div>
+        </div>
+
+        <div id="no-results" class="no-results" style="display:none;">
+          <p>No publications found matching your criteria.</p>
+          <button type="button" class="reset-btn" id="reset-filters">Reset filters</button>
+        </div>
+
         <section id="papers">
           <h2>Papers</h2>
           <div class="pub-list">
@@ -309,7 +399,7 @@
 
             <article class="pub">
               <div>
-                <h3 class="pub-title"><a href="https://doi.org/10.1371/journal.pgen.1011402" target="_blank" rel="noopener">Subfunctionalization of NRC3 altered the genetic structure of the Nicotiana NRC network</i></a></h3>
+                <h3 class="pub-title"><a href="https://doi.org/10.1371/journal.pgen.1011402" target="_blank" rel="noopener">Subfunctionalization of NRC3 altered the genetic structure of the <i>Nicotiana</i> NRC network</a></h3>
                 <div class="authors">Ching-Yi Huang, Yu-Seng Huang, Yu Sugihara, Hung-Yu Wang, Lo-Ting Huang, Juan Carlos Lopez-Agudelo, Yi-Feng Chen, Kuan-Yu Lin, Bing-Jen Chiang, <strong>AmirAli Toghani</strong>, Jiorgos Kourelis, Chun-Hsiung Wang, Lida Derevnina, Chih-Hang Wu*</div>
               </div>
               <div class="pub-meta"><span class="journal">PLOS Genetics</span><span class="year">2024</span></div>
@@ -359,7 +449,7 @@
             <article class="pub">
               <div>
                 <h3 class="pub-title"><a href="https://doi.org/10.5281/zenodo.22231260" target="_blank" rel="noopener">AI-guided discovery of atypical protein assemblies</a></h3>
-                <div class="authors"><div class="authors"><strong>AmirAli Toghani</strong>, Benjamin A. Seager, Yu Sugihara, Lisa-Marie Roijen, Juan M. Azcue, Maián Garro, Maryam Sargolzaei, Ioanna Morianou, Adeline Harant, Sam Gallop, Jiorgos Kourelis, Dan MacLean, Mauricio P. Contreras, Sophien Kamoun*, Daniel Lüdke*</div></div>
+                <div class="authors"><strong>AmirAli Toghani</strong>, Benjamin A. Seager, Yu Sugihara, Lisa-Marie Roijen, Juan M. Azcue, Maián Garro, Maryam Sargolzaei, Ioanna Morianou, Adeline Harant, Sam Gallop, Jiorgos Kourelis, Dan MacLean, Mauricio P. Contreras, Sophien Kamoun*, Daniel Lüdke*</div>
               </div>
               <div class="pub-meta"><span class="journal">BSPP Plant Pathology, Norwich, UK</span><span class="year">2026</span></div>
             </article>
@@ -377,7 +467,7 @@
                 <h3 class="pub-title"><a href="https://doi.org/10.5281/zenodo.16759924" target="_blank" rel="noopener">AI modelling of protein structures can distinguish between sensor and helper NLR immune receptors</a></h3>
                 <div class="authors"><strong>AmirAli Toghani</strong>, Raoul Frijters, Tolga O. Bozkurt, Ryohei Terauchi, Sophien Kamoun*, Yu Sugihara*</div>
               </div>
-              <div class="pub-meta"><span class="journal">New Phytologist next generation scientists 2025 (NGS 2025), Birmingham, UK</span><span class="journal">Solanaceae and Rubiaceae Genetics and Genomics International Conference (SolRub), Turin, Italy</span><span class="year">2025</span></div>
+              <div class="pub-meta"><span class="journal">New Phytologist next generation scientists 2025 (NGS 2025), Birmingham, UK &middot; Solanaceae and Rubiaceae Genetics and Genomics International Conference (SolRub), Turin, Italy</span><span class="year">2025</span></div>
             </article>
             
             <article class="pub">
@@ -393,7 +483,7 @@
                 <h3 class="pub-title"><a href="https://doi.org/10.5281/zenodo.13365606" target="_blank" rel="noopener">Evolutionary diversification of protein-protein interaction interfaces: A case study on an NLR immune receptor network</a></h3>
                 <div class="authors"><strong>AmirAli Toghani</strong>, Muniyandi Selvaraj, Mauricio P Contreras, Ioanna Morianou, Hsuan Pai, Sophien Kamoun*</div>
               </div>
-              <div class="pub-meta"><span class="journal">BSPP Plant Pathology, Oxford, UK</span><span class="journal">Molecular mechanisms in evolution and ecology, Heidelberg, Germany</span><span class="year">2024</span></div>
+              <div class="pub-meta"><span class="journal">BSPP Plant Pathology, Oxford, UK &middot; Molecular mechanisms in evolution and ecology, Heidelberg, Germany</span><span class="year">2024</span></div>
             </article>
 
             <article class="pub">
@@ -501,11 +591,11 @@
   </div>
 
   <button class="to-top" aria-label="Back to top" title="Back to top">
-    <span class="material-symbols-outlined">keyboard_arrow_up</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
   </button>
 
   <script>
-    // Internal fade-out for page-to-page navigation (same behavior as index)
+    // Fade-out on internal navigation (same behavior as index)
     document.querySelectorAll('a[data-route]').forEach(a => {
       a.addEventListener('click', function (e) {
         if (e.metaKey || e.ctrlKey) return;
@@ -519,6 +609,127 @@
       });
     });
 
+    // Publication Search & Year Filter
+    const pubSearch = document.getElementById('pub-search');
+    const searchClear = document.getElementById('search-clear');
+    const yearBtns = document.querySelectorAll('.year-btn');
+    const filterStatus = document.getElementById('filter-status');
+    const noResults = document.getElementById('no-results');
+    const resetBtn = document.getElementById('reset-filters');
+    const pubArticles = document.querySelectorAll('.pub');
+    const pubSections = document.querySelectorAll('.list section');
+
+    let activeYear = 'all';
+    let searchQuery = '';
+
+    function filterPublications() {
+      let totalMatches = 0;
+      const query = searchQuery.trim().toLowerCase();
+
+      pubArticles.forEach(article => {
+        const text = article.textContent.toLowerCase();
+        const yearEl = article.querySelector('.year');
+        const year = yearEl ? yearEl.textContent.trim() : '';
+
+        const matchesYear = (activeYear === 'all' || year === activeYear);
+        const matchesQuery = (!query || text.includes(query));
+
+        if (matchesYear && matchesQuery) {
+          article.style.display = '';
+          totalMatches++;
+        } else {
+          article.style.display = 'none';
+        }
+      });
+
+      // Update visibility of sections (hide section header if no matching articles in that section)
+      pubSections.forEach(section => {
+        const visibleArticles = section.querySelectorAll('.pub:not([style*="display: none"])');
+        if (visibleArticles.length === 0) {
+          section.style.display = 'none';
+        } else {
+          section.style.display = '';
+        }
+      });
+
+      // Update clear button visibility
+      if (searchClear) {
+        searchClear.style.display = query.length > 0 ? 'block' : 'none';
+      }
+
+      // Update zero results state
+      if (noResults) {
+        noResults.style.display = totalMatches === 0 ? 'block' : 'none';
+      }
+
+      // Update status text
+      if (filterStatus) {
+        if (activeYear !== 'all' || query) {
+          filterStatus.textContent = `Showing ${totalMatches} ${totalMatches === 1 ? 'publication' : 'publications'}`;
+        } else {
+          filterStatus.textContent = '';
+        }
+      }
+    }
+
+    if (pubSearch) {
+      pubSearch.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        filterPublications();
+      });
+    }
+
+    if (searchClear) {
+      searchClear.addEventListener('click', () => {
+        pubSearch.value = '';
+        searchQuery = '';
+        pubSearch.focus();
+        filterPublications();
+      });
+    }
+
+    yearBtns.forEach(btn => {
+      btn.addEventListener('click', function () {
+        yearBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        activeYear = this.getAttribute('data-year');
+        filterPublications();
+      });
+    });
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (pubSearch) pubSearch.value = '';
+        searchQuery = '';
+        activeYear = 'all';
+        yearBtns.forEach(b => {
+          if (b.getAttribute('data-year') === 'all') b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        filterPublications();
+      });
+    }
+
+    // Scrollspy for category rail
+    const catLinks = document.querySelectorAll('.cat-list a');
+    if ('IntersectionObserver' in window && pubSections.length && catLinks.length) {
+      const catObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.target.style.display !== 'none') {
+            const id = entry.target.getAttribute('id');
+            catLinks.forEach(link => {
+              if (link.getAttribute('href') === `#${id}`) {
+                link.classList.add('active');
+              } else {
+                link.classList.remove('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-15% 0px -70% 0px' });
+      pubSections.forEach(sec => catObserver.observe(sec));
+    }
+
     // Show/Hide Back-to-top on scroll
     const toTop = document.querySelector('.to-top');
     const revealAt = 120; // px
@@ -529,12 +740,17 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
-    // Scroll to top smoothly
+    // Smooth scroll to top
     toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-    // bfcache/back button — ensure fade-out is cleared when navigating back
-    window.addEventListener('pageshow', function () { document.body.classList.remove('fade-out'); });
-    document.addEventListener('DOMContentLoaded', function () { document.body.classList.remove('fade-out'); });
+    // Reveal (fade-in) on load & when coming back via bfcache
+    const reveal = () => document.body.classList.remove('fade-out','preload');
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
+    } else {
+      requestAnimationFrame(reveal);
+    }
+    window.addEventListener('pageshow', () => reveal());
   </script>
 </body>
 </html>

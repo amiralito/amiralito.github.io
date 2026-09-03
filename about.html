@@ -14,6 +14,8 @@
   <link rel="icon" href="/favicon.ico" sizes="any"> <!-- fallback -->
 
   <!-- Adobe Fonts: Area family -->
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin>
+  <link rel="preconnect" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
 
   <style>
@@ -113,6 +115,7 @@
   </style>
 </head>
 <body class="preload">
+  <a class="skip" href="#main" style="position:absolute;left:-9999px;">Skip to content</a>
   <noscript><style>body{opacity:1 !important}</style></noscript>
   <div class="wrap">
     <main class="hero" id="main">
@@ -120,9 +123,9 @@
         <h1 class="name"><a href="index.html" class="home-link">AmirAli Toghani</a></h1>
 
         <div class="nav-block" aria-label="Primary navigation">
-          <img class="nav-bracket" src="data/bracket.svg" alt="Site navigation bracket" />
+          <img class="nav-bracket" src="data/bracket.svg" alt="" aria-hidden="true" />
           <ul class="nav-list">
-            <li><a href="about.html" data-route><strong>About</strong></a></li>
+            <li><a href="about.html" aria-current="page" data-route><strong>About</strong></a></li>
             <li><a href="research.html" data-route>Research</a></li>
             <li><a href="publications.html" data-route>Publications</a></li>
           </ul>
@@ -140,7 +143,7 @@
           <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
 
           <figure class="portrait">
-            <img src="data/IMG_5851.png" width="1600" height="1067" alt="AmirAli Toghani" />
+            <img src="data/IMG_5851.webp" width="1600" height="1067" alt="AmirAli Toghani" loading="lazy" decoding="async" />
             <figcaption>Credit: Phil Robinson (JIC)</figcaption>
           </figure>
         </section>

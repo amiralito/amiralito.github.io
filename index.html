@@ -14,9 +14,16 @@
   <link rel="icon" href="/favicon.ico" sizes="any"> <!-- fallback -->
 
   <!-- Adobe Fonts: Area family -->
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin>
+  <link rel="preconnect" href="https://p.typekit.net" crossorigin>
   <link rel="stylesheet" href="https://use.typekit.net/qac4why.css">
 
+  <!-- NGL Viewer (Fast, reliable crystallographic 3D viewer) -->
+  <script src="https://cdn.jsdelivr.net/npm/ngl@2.0.0-dev.37/dist/ngl.js"></script>
+  <script src="data/structures-pdb.js"></script>
+
   <style>
+
     :root {
       --bg: #ffffff;
       --text: #0b0b0b;
@@ -64,14 +71,70 @@
     .tagline a { color: inherit; text-decoration: none; }
     .tagline a:hover, .tagline a:focus-visible { text-decoration: underline; }
 
-    /* Right column image & caption */
-    figure.structure { margin: 0; justify-self: end; align-self: center; max-width: clamp(420px, 38vw, 620px); }
-    .structure img { width: 100%; height: auto; display: block; }
-    .caption { margin-top: 8px; text-align: center; }
+    /* Right column: 3D structure viewer & caption */
+    figure.structure { margin: 0; justify-self: end; align-self: center; width: 100%; max-width: clamp(420px, 38vw, 620px); }
+    .viewer-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      background: var(--bg);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #viewport {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      cursor: grab;
+    }
+    #viewport:active {
+      cursor: grabbing;
+    }
+    .viewer-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      transition: opacity .25s ease;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .viewer-loading.loaded { opacity: 0; }
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 2px solid rgba(0, 0, 0, 0.08);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .caption { margin-top: 10px; text-align: center; }
     .caption strong { font-weight: 600; font-size: 16px; }
-    .caption small { font-weight: 200; color: var(--muted); font-size: 14px; }
+    .caption small { font-weight: 400; color: var(--muted); font-size: 14px; margin-left: 4px; }
     .caption a { color: inherit; text-decoration: none; }
     .caption a:hover, .caption a:focus-visible { text-decoration: underline; }
+    .struct-btn {
+      background: none;
+      border: none;
+      padding: 3px 5px;
+      margin-left: 4px;
+      cursor: pointer;
+      color: var(--muted);
+      vertical-align: middle;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 4px;
+      transition: color .2s ease, transform .2s ease;
+    }
+    .struct-btn:hover {
+      color: var(--text);
+    }
+    .struct-btn.rotate:hover {
+      transform: rotate(45deg);
+    }
 
     /* Footer */
     footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
@@ -114,6 +177,7 @@
   </style>
 </head>
 <body class="preload">
+  <a class="skip" href="#main" style="position:absolute;left:-9999px;">Skip to content</a>
   <noscript><style>body{opacity:1 !important}</style></noscript>
   <div class="wrap">
     <main class="hero" id="main">
@@ -122,7 +186,7 @@
         <h1 class="name"><a href="index.html" class="home-link">AmirAli<br />Toghani</a></h1>
 
         <div class="nav-block" aria-label="Primary">
-          <img class="nav-bracket" src="data/bracket.svg" alt="Navigation bracket" />
+          <img class="nav-bracket" src="data/bracket.svg" alt="" aria-hidden="true" />
           <ul class="nav-list">
             <li><a href="about.html" data-route>About</a></li>
             <li><a href="research.html" data-route>Research</a></li>
@@ -133,12 +197,23 @@
         <p class="tagline">Currently a PhD student at the <a href="https://kamounlab.tumblr.com/" target="_blank" rel="noopener">Kamoun group</a>, <a href="https://www.tsl.ac.uk/" target="_blank" rel="noopener">The Sainsbury Laboratory</a>, UK. I study the molecular evolution and mechanistic biology of plant immune receptors. For enquiries and questions, please contact me <a href="mailto:amirali.toghani@tsl.ac.uk" target="_blank" rel="noopener">here</a>.</p>
       </section>
 
-      <!-- Right column -->
+      <!-- Right column: Interactive 3D Structure Viewer (NGL Viewer) -->
       <figure class="structure">
-        <img src="data/NbNRC2a.png" width="900" height="900" alt="NRC2 resistosome complex, PDB 9FP6" />
+        <div class="viewer-container" id="viewer-container" aria-label="Interactive 3D molecular structure viewer">
+          <div id="viewport"></div>
+          <div class="viewer-loading" id="viewer-loading" aria-hidden="true">
+            <span class="loading-spinner"></span>
+          </div>
+        </div>
         <figcaption class="caption">
-          <strong>NRC2 Resistosome</strong>
-          <small>PDB: <a href="https://www.rcsb.org/structure/9FP6" target="_blank" rel="noopener">9FP6</a></small>
+          <strong id="struct-name">NbNRC2 Resistosome</strong>
+          <small id="struct-meta">PDB: <a id="struct-link" href="https://www.rcsb.org/structure/9FP6" target="_blank" rel="noopener"><span id="struct-id">9FP6</span></a></small>
+          <button type="button" id="struct-spin" class="struct-btn" title="Pause slow rotation" aria-label="Pause or resume rotation">
+            <svg id="spin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <button type="button" id="struct-shuffle" class="struct-btn rotate" title="Load another structure" aria-label="Load another structure">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          </button>
         </figcaption>
       </figure>
     </main>
@@ -156,6 +231,155 @@
   </div>
 
   <script>
+    // 3D Molecular Structure Viewer (NGL Viewer)
+    const MODELS = window.PDB_MODELS || [];
+    const ID_MAP = {
+      'NbNRC2 Resistosome': '9FP6',
+      'NbNRC2a Resting State Homodimer': '8RFH',
+      'AVRcap1b–TOL9a Complex': '9RDC',
+      'NbNRC2a-Rx Complex AF3 Prediction': 'AF3'
+    };
+
+    const PASTEL_PALETTE = [
+      '#658BA8', // deep slate blue
+      '#6A9A88', // sage eucalyptus
+      '#C59B63', // warm golden sand
+      '#B67389', // dusty rose
+      '#C8826D', // warm terracotta
+      '#7E79A5', // muted indigo lavender
+      '#5FA595', // rich celadon
+      '#C9A658', // soft ochre
+      '#6C94B8', // french blue
+      '#A08B73'  // warm taupe
+    ];
+
+    let stage = null;
+    let currentIdx = -1;
+    let isSpinning = true;
+    let isTransitioning = false;
+    const SPIN_SPEED = 0.003; // Serene, gentle horizontal turntable drift
+
+    function initNGLStage() {
+      const el = document.getElementById('viewport');
+      if (!el || !window.NGL) return null;
+      stage = new NGL.Stage('viewport', {
+        backgroundColor: 'white',
+        ambientColor: 0xffffff,
+        ambientIntensity: 0.68,
+        lightColor: 0xffffff,
+        lightIntensity: 0.52,
+        cameraFov: 40,
+        sampleLevel: 2,
+        tooltip: true
+      });
+      window.addEventListener('resize', () => { if (stage) stage.handleResize(); });
+      return stage;
+    }
+
+    async function loadModel(idx) {
+      if (!stage || idx < 0 || idx >= MODELS.length || isTransitioning) return;
+      isTransitioning = true;
+      currentIdx = idx;
+      const m = MODELS[idx];
+
+      const nameEl = document.getElementById('struct-name');
+      const metaEl = document.getElementById('struct-meta');
+      const pdbId = ID_MAP[m.name] || m.id;
+
+      if (nameEl) nameEl.textContent = m.name;
+      if (metaEl) {
+        if (m.type === 'af3' || pdbId === 'AF3') {
+          metaEl.innerHTML = '<span>AlphaFold 3</span>';
+        } else {
+          metaEl.innerHTML = `PDB: <a id="struct-link" href="https://www.rcsb.org/structure/${pdbId}" target="_blank" rel="noopener"><span id="struct-id">${pdbId}</span></a>`;
+        }
+      }
+
+      const loader = document.getElementById('viewer-loading');
+      if (loader) loader.classList.remove('loaded');
+
+      try {
+        stage.removeAllComponents();
+        const blob = new Blob([m.data], { type: 'text/plain' });
+        const comp = await stage.loadFile(blob, { ext: 'pdb', defaultRepresentation: false });
+
+        // Build clean pastel chain colors matching website palette
+        const chainList = [];
+        comp.structure.eachChain((ch) => {
+          if (!chainList.includes(ch.chainname)) chainList.push(ch.chainname);
+        });
+        const colorData = chainList.map((ch, i) => [PASTEL_PALETTE[i % PASTEL_PALETTE.length], ':' + ch]);
+        const scheme = NGL.ColormakerRegistry.addSelectionScheme(colorData, 'pastels_' + Date.now());
+
+        comp.addRepresentation('cartoon', {
+          color: scheme,
+          aspectRatio: 3.5,
+          radiusScale: 1.25,
+          roughness: 1.0,
+          metalness: 0.0,
+          subdiv: 12,
+          radialSegments: 12,
+          tension: 0.5,
+          capped: true,
+          smoothSheet: true,
+          quality: 'high'
+        });
+
+        stage.autoView();
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!prefersReducedMotion && isSpinning) {
+          stage.setSpin([0, 1, 0], SPIN_SPEED);
+        } else {
+          stage.setSpin(false);
+        }
+      } catch (err) {
+        console.error('NGL model load error:', err);
+      } finally {
+        if (loader) loader.classList.add('loaded');
+        isTransitioning = false;
+      }
+    }
+
+    async function shuffle() {
+      if (MODELS.length <= 1 || isTransitioning) return;
+      let next;
+      do {
+        next = Math.floor(Math.random() * MODELS.length);
+      } while (next === currentIdx);
+      await loadModel(next);
+    }
+
+    async function setupViewer() {
+      const s = initNGLStage();
+      if (!s) return;
+
+      const randomStart = Math.floor(Math.random() * MODELS.length);
+      await loadModel(randomStart);
+
+      const shuffleBtn = document.getElementById('struct-shuffle');
+      if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', shuffle);
+      }
+
+      const spinBtn = document.getElementById('struct-spin');
+      const spinIcon = document.getElementById('spin-icon');
+      if (spinBtn && spinIcon) {
+        spinBtn.addEventListener('click', () => {
+          isSpinning = !isSpinning;
+          if (isSpinning) {
+            stage.setSpin([0, 1, 0], SPIN_SPEED);
+            spinBtn.title = 'Pause slow rotation';
+            spinIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+          } else {
+            stage.setSpin(false);
+            spinBtn.title = 'Resume slow rotation';
+            spinIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+          }
+        });
+      }
+    }
+
     // Fade-out on internal navigation
     document.querySelectorAll('a[data-route]').forEach(a => {
       a.addEventListener('click', function (e) {
@@ -171,14 +395,17 @@
     });
 
     // Reveal (fade-in) on load & when coming back via bfcache
-    const reveal = () => document.body.classList.remove('fade-out','preload');
+    const reveal = () => {
+      document.body.classList.remove('fade-out','preload');
+      setupViewer();
+    };
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
     } else {
       requestAnimationFrame(reveal);
     }
-    window.addEventListener('pageshow', () => reveal());
+    window.addEventListener('pageshow', () => document.body.classList.remove('fade-out','preload'));
   </script>
 </body>
 </html>
