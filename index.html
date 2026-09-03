@@ -20,7 +20,7 @@
 
   <!-- NGL Viewer (Fast, reliable crystallographic 3D viewer) -->
   <script src="https://cdn.jsdelivr.net/npm/ngl@2.0.0-dev.37/dist/ngl.js"></script>
-  <script src="data/structures-pdb.js"></script>
+  <script src="data/structures-pdb.js?v=2"></script>
 
   <style>
 
@@ -237,7 +237,8 @@
       'NbNRC2 Resistosome': '9FP6',
       'NbNRC2a Resting State Homodimer': '8RFH',
       'AVRcap1b–TOL9a Complex': '9RDC',
-      'NbNRC2a-Rx Complex': 'AF3'
+      'NbNRC2a-Rx Complex': 'AF3',
+      'NbNRC2a-Rx Complex AF3 Prediction': 'AF3'
     };
 
     const PASTEL_PALETTE = [
@@ -284,9 +285,11 @@
 
       const nameEl = document.getElementById('struct-name');
       const metaEl = document.getElementById('struct-meta');
-      const pdbId = ID_MAP[m.name] || m.id;
+      const rawName = m.name || '';
+      const cleanName = rawName.replace(/\s*(?:AF3|AlphaFold\s*3)?\s*(?:Prediction|Model)?\s*$/i, '').trim();
+      const pdbId = ID_MAP[rawName] || ID_MAP[cleanName] || m.id;
 
-      if (nameEl) nameEl.textContent = m.name;
+      if (nameEl) nameEl.textContent = cleanName;
       if (metaEl) {
         if (m.type === 'af3' || pdbId === 'AF3') {
           metaEl.innerHTML = '<span>AlphaFold 3</span>';
