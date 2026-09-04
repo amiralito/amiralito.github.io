@@ -1,0 +1,2926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>cloneBench</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E7C86'/%3E%3Ccircle cx='16' cy='16' r='8.6' fill='none' stroke='%23fff' stroke-width='2.4' opacity='.5'/%3E%3Cpath d='M22.1 9.9a8.6 8.6 0 0 1 0 12.2' fill='none' stroke='%23fff' stroke-width='4.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<script>
+(function(){
+  var t = "light";
+  try { t = localStorage.getItem("clonebench-theme") || "light"; } catch(e){}
+  document.documentElement.setAttribute("data-theme", t === "dark" ? "dark" : "light");
+})();
+</script>
+
+<style>
+:root{
+  --ground:#F5F8F8;
+  --surface:#FFFFFF;
+  --surface-2:#EDF2F3;
+  --line:#DBE3E4;
+  --line-strong:#C0CBCD;
+  --ink:#121A1B;
+  --ink-2:#475558;
+  --ink-3:#77868A;
+  --dna:#0E7C86;
+  --dna-soft:#DEF0F2;
+  --reagent:#6A5AA5;
+  --reagent-soft:#EDE9F8;
+  --water:#54707E;
+  --water-soft:#E7EEF2;
+  --danger:#B32D22;
+  --danger-soft:#FAE7E4;
+  --warn:#8E5B10;
+  --warn-fill:#DFA22A;
+  --warn-soft:#FBF0DC;
+  --focus:#0E7C86;
+  --glass-hi:rgba(255,255,255,.75);
+  --glass-shade:rgba(18,26,27,.07);
+  --liquid-hi:rgba(255,255,255,.38);
+  --liquid-lo:rgba(0,0,0,.17);
+  --shadow:0 1px 2px rgba(18,26,27,.05), 0 8px 24px -18px rgba(18,26,27,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1416; --surface:#151C1E; --surface-2:#1C2427;
+    --line:#283234; --line-strong:#3A4649;
+    --ink:#E7EEEF; --ink-2:#A5B2B5; --ink-3:#79878A;
+    --dna:#4CC7D2; --dna-soft:#0B2C30;
+    --reagent:#B0A2E8; --reagent-soft:#211C33;
+    --water:#93AEBC; --water-soft:#15242A;
+    --danger:#F0796A; --danger-soft:#331916;
+    --warn:#E5A94E; --warn-fill:#E8A93F; --warn-soft:#332612;
+    --focus:#4CC7D2;
+    --glass-hi:rgba(255,255,255,.10); --glass-shade:rgba(0,0,0,.35);
+    --liquid-hi:rgba(255,255,255,.26); --liquid-lo:rgba(0,0,0,.30);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1416; --surface:#151C1E; --surface-2:#1C2427;
+  --line:#283234; --line-strong:#3A4649;
+  --ink:#E7EEEF; --ink-2:#A5B2B5; --ink-3:#79878A;
+  --dna:#4CC7D2; --dna-soft:#0B2C30;
+  --reagent:#B0A2E8; --reagent-soft:#211C33;
+  --water:#93AEBC; --water-soft:#15242A;
+  --danger:#F0796A; --danger-soft:#331916;
+  --warn:#E5A94E; --warn-fill:#E8A93F; --warn-soft:#332612;
+  --focus:#4CC7D2;
+  --glass-hi:rgba(255,255,255,.10); --glass-shade:rgba(0,0,0,.35);
+  --liquid-hi:rgba(255,255,255,.26); --liquid-lo:rgba(0,0,0,.30);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",Arial,sans-serif;margin:0;text-wrap:balance}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar::after{
+  content:"";display:block;height:2px;
+  background:linear-gradient(90deg,#0E7C86 0%,#2F8FA0 26%,#6A5AA5 55%,#8E4B8C 78%,#B33F63 100%);
+  opacity:.85;
+}
+.topbar-in{max-width:1500px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mark{width:23px;height:23px;flex-shrink:0}
+.mark .m-ring{fill:none;stroke:var(--ink);stroke-width:2.4;opacity:.42}
+.mark .m-insert{fill:none;stroke:var(--dna);stroke-width:4.6;stroke-linecap:round}
+.brand b{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.01em}
+.brand span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.09em;text-transform:uppercase}
+.exp{display:flex;align-items:center;gap:8px;flex:1 1 260px;min-width:220px}
+.exp input[type=text]{flex:1;min-width:120px;background:transparent;border:0;border-bottom:1px dashed var(--line-strong);
+  font:inherit;font-weight:500;color:var(--ink);padding:3px 2px}
+.exp input[type=date]{background:transparent;border:0;border-bottom:1px dashed var(--line-strong);
+  font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-2);padding:3px 2px}
+.exp input:focus-visible{outline:none;border-bottom-color:var(--focus);border-bottom-style:solid}
+.bar-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- controls ---------- */
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:6px;
+  padding:6px 12px;font-size:13.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s,border-color .12s}
+.btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn-primary{background:var(--dna);border-color:var(--dna);color:#fff}
+:root[data-theme="dark"] .btn-primary{color:#06181A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-primary{color:#06181A}}
+.btn-primary:hover{filter:brightness(1.08);background:var(--dna);border-color:var(--dna)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn-sm{padding:3px 8px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled:hover{background:var(--surface);border-color:var(--line-strong)}
+.btn-primary:disabled:hover{background:var(--dna);border-color:var(--dna)}
+
+input[type=number],input[type=text].cell{width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:5px;padding:6px 8px;font:inherit;color:var(--ink)}
+input[type=number]{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+input:focus-visible{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+select.cell{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:5px;
+  padding:6px 8px;font:inherit;font-size:13.5px;color:var(--ink)}
+select.cell:focus-visible{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+input[type=checkbox]{accent-color:var(--dna);width:15px;height:15px;cursor:pointer}
+
+/* ---------- layout ---------- */
+main{max-width:1500px;margin:0 auto;padding:20px 20px 80px}
+.cols{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
+@media (min-width:1180px){.cols{grid-template-columns:minmax(0,1fr) 330px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.card + .card{margin-top:20px}
+.card-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:13px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+.card-head h2{font-size:15px;font-weight:600;letter-spacing:.02em;display:flex;align-items:center;gap:9px}
+.card-head h2 em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-weight:400}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card-foot{padding:11px 16px;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12.5px;color:var(--ink-3)}
+.empty{padding:22px 16px;color:var(--ink-3);font-size:13.5px;text-align:center}
+
+/* ---------- protocol strip ---------- */
+.strip{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.def{padding:10px 16px;border-right:1px solid var(--line);flex:1 1 150px;min-width:140px}
+.def:last-of-type{border-right:0}
+.def label{display:block;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.def-row{display:flex;align-items:center;gap:6px}
+.def-row .unit{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);flex-shrink:0}
+.def-apply{display:flex;align-items:center;padding:10px 14px;background:var(--surface-2);border-left:1px solid var(--line)}
+.def-wide{flex:2 1 240px}
+.pname{width:210px;font-size:13.5px}
+@media (max-width:860px){ .pname{width:100%} }
+
+/* ---------- protocol panel ---------- */
+.panel{display:none;margin-bottom:20px}
+.panel.open{display:block}
+.psec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.psec:last-child{border-bottom:0}
+.psec h3{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 92px 34px 100px 56px 92px;gap:9px;align-items:center;
+  padding:5px 0;border-bottom:1px solid var(--line);max-width:780px}
+.prow:last-child{border-bottom:0}
+.prow .lab{font-size:14px}
+.prow .op{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);text-align:center;white-space:nowrap}
+.prow .mass{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:13.5px;
+  color:var(--dna);text-align:right;font-weight:500}
+.drow{display:grid;grid-template-columns:200px minmax(0,340px);gap:12px;align-items:center;padding:5px 0;max-width:780px}
+.drow label{font-size:14px;color:var(--ink-2)}
+.drow select.cell,.drow input{width:100%}
+.drow .def-row{display:flex;align-items:center;gap:7px}
+.drow .def-row input[type=number]{width:110px}
+.dnote{margin:10px 0 0;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);line-height:1.7;max-width:780px}
+.dnote b{color:var(--dna);font-weight:600}
+.dnote.bad{color:var(--danger)}
+input.mono{font-family:"IBM Plex Mono",monospace;text-transform:uppercase}
+@media (max-width:860px){ .drow{grid-template-columns:1fr;gap:5px} }
+.rrow{display:grid;grid-template-columns:minmax(0,1fr) 96px 26px;gap:9px;align-items:center;
+  padding:5px 0;border-bottom:1px solid var(--line);max-width:780px}
+.rrow:last-child{border-bottom:0}
+.rrow .unit{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.ptotal{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;padding:11px 16px;background:var(--surface-2);
+  border-top:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-2)}
+.ptotal b{font-size:15px;color:var(--ink)}
+
+/* ---------- parts grid ---------- */
+.grid{width:100%;overflow-x:auto}
+.grid table{width:100%;border-collapse:collapse;min-width:820px}
+.grid th{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);
+  white-space:nowrap;background:var(--surface-2)}
+.grid th.l{text-align:left}
+.grid th.nocase{text-transform:none;letter-spacing:.03em;font-size:11.5px}
+.grid td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.grid tr:last-child td{border-bottom:0}
+.grid tbody tr:hover{background:var(--surface-2)}
+.w-name{width:auto;min-width:160px}
+.w-type{width:132px}
+.w-num{width:104px}
+.w-out{width:120px;text-align:right}
+.w-act{width:64px}
+.out{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;line-height:1.25}
+.out b{font-weight:600;font-size:16px;display:block;color:var(--dna)}
+.out small{display:block;font-size:11px;color:var(--ink-3);font-weight:400}
+.out.nominal b{color:var(--ink-2)}
+.out.bad b{color:var(--danger)}
+.icon-btn{border:0;background:transparent;color:var(--ink-3);border-radius:5px;padding:4px 6px;line-height:1;font-size:15px}
+.icon-btn:hover{background:var(--danger-soft);color:var(--danger)}
+.icon-btn.dup:hover{background:var(--dna-soft);color:var(--dna)}
+.icon-btn svg{width:15px;height:15px;display:block;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.acts{display:flex;gap:2px;align-items:center;justify-content:flex-end}
+.icon-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:1px 6px;border-radius:4px;border:1px solid var(--line-strong);color:var(--ink-3)}
+.tag.acceptor{color:var(--dna);border-color:var(--dna);background:var(--dna-soft)}
+.tag.gene{color:var(--reagent);border-color:var(--reagent);background:var(--reagent-soft)}
+.tag.module{color:var(--water);border-color:var(--water);background:var(--water-soft)}
+.seqmeta{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);margin-top:3px;
+  display:flex;align-items:center;gap:6px;line-height:1.4;flex-wrap:wrap}
+.seqmeta .ok{color:var(--dna)}
+.seqmeta .warn{color:var(--danger);font-weight:600}
+.seqmeta .dot{width:5px;height:5px;border-radius:50%;background:var(--dna);flex-shrink:0}
+.seqmeta .dot.bad{background:var(--danger)}
+.dropzone{position:absolute;inset:0;z-index:30;background:color-mix(in srgb,var(--dna-soft) 92%,transparent);
+  border:2px dashed var(--dna);border-radius:10px;display:none;align-items:center;justify-content:center;
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:16px;font-weight:600;color:var(--dna);
+  letter-spacing:.02em;pointer-events:none}
+#partsCard{position:relative}
+#partsCard.dragging .dropzone{display:flex}
+.filebtn{cursor:pointer}
+
+/* ---------- assemblies ---------- */
+.asm{border-bottom:1px solid var(--line);padding:14px 16px}
+.asm:last-child{border-bottom:0}
+.asm-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.asm-no{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--ink-3);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:5px;min-width:26px;height:26px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.asm-top input.cell{flex:1 1 220px;min-width:160px;width:auto}
+.asm-top input.cell.auto{color:var(--ink-2);border-style:dashed}
+.asm-top input.cell.auto:focus-visible{border-style:solid;color:var(--ink)}
+.pickers{display:flex;flex-direction:column;gap:9px}
+.pick{display:flex;gap:9px;align-items:flex-start;flex-wrap:wrap}
+.pick > .plabel{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);min-width:74px;padding-top:5px;flex-shrink:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chip{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);border-radius:20px;
+  padding:3px 11px;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:all .12s}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--dna-soft);border-color:var(--dna);color:var(--dna);font-weight:500}
+.chip.rmod[aria-pressed="true"]{background:var(--water-soft);border-color:var(--water);color:var(--water)}
+.chip.rgene[aria-pressed="true"]{background:var(--reagent-soft);border-color:var(--reagent);color:var(--reagent)}
+.chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.chip-none{font-size:12.5px;color:var(--ink-3);padding-top:5px}
+
+.mix-list{margin-top:13px;border-top:1px solid var(--line)}
+.cline{display:flex;align-items:baseline;gap:9px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.cline b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:23px;font-weight:600;
+  line-height:1.15;color:var(--dna);min-width:5.2ch;text-align:right;letter-spacing:-.01em}
+.cline .u{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.cline .nm{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
+.cline .nm small{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);margin-left:7px}
+.cline.reagent b{color:var(--reagent)}
+.cline.water b{color:var(--water)}
+.cline.water .nm{color:var(--ink-2)}
+.cline.bad b{color:var(--danger)}
+.cline.rule{border-top:1px dashed var(--line-strong);margin-top:2px}
+.asm-sum{display:flex;gap:14px;flex-wrap:wrap;padding:9px 2px 0;font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;color:var(--ink-3)}
+.asm-sum .tot{color:var(--ink-2);font-weight:500}
+.asm-sum.bad{color:var(--danger);font-size:12.5px;line-height:1.6}
+.empty-line{padding:12px 2px;color:var(--ink-3);font-size:13.5px}
+
+/* ---------- run sheets ---------- */
+.combo-grid{width:100%}
+.combo-row{display:grid;grid-template-columns:34px minmax(0,1fr) 66px 88px 88px;align-items:baseline;gap:10px;
+  padding:8px 16px;border-bottom:1px solid var(--line)}
+.combo-row:last-child{border-bottom:0}
+.combo-row .r{text-align:right}
+.combo-row .no{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);text-align:right}
+.combo-row .nm{font-size:14px;overflow-wrap:anywhere}
+.combo-row .dim{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.combo-row span:nth-child(4),.combo-row span:nth-child(5){font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums;font-size:14px}
+.combo-row .dnav{color:var(--dna);font-weight:500}
+.combo-row .wat{color:var(--water);font-weight:500}
+.combo-head{background:var(--surface-2);border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);padding-top:9px;padding-bottom:9px}
+.combo-head span{font-family:inherit!important;font-size:inherit!important}
+.combo-row.bad{background:var(--danger-soft)}
+.combo-row.bad .wat{color:var(--danger)}
+.combo-foot{display:flex;gap:26px;flex-wrap:wrap;padding:13px 16px;background:var(--surface-2);border-top:1px solid var(--line)}
+.cstat{display:flex;flex-direction:column;gap:2px}
+.cstat span{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3)}
+.cstat b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600}
+.cstat.dna b{color:var(--dna)}
+.cstat.reagent b{color:var(--reagent)}
+.cstat.water b{color:var(--water)}
+
+/* ---------- master mix ---------- */
+.mm-head{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+  background:var(--surface-2)}
+.mmfield{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)}
+.mmfield input{width:70px}
+.mmfield .unit{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.mmcheck{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);cursor:pointer}
+.mm-note{padding:10px 16px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--line);background:var(--surface)}
+.pertube{border-top:1px solid var(--line)}
+.pertube h4{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);padding:11px 16px 6px;margin:0}
+.ptrow{display:grid;grid-template-columns:26px minmax(0,1fr);gap:9px;padding:5px 16px 7px;align-items:baseline}
+.ptrow .no{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);text-align:right}
+.ptrow .bits{font-size:13.5px;overflow-wrap:anywhere}
+.ptrow .bits b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600;color:var(--dna)}
+.ptrow .bits .sep{color:var(--ink-3);margin:0 5px}
+.ptrow .bits .none{color:var(--ink-3);font-style:italic}
+.combo-row .shared{color:var(--dna);font-weight:500}
+.tagmm{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--dna);color:var(--dna);background:var(--dna-soft);border-radius:4px;padding:0 5px;margin-left:7px}
+.mm-note b{color:var(--ink-2);font-weight:600}
+
+/* ---------- usage rail ---------- */
+.rail{position:sticky;top:78px}
+.sum-row{padding:9px 16px;border-bottom:1px solid var(--line)}
+.sum-row:last-child{border-bottom:0}
+.sum-top{display:flex;align-items:baseline;gap:10px}
+.sum-name{flex:1;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.sum-name small{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.sum-val{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600;color:var(--dna);white-space:nowrap}
+.sum-val small{display:block;text-align:right;font-weight:400;color:var(--ink-3);font-size:10.5px}
+.sum-total{display:flex;justify-content:space-between;align-items:baseline;padding:11px 16px;background:var(--surface-2);
+  border-top:1px solid var(--line)}
+.sum-total span{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3)}
+.sum-total b{font-family:"IBM Plex Mono",monospace;font-size:16px}
+.use-bar{position:relative;height:14px;margin-top:8px;border-radius:999px;overflow:hidden;border:1px solid var(--line-strong);
+  background:linear-gradient(180deg,var(--glass-shade) 0%,transparent 34%,transparent 64%,var(--glass-shade) 100%),var(--surface-2)}
+.use-bar i{position:relative;display:block;height:100%;border-radius:999px;
+  background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--dna);
+  box-shadow:1px 0 2px rgba(0,0,0,.18);transition:width 620ms cubic-bezier(.22,.92,.24,1)}
+.use-bar i::after{content:"";position:absolute;right:0;top:1px;bottom:1px;width:3px;border-radius:999px;
+  background:var(--liquid-hi);opacity:.75}
+.use-bar.slosh i::after{animation:menisc 700ms cubic-bezier(.22,.92,.24,1)}
+.use-bar.slosh{animation:tubeglow 700ms ease-out}
+@keyframes menisc{0%{width:3px;opacity:.75}28%{width:7px;opacity:1}60%{width:2px;opacity:.6}100%{width:3px;opacity:.75}}
+@keyframes tubeglow{0%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 3px color-mix(in srgb,var(--dna) 16%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.use-bar::after{content:"";position:absolute;left:7px;right:7px;top:2px;height:2px;border-radius:2px;
+  background:var(--glass-hi);pointer-events:none}
+.use-note{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);margin-top:5px}
+.use-note b{font-size:13.5px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.use-note.pending{margin-top:7px;font-style:italic}
+.sum-row.tight .use-bar i{background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--warn-fill)}
+.sum-row.tight .use-note,.sum-row.tight .use-note b{color:var(--warn)}
+.sum-row.short{background:var(--danger-soft)}
+.sum-row.short .use-bar{border-color:var(--danger)}
+.sum-row.short .use-bar i{background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--danger)}
+.sum-row.short .use-note,.sum-row.short .use-note b{color:var(--danger)}
+.sum-row.short .sum-val{color:var(--danger)}
+
+.warn-banner{display:flex;gap:9px;align-items:flex-start;padding:10px 16px;background:var(--danger-soft);
+  border-bottom:1px solid var(--danger);color:var(--danger);font-size:13px}
+.warn-banner b{font-weight:600}
+.warn-banner.soft{background:var(--warn-soft);border-bottom-color:var(--warn);color:var(--warn)}
+.combo-warn{border-bottom:0;border-top:1px solid var(--danger)}
+
+/* ---------- explainers ---------- */
+.calc{padding:13px 16px}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) 96px 52px;gap:9px;align-items:center;padding:5px 0}
+.crow label{font-size:13.5px;color:var(--ink-2)}
+.crow .cu{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3)}
+.crow.computed label{color:var(--ink)}
+.crow.computed input{background:var(--dna-soft);border-color:var(--dna);color:var(--dna);font-weight:600}
+.crow.computed .cu{color:var(--dna)}
+.cout{margin-top:11px;border-top:1px solid var(--line)}
+.cout .cline{display:flex;align-items:baseline;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}
+.cout .cline:last-child{border-bottom:0}
+.cout .cline b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:22px;
+  font-weight:600;line-height:1.15;color:var(--dna);min-width:5.4ch;text-align:right;letter-spacing:-.01em}
+.cout .cline .u{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.cout .cline .nm{font-size:14px;color:var(--ink)}
+.cout .cline.water b{color:var(--water)}
+.cout .cline.water .nm{color:var(--ink-2)}
+.cnote{margin:9px 0 0;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);line-height:1.6}
+.cnote.bad{color:var(--danger)}
+
+.tip-wrap{display:inline-flex;align-items:center}
+.tip-btn{width:16px;height:16px;border-radius:50%;border:1px solid var(--line-strong);background:transparent;
+  color:var(--ink-3);font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:700;line-height:1;
+  padding:0;display:inline-flex;align-items:center;justify-content:center;transition:color .13s,border-color .13s,background .13s}
+.tip-btn:hover{color:var(--dna);border-color:var(--dna);background:var(--dna-soft)}
+.tip-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tip{position:fixed;top:0;left:0;z-index:80;width:300px;max-width:calc(100vw - 20px);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:9px;padding:11px 13px;
+  box-shadow:0 2px 4px rgba(0,0,0,.06),0 14px 34px -14px rgba(0,0,0,.4);
+  font-size:12.5px;line-height:1.6;color:var(--ink-2);font-weight:400;letter-spacing:0;text-transform:none;
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .14s,transform .14s,visibility .14s}
+.tip::before{content:"";position:absolute;top:-5px;left:var(--arrow,13px);width:8px;height:8px;background:var(--surface);
+  border-left:1px solid var(--line-strong);border-top:1px solid var(--line-strong);transform:rotate(45deg)}
+.tip.above::before{top:auto;bottom:-5px;border-left:0;border-top:0;
+  border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.tip-wrap:hover .tip,.tip-wrap:focus-within .tip{opacity:1;visibility:visible;transform:translateY(0)}
+@media (max-width:860px){ .tip{width:272px} }
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);background:var(--ink);
+  color:var(--ground);padding:9px 16px;border-radius:7px;font-size:13.5px;opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:90;box-shadow:var(--shadow)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast-act{margin-left:12px;background:transparent;border:1px solid var(--ink-3);color:var(--ground);border-radius:5px;
+  padding:3px 10px;font:inherit;font-size:12.5px;font-weight:600}
+.toast-act:hover{background:var(--ink-2);color:var(--ground)}
+.toast-act:focus-visible{outline:2px solid var(--dna);outline-offset:2px}
+
+.theme-btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);border-radius:6px;
+  padding:5px 7px;display:inline-flex;align-items:center;justify-content:center;
+  transition:background .12s,border-color .12s,color .12s}
+.theme-btn:hover{background:var(--surface-2);color:var(--ink);border-color:var(--ink-3)}
+.theme-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.theme-btn svg{width:16px;height:16px;display:block;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.theme-btn .i-moon{display:none}
+:root[data-theme="dark"] .theme-btn .i-sun{display:none}
+:root[data-theme="dark"] .theme-btn .i-moon{display:block}
+
+.foot{max-width:1500px;margin:0 auto;padding:0 20px 40px;color:var(--ink-3);font-size:12px;line-height:1.7}
+.foot code{font-family:"IBM Plex Mono",monospace;color:var(--ink-2);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.credit{margin:34px auto 0;padding-top:22px;border-top:1px solid var(--line);max-width:1500px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:28px;flex-wrap:wrap;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;color:var(--ink-3)}
+.credit-left{display:flex;align-items:baseline;gap:32px;flex-wrap:wrap}
+.credit a{color:var(--ink-3);text-decoration:none;border-bottom:1px dotted var(--line-strong);padding-bottom:2px;
+  transition:color .15s,border-color .15s}
+.credit a:hover{color:var(--dna);border-bottom-color:var(--dna)}
+.credit a:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:2px}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- phone ---------- */
+@media (max-width:860px){
+  input[type=number],input[type=text].cell,select.cell{font-size:16px}
+  .btn,.theme-btn{min-height:38px}
+  .btn-sm{padding:7px 11px;font-size:13.5px}
+  .icon-btn{min-width:36px;min-height:36px;font-size:19px}
+  input[type=checkbox]{width:20px;height:20px}
+  main{padding:14px 12px 60px}
+  .topbar{position:static}
+  .topbar-in{padding:9px 12px;gap:10px}
+  .brand span{display:none}
+  .exp{flex:1 1 100%;order:3}
+  .bar-actions{margin-left:auto;gap:6px}
+  .card + .card{margin-top:14px}
+  .card-head{padding:11px 13px}
+  .card-head h2 em{display:none}
+  .cols{gap:14px}
+  .foot{padding:0 12px 30px}
+  .strip{margin-bottom:14px}
+  .def{flex:1 1 44%;min-width:0;border-bottom:1px solid var(--line)}
+  .def:nth-of-type(2n){border-right:0}
+  .def-apply{flex:1 1 100%;border-left:0;justify-content:center}
+  .def-apply .btn{width:100%;justify-content:center}
+
+  .grid{overflow-x:visible}
+  .grid table{min-width:0;display:block}
+  .grid thead{display:none}
+  .grid tbody{display:block}
+  .grid tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;padding:13px 13px 15px;
+    border-bottom:1px solid var(--line);position:relative}
+  .grid tbody tr:last-child{border-bottom:0}
+  .grid tbody tr:hover{background:transparent}
+  .grid td{border:0;padding:0;display:block}
+  .grid td[data-l]::before{content:attr(data-l);display:block;font-family:"IBM Plex Sans Condensed",sans-serif;
+    font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+  /* uppercase maps µ to a capital Mu, which reads as M — leave those labels as written */
+  .grid td[data-l*="µ"]::before{text-transform:none;letter-spacing:.03em;font-size:10.5px}
+  .grid td.td-name{grid-column:1 / -1;padding-right:40px}
+  .grid td.td-act{position:absolute;top:9px;right:8px}
+  .w-num,.w-out,.w-type{width:auto}
+  .out{text-align:left;padding:7px 9px;border-radius:7px;background:var(--dna-soft)}
+  .out.nominal{background:var(--surface-2)}
+  .out.bad{background:var(--danger-soft)}
+  .out b{font-size:21px}
+
+  .asm{padding:13px}
+  .asm-top input.cell{flex:1 1 100%}
+  .pick > .plabel{min-width:100%;padding-top:0}
+  .cline b{font-size:26px;min-width:5ch}
+  .cline{padding:9px 2px}
+  .chip{padding:6px 13px;font-size:14px}
+
+  .prow{grid-template-columns:minmax(0,1fr) 1fr;gap:7px}
+  .prow .op,.prow .mass{text-align:left}
+  .rrow{grid-template-columns:minmax(0,1fr) 96px 26px}
+
+  .combo-row{grid-template-columns:24px minmax(0,1fr) 66px 66px;gap:8px;padding:10px 13px}
+  .combo-row span:nth-child(3){display:none}
+  .combo-head{font-size:9.5px}
+  .combo-foot{gap:16px;padding:12px 13px}
+  .cstat b{font-size:15px}
+  .rail{position:static}
+  .toast{left:12px;right:12px;bottom:14px;transform:translateY(12px);max-width:none}
+  .toast.on{transform:translateY(0)}
+  .card-foot .btn{width:100%;justify-content:center}
+}
+</style>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle class="m-ring" cx="16" cy="16" r="8.6"/>
+        <path class="m-insert" d="M22.1 9.9a8.6 8.6 0 0 1 0 12.2"/>
+      </svg>
+      <b>cloneBench</b><span>assembly planner</span>
+    </div>
+    <div class="exp">
+      <input type="text" id="expTitle" placeholder="Assembly name" aria-label="Assembly name">
+      <input type="date" id="expDate" aria-label="Date">
+    </div>
+    <div class="bar-actions">
+      <button class="theme-btn" id="btnTheme" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>
+      </button>
+      <button class="btn btn-sm" id="btnProtocol" aria-expanded="false" aria-controls="protoPanel">Protocol</button>
+      <button class="btn btn-ghost btn-sm" id="btnNew">Clear board</button>
+      <button class="btn btn-sm" id="btnCopy">Copy for Excel</button>
+      <button class="btn btn-primary btn-sm" id="btnCsv">Export Excel</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="strip">
+    <div class="def def-wide">
+      <label for="protoPick">Protocol</label>
+      <div class="def-row"><select id="protoPick" class="cell" aria-label="Which protocol this run uses"></select></div>
+    </div>
+    <div class="def">
+      <label for="dTotal">Reaction volume</label>
+      <div class="def-row"><input type="number" id="dTotal" min="1" step="1"><span class="unit">µL</span></div>
+    </div>
+    <div class="def">
+      <label for="dExcess">Master mix excess</label>
+      <div class="def-row"><input type="number" id="dExcess" min="0" max="100" step="5"><span class="unit">%</span></div>
+    </div>
+    <div class="def-apply">
+      <button class="btn btn-sm" id="btnProtocol2">Edit protocol</button>
+    </div>
+  </div>
+
+  <section class="card panel" id="protoPanel">
+    <div class="card-head">
+      <h2>Protocol
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">The reaction this run uses. Each DNA part type has a nominal volume at a nominal concentration, which sets the mass it delivers; the reagents are the fixed volumes per reaction. Duplicate it to keep a second recipe with different enzymes or buffers.</span></span>
+      </h2>
+      <div class="tools">
+        <input type="text" id="protoName" class="cell pname" aria-label="Protocol name" placeholder="Protocol name">
+        <button class="btn btn-sm" id="btnDupProto">Duplicate</button>
+        <button class="btn btn-ghost btn-sm" id="btnDelProto">Delete</button>
+        <button class="btn btn-ghost btn-sm" id="btnResetProto">Reset to default</button>
+      </div>
+    </div>
+    <div class="psec">
+      <h3>Dosing</h3>
+      <div class="drow">
+        <label for="dosMode">How parts are dosed</label>
+        <select id="dosMode" class="cell">
+          <option value="molar">Molar — inserts at a ratio to the acceptor</option>
+          <option value="mass">Mass — a fixed ng per part</option>
+        </select>
+      </div>
+      <div id="molarRows">
+        <div class="drow">
+          <label for="dosAccMass">Acceptor per reaction</label>
+          <div class="def-row"><input type="number" id="dosAccMass" step="10" min="0"><span class="unit">ng</span></div>
+        </div>
+        <div class="drow">
+          <label for="dosRatio">Insert : acceptor</label>
+          <div class="def-row"><input type="number" id="dosRatio" step="0.5" min="0"><span class="unit">: 1 molar</span></div>
+        </div>
+        <div class="drow">
+          <label for="dosGbp">Mass per base pair</label>
+          <div class="def-row"><input type="number" id="dosGbp" step="1" min="1"><span class="unit">g/mol · bp</span></div>
+        </div>
+      </div>
+      <div class="drow">
+        <label for="dosEnz">Type IIS enzyme</label>
+        <div class="def-row">
+          <select id="dosEnz" class="cell"></select>
+          <input type="text" id="dosSite" class="cell mono" placeholder="site" style="width:110px">
+        </div>
+      </div>
+      <p class="dnote" id="dosNote"></p>
+    </div>
+
+    <div class="psec">
+      <h3>Fallback volumes — used in mass mode, or when a part has no length</h3>
+      <div id="protoParts"></div>
+    </div>
+    <div class="psec">
+      <h3>Reagents — fixed volume per reaction</h3>
+      <div id="protoReagents"></div>
+      <div style="margin-top:10px"><button class="btn btn-sm" id="btnAddReagent">+ Add reagent</button></div>
+    </div>
+    <div class="ptotal" id="protoTotal"></div>
+  </section>
+
+  <div class="cols">
+    <div>
+      <section class="card" id="partsCard">
+        <div class="dropzone">Drop .gb / .fasta files to add parts</div>
+        <div class="card-head">
+          <h2>Parts <em>volume = mass ÷ measured concentration</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Every plasmid you might use. Give a measured concentration and the volume is the one that delivers the protocol's mass; leave it blank and the protocol's nominal volume is used.</span></span>
+          </h2>
+          <div class="tools">
+            <button class="btn btn-ghost btn-sm" id="btnClearParts">Remove all</button>
+            <label class="btn btn-sm filebtn">Load .gb<input type="file" id="seqFile" accept=".gb,.gbk,.genbank,.fasta,.fa,.fna,.seq,.txt,text/plain" multiple hidden></label>
+            <button class="btn btn-sm" id="btnAddPart">+ Add part</button>
+          </div>
+        </div>
+        <div id="partWarn"></div>
+        <div class="grid">
+          <table>
+            <thead>
+              <tr>
+                <th class="l w-name">Part</th>
+                <th class="l w-type">Role</th>
+                <th class="w-num nocase">ng/µL</th>
+                <th class="w-num" title="Full plasmid length — fills in from a .gb or .fasta file">Length bp</th>
+                <th class="w-num nocase" title="How much of this prep you have">on hand µL</th>
+                <th class="w-out">Use</th>
+                <th class="w-out">Mass</th>
+                <th class="w-act"></th>
+              </tr>
+            </thead>
+            <tbody id="partBody"></tbody>
+          </table>
+        </div>
+        <div class="card-foot">
+          <span class="hint" id="partsHint">A blank concentration means the protocol volume is used as written.</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Assemblies <em>one reaction per tube</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">One reaction per tube. Pick its acceptor, its gene-containing plasmid and its modules, and the recipe lists every volume plus the water that brings the tube to the reaction volume.</span></span>
+          </h2>
+          <div class="tools">
+            <button class="btn btn-ghost btn-sm" id="btnClearAsm">Remove all</button>
+            <button class="btn btn-sm" id="btnAddAsm">+ Add assembly</button>
+          </div>
+        </div>
+        <div id="asmBody"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Reaction summary <em>what goes on the bench</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Every assembly in one list: module count, DNA volume, water and reaction volume per tube, with the run totals.</span></span>
+          </h2>
+        </div>
+        <div id="runBody"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Master mix <em>shared reagents</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">The reagents every reaction shares, multiplied by the number of tubes plus an excess. Water joins the mix when every tube needs the same amount, and so does any part that appears in all of your assemblies.</span></span>
+          </h2>
+        </div>
+        <div class="mm-head">
+          <div class="mmfield"><label for="mmN">Reactions</label><input type="number" id="mmN" min="1" step="1"><span class="unit">tubes</span></div>
+          <div class="mmfield"><label for="mmX">Excess</label><input type="number" id="mmX" min="0" max="100" step="5"><span class="unit">%</span></div>
+          <label class="mmcheck"><input type="checkbox" id="mmShared"> Pool parts every tube shares</label>
+          <button class="btn btn-ghost btn-sm" id="btnMmSync">Match my assemblies</button>
+        </div>
+        <div id="mmBody"></div>
+      </section>
+    </div>
+
+    <div class="rail">
+      <section class="card">
+        <div class="card-head"><h2>Part usage
+          <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">How much of each part every assembly asks for in total, set against how much of that prep you have on hand.</span></span>
+        </h2></div>
+        <div id="usageBody"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Quick dilute
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Stock concentration, volume of stock, target concentration and final volume. Fill three and leave one empty; the empty one is worked out, along with the stock and water to combine.</span></span>
+          </h2>
+          <button class="btn btn-ghost btn-sm" id="calcClear">Clear</button>
+        </div>
+        <div class="calc">
+          <div class="crow" data-f="s">
+            <label for="calcS">Stock</label>
+            <input type="number" id="calcS" step="10" min="0" inputmode="decimal" placeholder="350">
+            <span class="cu">ng/µL</span>
+          </div>
+          <div class="crow" data-f="i">
+            <label for="calcI">Initial volume</label>
+            <input type="number" id="calcI" step="0.5" min="0" inputmode="decimal" placeholder="—">
+            <span class="cu">µL</span>
+          </div>
+          <div class="crow" data-f="t">
+            <label for="calcT">Want</label>
+            <input type="number" id="calcT" step="10" min="0" inputmode="decimal" placeholder="100">
+            <span class="cu">ng/µL</span>
+          </div>
+          <div class="crow" data-f="v">
+            <label for="calcV">Final volume</label>
+            <input type="number" id="calcV" step="1" min="0" inputmode="decimal" placeholder="20">
+            <span class="cu">µL</span>
+          </div>
+          <div class="cout" id="calcOut"></div>
+          <p class="cnote" id="calcNote">Leave one box empty — that's the one worked out.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="foot">
+  <p>A part's volume is <code>nominal volume × nominal concentration ÷ measured concentration</code>, so it delivers the same mass whatever the prep came out at. Water makes each tube up to the reaction volume. Work is saved in this browser as you type.</p>
+  <div class="credit">
+    <div class="credit-left">
+      <span>made by amiralito :)</span>
+      <a href="https://amiralito.github.io" target="_blank" rel="noopener noreferrer">website</a>
+      <a href="https://github.com/amiralito" target="_blank" rel="noopener noreferrer">github</a>
+    </div>
+    <span class="credit-right">mit license</span>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+var KEY = "clonebench-v1";
+var uid = 0;
+function nid(){ uid += 1; return "i" + Date.now().toString(36) + uid; }
+
+var ROLES = { acceptor:"Acceptor", gene:"Gene plasmid", module:"Module" };
+
+/* Type IIS enzymes — recognition site, used for the site audit */
+var ENZYMES = {
+  "BsaI":          "GGTCTC",
+  "BpiI (BbsI)":   "GAAGAC",
+  "BsmBI (Esp3I)": "CGTCTC",
+  "SapI (LguI)":   "GCTCTTC",
+  "AarI (PaqCI)":  "CACCTGC",
+  "BtgZI":         "GCGATG",
+  "Custom":        ""
+};
+
+/* The lab's four reference recipes. Short protocols run in restriction buffer
+   at 20 µL; long protocols run in ligase buffer at 15 µL. */
+function PRESETS(){
+  function base(name, total, enzyme, reagents){
+    return {
+      id: nid(), name: name, total: total,
+      dosing: "molar",          /* "molar" | "mass" */
+      acceptorMass: 200,        /* ng — protocol says 100–200 */
+      ratio: 2,                 /* insert : acceptor, molar */
+      gPerBp: 650,              /* g/mol per base pair */
+      enzyme: enzyme,
+      customSite: "",
+      parts: {                  /* fallback volumes, used in mass mode or with no length */
+        acceptor: { vol:1,   conc:200 },
+        gene:     { vol:1,   conc:100 },
+        module:   { vol:0.5, conc:100 }
+      },
+      reagents: reagents.map(function(r){ return { id:nid(), name:r[0], vol:r[1] }; })
+    };
+  }
+  return [
+    base("BsaI — short, restriction buffer", 20, "BsaI", [
+      ["BsaI (20 U/µL, NEB)", 1],
+      ["CutSmart Buffer (10X)", 2],
+      ["T4 DNA Ligase (400 U/µL, NEB)", 1],
+      ["ATP 10 mM", 2]
+    ]),
+    base("BsaI — long, ligase buffer", 15, "BsaI", [
+      ["T4 Ligase Buffer (10X, NEB)", 1.5],
+      ["BSA (10X)", 1.5],
+      ["T4 DNA Ligase (400 U/µL, NEB)", 0.5],
+      ["BsaI (10 U/µL, NEB)", 0.5]
+    ]),
+    base("BpiI — short, restriction buffer", 20, "BpiI (BbsI)", [
+      ["BpiI (10 U/µL, ThermoFisher)", 1],
+      ["Buffer G (10X, ThermoFisher)", 2],
+      ["T4 DNA Ligase (400 U/µL, NEB)", 1],
+      ["ATP 10 mM", 2]
+    ]),
+    base("BpiI — long, ligase buffer", 15, "BpiI (BbsI)", [
+      ["T4 Ligase Buffer (10X, NEB)", 1.5],
+      ["BSA (10X)", 1.5],
+      ["T4 DNA Ligase (400 U/µL, NEB)", 0.5],
+      ["BpiI (10 U/µL, ThermoFisher)", 0.5]
+    ])
+  ];
+}
+function defaultProtocol(name){
+  var pr = PRESETS()[0];
+  if(name) pr.name = name;
+  return pr;
+}
+
+/** the protocol this run is using */
+function P(){
+  for(var i=0;i<state.protocols.length;i++){
+    if(state.protocols[i].id === state.activeId) return state.protocols[i];
+  }
+  return state.protocols[0];
+}
+
+function blankPart(role, name){
+  return { id:nid(), name:name||"", role:role||"module", conc:null, have:null, bp:null, seq:null };
+}
+
+function seed(){
+  /* worked example, so the app opens showing the calculation rather than warnings.
+     Fictional lengths and concentrations — replace with your own. */
+  var a  = blankPart("acceptor","Example acceptor"); a.bp = 4000;  a.conc = 200;
+  var g  = blankPart("gene","Example CDS");          g.bp = 3000;  g.conc = 150;
+  var m1 = blankPart("module","Example promoter");   m1.bp = 1500; m1.conc = 120;
+  var m2 = blankPart("module","Example terminator"); m2.bp = 900;  m2.conc = 100;
+  return {
+    title:"", date:new Date().toISOString().slice(0,10),
+    protocols: PRESETS(),
+    activeId: null,
+    excess: 10,
+    mmN: null,
+    parts: [a,g,m1,m2],
+    asm: [ { id:nid(), name:"", auto:true, acceptor:a.id, gene:g.id, modules:[m1.id,m2.id] } ]
+  };
+}
+
+var state;
+try {
+  var raw = localStorage.getItem(KEY);
+  state = raw ? JSON.parse(raw) : seed();
+} catch(e){ state = seed(); }
+if(!state || !state.parts){ state = seed(); }
+if(!Array.isArray(state.protocols) || !state.protocols.length){
+  var legacy = state.protocol;                       // v1 kept a single protocol
+  if(legacy && legacy.parts){
+    if(!legacy.id) legacy.id = nid();
+    if(!legacy.name) legacy.name = "Golden Gate — BsaI-HF";
+    state.protocols = [legacy];
+  } else {
+    state.protocols = [defaultProtocol()];
+  }
+  state.activeId = state.protocols[0].id;
+}
+delete state.protocol;
+if(!state.activeId || !state.protocols.some(function(x){ return x.id === state.activeId; })){
+  state.activeId = state.protocols[0].id;
+}
+if(typeof state.excess !== "number"){ state.excess = 10; }
+if(!Array.isArray(state.asm)){ state.asm = []; }
+if(typeof state.mmShared !== "boolean"){ state.mmShared = true; }
+
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+
+/* ---------- maths ---------- */
+function num(v){ var n = parseFloat(v); return isFinite(n) ? n : null; }
+function fmt(v, dp){
+  if(v === null || !isFinite(v)) return "—";
+  return v.toFixed(dp === undefined ? 2 : dp);
+}
+function labelOf(p){ return (p.name && p.name.trim()) ? p.name.trim() : "Untitled part"; }
+function partById(id){
+  for(var i=0;i<state.parts.length;i++){ if(state.parts[i].id === id) return state.parts[i]; }
+  return null;
+}
+
+/** the DNA mass this role delivers in mass mode, from the protocol */
+function roleMass(role){
+  var r = P().parts[role];
+  if(!r || r.vol === null || r.conc === null) return null;
+  return r.vol * r.conc;
+}
+function isMolar(){ return P().dosing === "molar"; }
+/** a physical quantity is only usable when it is a finite number above zero */
+function pos(v){ return (typeof v === "number" && isFinite(v) && v > 0) ? v : null; }
+function gPerBp(){ var g = P().gPerBp; return (typeof g === "number" && g > 0) ? g : 650; }
+
+/** fmol in a given mass of dsDNA of a given length */
+function fmolOf(ng, bp){
+  if(pos(ng) === null || pos(bp) === null) return null;
+  return ng * 1e6 / (bp * gPerBp());
+}
+/** the acceptor a molar calculation is measured against */
+function refAcceptor(){
+  for(var i=0;i<state.asm.length;i++){
+    var a = state.asm[i].acceptor ? partById(state.asm[i].acceptor) : null;
+    if(a) return a;
+  }
+  for(var j=0;j<state.parts.length;j++){
+    if(state.parts[j].role === "acceptor") return state.parts[j];
+  }
+  return null;
+}
+
+/**
+ * The DNA mass this part should deliver, in ng.
+ * Molar mode: the acceptor is dosed by mass; every insert is dosed at
+ * `ratio` times the acceptor's molar amount, which needs both lengths.
+ * Returns null when it cannot be worked out (the caller falls back).
+ */
+function targetMass(p, acc){
+  if(!isMolar()){
+    var m = roleMass(p.role);
+    return m;
+  }
+  var accMass = pos(P().acceptorMass);
+  if(p.role === "acceptor") return accMass;
+  if(acc === undefined) acc = refAcceptor();
+  var ratio = pos(P().ratio);
+  if(!acc || pos(acc.bp) === null || pos(p.bp) === null || accMass === null || ratio === null) return null;
+  var accFmol = fmolOf(accMass, acc.bp);
+  if(accFmol === null) return null;
+  return ratio * accFmol * p.bp * gPerBp() / 1e6;          /* back to ng */
+}
+
+/** why a part fell back to its nominal volume — "" when it did not */
+function fallbackReason(p, acc){
+  if(!isMolar()) return "";
+  if(p.role === "acceptor") return pos(P().acceptorMass) === null ? "acceptor mass must be above zero" : "";
+  if(acc === undefined) acc = refAcceptor();
+  if(!acc) return "no acceptor chosen";
+  if(pos(acc.bp) === null) return "acceptor has no length";
+  if(pos(P().acceptorMass) === null) return "acceptor mass must be above zero";
+  if(pos(P().ratio) === null) return "insert ratio must be above zero";
+  if(pos(p.bp) === null) return "no length";
+  return "";
+}
+function fellBack(p, acc){ return fallbackReason(p, acc) !== ""; }
+
+/** volume of this part to pipette, against a given acceptor */
+function partVolume(p, acc){
+  var r = P().parts[p.role];
+  if(!r) return null;
+  var m = targetMass(p, acc), c = pos(p.conc);
+  if(m !== null && c !== null) return m / c;
+  return r.vol;                                  /* nominal, as written */
+}
+function partMass(p, acc){
+  var m = targetMass(p, acc), c = pos(p.conc);
+  if(m !== null && c !== null) return m;
+  var v = partVolume(p, acc);
+  if(v === null) return null;
+  if(c !== null) return v * c;
+  var r = P().parts[p.role];
+  return (r && r.conc !== null) ? v * r.conc : null;
+}
+function partFmol(p, acc){
+  var m = partMass(p, acc);
+  return (m === null || pos(p.bp) === null) ? null : fmolOf(m, p.bp);
+}
+/** the acceptor of one assembly */
+function accOf(a){ return a && a.acceptor ? partById(a.acceptor) : null; }
+
+/* ---------- sequence files ---------- */
+/** GenBank, FASTA or a bare sequence -> {name, bp, seq, circular} */
+function parseSequenceFile(text, filename){
+  var stem = (filename || "").replace(/\.[^.]+$/, "");
+  var out = { name:stem, bp:null, seq:null, circular:false };
+
+  if(/^LOCUS\s/m.test(text)){                                   /* GenBank */
+    var locus = text.match(/^LOCUS\s+(\S+)\s+(\d+)\s*bp(.*)$/m);
+    if(locus){
+      out.name = locus[1];
+      out.bp = parseInt(locus[2], 10);
+      out.circular = /circular/i.test(locus[3] || "");
+    }
+    var def = text.match(/^DEFINITION\s+(.+)$/m);
+    if(def && !locus) out.name = def[1].trim();
+    var org = text.indexOf("\nORIGIN");
+    if(org !== -1){
+      var body = text.slice(org + 7);
+      var end = body.indexOf("\n//");
+      if(end !== -1) body = body.slice(0, end);
+      out.seq = body.replace(/[^A-Za-z]/g, "").toUpperCase();
+    }
+  } else if(/^\s*>/.test(text)){                                /* FASTA */
+    var lines = text.replace(/\r/g,"").split("\n");
+    var header = lines.shift().replace(/^\s*>\s*/, "").trim();
+    if(header) out.name = header.split(/[\s|]/)[0] || header;
+    out.seq = lines.join("").replace(/[^A-Za-z]/g, "").toUpperCase();
+  } else {                                                      /* bare sequence */
+    var bare = text.replace(/[^A-Za-z]/g, "").toUpperCase();
+    if(bare.length > 20 && /^[ACGTUNRYKMSWBDHV]+$/.test(bare)) out.seq = bare;
+  }
+
+  if(out.seq){
+    out.seq = out.seq.replace(/[^ACGTUNRYKMSWBDHV]/g, "");
+    if(!out.bp) out.bp = out.seq.length;
+  }
+  if(!out.bp && !out.seq) return null;
+  return out;
+}
+
+/* ---------- Type IIS site audit ---------- */
+function revComp(sq){
+  var m = { A:"T", C:"G", G:"C", T:"A", U:"A", N:"N",
+            R:"Y", Y:"R", K:"M", M:"K", S:"S", W:"W",
+            B:"V", V:"B", D:"H", H:"D" };
+  var o = "";
+  for(var i=sq.length-1;i>=0;i--) o += (m[sq[i]] || "N");
+  return o;
+}
+function activeSite(){
+  var e = P().enzyme;
+  if(e === "Custom") return (P().customSite || "").toUpperCase().replace(/[^ACGT]/g,"");
+  return ENZYMES[e] || "";
+}
+function countOccurrences(hay, needle){
+  if(!needle) return 0;
+  var n = 0, i = hay.indexOf(needle);
+  while(i !== -1){ n++; i = hay.indexOf(needle, i + 1); }
+  return n;
+}
+/** recognition sites on both strands, treating a circular plasmid as circular */
+function siteCount(p){
+  var site = activeSite();
+  if(!site || !p.seq) return null;
+  var sq = p.seq;
+  var wrapped = sq + sq.slice(0, Math.max(0, site.length - 1));   /* across the origin */
+  var rc = revComp(site);
+  var n = countOccurrences(wrapped, site);
+  if(rc !== site) n += countOccurrences(wrapped, rc);
+  return n;
+}
+function reagentTotal(){
+  var t = 0;
+  P().reagents.forEach(function(r){ if(r.vol !== null) t += r.vol; });
+  return t;
+}
+
+function asmParts(a){
+  var list = [];
+  var ac = a.acceptor ? partById(a.acceptor) : null;
+  if(ac) list.push(ac);
+  var gn = a.gene ? partById(a.gene) : null;
+  if(gn) list.push(gn);
+  a.modules.forEach(function(id){ var p = partById(id); if(p) list.push(p); });
+  return list;
+}
+function asmDNA(a){
+  var t = 0, ok = true, acc = accOf(a);
+  asmParts(a).forEach(function(p){
+    var v = partVolume(p, acc);
+    if(v === null) ok = false; else t += v;
+  });
+  return ok ? t : null;
+}
+function asmWater(a){
+  var d = asmDNA(a);
+  if(d === null || P().total === null) return null;
+  return P().total - d - reagentTotal();
+}
+function autoNameFor(a){
+  return asmParts(a).map(labelOf).join(" + ");
+}
+function asmLabel(a, i){
+  var n = (a.auto ? autoNameFor(a) : a.name) || "";
+  return n.trim() || ("assembly " + (i+1));
+}
+
+/* ---------- element helpers ---------- */
+function el(tag, cls, txt){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(txt !== undefined && txt !== null) e.textContent = txt;
+  return e;
+}
+function dupButton(label, fn){
+  var b = el("button","icon-btn dup");
+  b.type = "button";
+  b.title = label;
+  b.setAttribute("aria-label", label);
+  b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<rect x="9" y="9" width="11.5" height="11.5" rx="2.6"/>' +
+    '<path d="M5.6 15H5a1.6 1.6 0 0 1-1.6-1.6V5.1A1.6 1.6 0 0 1 5 3.5h8.3A1.6 1.6 0 0 1 15 5.1v.6"/></svg>';
+  b.addEventListener("click", fn);
+  return b;
+}
+
+function numInput(val, step, min, label){
+  var i = document.createElement("input");
+  i.type = "number"; i.step = step; i.inputMode = "decimal";
+  if(min !== undefined) i.min = min;
+  i.value = (val === null || val === undefined) ? "" : val;
+  if(label) i.setAttribute("aria-label", label);
+  i.addEventListener("wheel", function(ev){ if(document.activeElement === i) ev.preventDefault(); }, {passive:false});
+  return i;
+}
+
+var partBody   = document.getElementById("partBody");
+var partWarn   = document.getElementById("partWarn");
+var asmBody    = document.getElementById("asmBody");
+var runBody    = document.getElementById("runBody");
+var mmBody     = document.getElementById("mmBody");
+var usageBody  = document.getElementById("usageBody");
+var protoParts = document.getElementById("protoParts");
+var protoReag  = document.getElementById("protoReagents");
+var protoTotal = document.getElementById("protoTotal");
+
+/* ---------- protocol panel ---------- */
+function renderProtocol(){
+  renderDosing();
+  protoParts.textContent = "";
+  Object.keys(ROLES).forEach(function(role){
+    var r = P().parts[role];
+    var row = el("div","prow");
+    row.appendChild(el("span","lab", ROLES[role] + (role === "module" ? " (each)" : "")));
+
+    var v = numInput(r.vol, "0.1", 0, ROLES[role] + " nominal volume");
+    v.addEventListener("input", function(){ r.vol = num(v.value); refresh(); save(); });
+    row.appendChild(v);
+    row.appendChild(el("span","op","µL ×"));
+
+    var c = numInput(r.conc, "10", 0, ROLES[role] + " nominal concentration");
+    c.addEventListener("input", function(){ r.conc = num(c.value); refresh(); save(); });
+    row.appendChild(c);
+    row.appendChild(el("span","op","ng/µL ="));
+
+    var m = el("span","mass", roleMass(role) === null ? "—" : fmt(roleMass(role), 0) + " ng");
+    row.appendChild(m);
+    protoParts.appendChild(row);
+  });
+
+  protoReag.textContent = "";
+  P().reagents.forEach(function(rg){
+    var row = el("div","rrow");
+    var n = document.createElement("input");
+    n.type = "text"; n.className = "cell"; n.value = rg.name;
+    n.placeholder = "Reagent"; n.setAttribute("aria-label","Reagent name");
+    n.addEventListener("input", function(){ rg.name = n.value; refresh(); save(); });
+    row.appendChild(n);
+
+    var vwrap = el("div","def-row");
+    var v = numInput(rg.vol, "0.5", 0, "Volume of " + (rg.name || "reagent"));
+    v.addEventListener("input", function(){ rg.vol = num(v.value); refresh(); save(); });
+    vwrap.appendChild(v); vwrap.appendChild(el("span","unit","µL"));
+    row.appendChild(vwrap);
+
+    var del = el("button","icon-btn","×");
+    del.title = "Remove reagent";
+    del.setAttribute("aria-label","Remove " + (rg.name || "reagent"));
+    del.addEventListener("click", function(){
+      P().reagents = P().reagents.filter(function(x){ return x.id !== rg.id; });
+      renderProtocol(); refresh(); save();
+    });
+    row.appendChild(del);
+    protoReag.appendChild(row);
+  });
+
+  var fixed = reagentTotal();
+  protoTotal.textContent = "";
+  protoTotal.appendChild(el("span","", "Reagents " + fmt(fixed,1) + " µL  ·  DNA and water fill the rest"));
+  protoTotal.appendChild(el("b","", "reaction " + fmt(P().total,0) + " µL"));
+}
+
+/* ---------- protocol library ---------- */
+var protoPick = document.getElementById("protoPick");
+var protoName = document.getElementById("protoName");
+
+function renderProtoPicker(){
+  protoPick.textContent = "";
+  state.protocols.forEach(function(pr){
+    var o = document.createElement("option");
+    o.value = pr.id;
+    o.textContent = (pr.name || "Untitled protocol") + "  ·  " + fmt(pr.total, 0) + " µL";
+    if(pr.id === state.activeId) o.selected = true;
+    protoPick.appendChild(o);
+  });
+  protoName.value = P().name || "";
+  document.getElementById("btnDelProto").disabled = state.protocols.length < 2;
+}
+
+protoPick.addEventListener("change", function(){
+  state.activeId = protoPick.value;
+  syncStrip(); render(); save();
+  toast("Using “" + (P().name || "untitled") + "”");
+});
+
+protoName.addEventListener("input", function(){
+  P().name = protoName.value;
+  renderProtoPicker(); save();
+});
+
+document.getElementById("btnDupProto").addEventListener("click", function(){
+  var copy = JSON.parse(JSON.stringify(P()));
+  copy.id = nid();
+  copy.name = (P().name || "Protocol") + " copy";
+  copy.reagents.forEach(function(rg){ rg.id = nid(); });
+  state.protocols.push(copy);
+  state.activeId = copy.id;
+  syncStrip(); render(); save();
+  protoName.focus(); protoName.select();
+  toast("Copied — rename it and change what you need");
+});
+
+document.getElementById("btnDelProto").addEventListener("click", function(){
+  if(state.protocols.length < 2) return toast("This is your only protocol.");
+  var gone = P(), idx = state.protocols.indexOf(gone);
+  state.protocols = state.protocols.filter(function(x){ return x.id !== gone.id; });
+  state.activeId = state.protocols[Math.max(0, idx - 1)].id;
+  syncStrip(); render(); save();
+  toast("“" + (gone.name || "untitled") + "” removed", "Undo", function(){
+    state.protocols.splice(idx, 0, gone);
+    state.activeId = gone.id;
+    syncStrip(); render(); save();
+    toast("Put back");
+  });
+});
+
+/* ---------- dosing controls ---------- */
+var dosMode = document.getElementById("dosMode"),
+    dosAccMass = document.getElementById("dosAccMass"),
+    dosRatio = document.getElementById("dosRatio"),
+    dosGbp = document.getElementById("dosGbp"),
+    dosEnz = document.getElementById("dosEnz"),
+    dosSite = document.getElementById("dosSite"),
+    dosNote = document.getElementById("dosNote");
+
+Object.keys(ENZYMES).forEach(function(k){
+  var o = document.createElement("option");
+  o.value = k; o.textContent = k + (ENZYMES[k] ? "  ·  " + ENZYMES[k] : "");
+  dosEnz.appendChild(o);
+});
+
+function renderDosing(){
+  var pr = P();
+  dosMode.value = pr.dosing === "mass" ? "mass" : "molar";
+  dosAccMass.value = (pr.acceptorMass === null || pr.acceptorMass === undefined) ? "" : pr.acceptorMass;
+  dosRatio.value = (pr.ratio === null || pr.ratio === undefined) ? "" : pr.ratio;
+  dosGbp.value = gPerBp();
+  dosEnz.value = ENZYMES[pr.enzyme] !== undefined ? pr.enzyme : "Custom";
+  dosSite.value = dosEnz.value === "Custom" ? (pr.customSite || "") : (ENZYMES[dosEnz.value] || "");
+  dosSite.readOnly = dosEnz.value !== "Custom";
+  document.getElementById("molarRows").style.display = isMolar() ? "" : "none";
+
+  dosNote.textContent = "";
+  if(isMolar()){
+    if(pos(pr.acceptorMass) === null || pos(pr.ratio) === null){
+      dosNote.className = "dnote bad";
+      dosNote.textContent = "The acceptor mass and the insert ratio both need to be above zero — " +
+                            "until they are, every part uses the fallback volume below.";
+      return;
+    }
+    dosNote.className = "dnote";
+    var acc = refAcceptor();
+    var f = acc ? fmolOf(pr.acceptorMass, acc.bp) : null;
+    if(f === null){
+      dosNote.appendChild(document.createTextNode(
+        "Give the acceptor a length and each insert is dosed at " + fmt(pr.ratio,1) +
+        "× its molar amount. Without lengths the fallback volumes below are used."));
+    } else {
+      dosNote.appendChild(document.createTextNode(fmt(pr.acceptorMass,0) + " ng of " + labelOf(acc) +
+        " (" + acc.bp.toLocaleString() + " bp) = "));
+      dosNote.appendChild(el("b","", fmt(f,1) + " fmol"));
+      dosNote.appendChild(document.createTextNode("; each insert at " + fmt(pr.ratio,1) + "× = "));
+      dosNote.appendChild(el("b","", fmt(f * pr.ratio, 1) + " fmol"));
+      dosNote.appendChild(document.createTextNode("."));
+    }
+  } else {
+    dosNote.textContent = "Every part delivers the fixed mass set below, whatever its length.";
+  }
+}
+
+dosMode.addEventListener("change", function(){ P().dosing = dosMode.value; renderProtocol(); refresh(); save(); });
+dosAccMass.addEventListener("input", function(){ P().acceptorMass = num(dosAccMass.value); renderDosing(); refresh(); save(); });
+dosRatio.addEventListener("input", function(){ P().ratio = num(dosRatio.value); renderDosing(); refresh(); save(); });
+dosGbp.addEventListener("input", function(){ P().gPerBp = num(dosGbp.value); renderDosing(); refresh(); save(); });
+dosEnz.addEventListener("change", function(){
+  P().enzyme = dosEnz.value;
+  if(dosEnz.value !== "Custom") P().customSite = "";
+  renderDosing(); refresh(); save();
+});
+dosSite.addEventListener("input", function(){ P().customSite = dosSite.value.toUpperCase(); refresh(); save(); });
+[dosAccMass,dosRatio,dosGbp].forEach(function(i){
+  i.addEventListener("wheel", function(ev){ if(document.activeElement === i) ev.preventDefault(); }, {passive:false});
+});
+
+/* ---------- loading sequence files ---------- */
+function ingestSequence(parsed){
+  if(!parsed) return null;
+  var existing = null, key = (parsed.name || "").trim().toLowerCase();
+  for(var i=0;i<state.parts.length;i++){
+    if((state.parts[i].name || "").trim().toLowerCase() === key && key) existing = state.parts[i];
+  }
+  var target = existing;
+  if(!target){
+    target = blankPart("module", parsed.name);
+    state.parts.push(target);
+  }
+  if(parsed.bp) target.bp = parsed.bp;
+  if(parsed.seq) target.seq = parsed.seq;
+  return { part:target, isNew: !existing };
+}
+
+function loadFiles(fileList){
+  var files = Array.prototype.slice.call(fileList || []);
+  if(!files.length) return;
+  var added = 0, updated = 0, failed = [], pending = files.length;
+  var results = new Array(files.length);          /* keep the order they were dropped in */
+
+  files.forEach(function(f, idx){
+    var r = new FileReader();
+    r.onload = function(){
+      try { results[idx] = parseSequenceFile(String(r.result || ""), f.name); }
+      catch(e){ results[idx] = null; }
+      if(!results[idx]) failed.push(f.name);
+      if(--pending === 0) done();
+    };
+    r.onerror = function(){ results[idx] = null; failed.push(f.name); if(--pending === 0) done(); };
+    r.readAsText(f);
+  });
+
+  function done(){
+    results.forEach(function(parsed){
+      if(!parsed) return;
+      var res = ingestSequence(parsed);
+      if(res){ if(res.isNew) added++; else updated++; }
+    });
+    render(); save();
+    var bits = [];
+    if(added) bits.push(added + (added === 1 ? " part added" : " parts added"));
+    if(updated) bits.push(updated + " updated");
+    if(failed.length) bits.push(failed.length + " unreadable");
+    toast(bits.length ? bits.join(" · ") : "Nothing to read in those files");
+  }
+}
+
+document.getElementById("seqFile").addEventListener("change", function(){
+  loadFiles(this.files);
+  this.value = "";
+});
+
+(function(){
+  var card = document.getElementById("partsCard"), depth = 0;
+  function hasFiles(ev){
+    var dt = ev.dataTransfer;
+    return dt && dt.types && Array.prototype.indexOf.call(dt.types, "Files") !== -1;
+  }
+  card.addEventListener("dragenter", function(ev){
+    if(!hasFiles(ev)) return;
+    ev.preventDefault(); depth++; card.classList.add("dragging");
+  });
+  card.addEventListener("dragover", function(ev){ if(hasFiles(ev)){ ev.preventDefault(); ev.dataTransfer.dropEffect = "copy"; } });
+  card.addEventListener("dragleave", function(){ if(--depth <= 0){ depth = 0; card.classList.remove("dragging"); } });
+  card.addEventListener("drop", function(ev){
+    if(!hasFiles(ev)) return;
+    ev.preventDefault(); depth = 0; card.classList.remove("dragging");
+    loadFiles(ev.dataTransfer.files);
+  });
+})();
+
+document.getElementById("btnAddReagent").addEventListener("click", function(){
+  P().reagents.push({ id:nid(), name:"", vol:null });
+  renderProtocol(); refresh(); save();
+});
+document.getElementById("btnResetProto").addEventListener("click", function(){
+  var cur = P(), before = JSON.stringify(cur), idx = state.protocols.indexOf(cur);
+  var fresh = defaultProtocol(cur.name);
+  fresh.id = cur.id;
+  state.protocols[idx] = fresh;
+  syncStrip(); render(); save();
+  toast("“" + (fresh.name || "untitled") + "” reset to the standard recipe", "Undo", function(){
+    state.protocols[idx] = JSON.parse(before);
+    state.activeId = state.protocols[idx].id;
+    syncStrip(); render(); save();
+    toast("Protocol restored");
+  });
+});
+
+/* ---------- parts ---------- */
+function renderParts(){
+  partBody.textContent = "";
+  if(!state.parts.length){
+    var tr0 = el("tr"), td0 = el("td"); td0.colSpan = 8;
+    td0.appendChild(el("div","empty","No parts yet — add the plasmids you are assembling."));
+    tr0.appendChild(td0); partBody.appendChild(tr0);
+    return;
+  }
+  state.parts.forEach(function(p){
+    var tr = el("tr"); tr.dataset.pid = p.id;
+
+    var tdN = el("td","td-name");
+    var name = document.createElement("input");
+    name.type = "text"; name.className = "cell"; name.value = p.name;
+    name.placeholder = "Plasmid name"; name.setAttribute("aria-label","Part name");
+    name.addEventListener("input", function(){ p.name = name.value; refresh(); save(); });
+    tdN.appendChild(name);
+    tdN.appendChild(el("div","seqmeta",""));
+    tr.appendChild(tdN);
+
+    var tdR = el("td"); tdR.setAttribute("data-l","Role");
+    var sel = document.createElement("select");
+    sel.className = "cell";
+    sel.setAttribute("aria-label","Role of " + labelOf(p));
+    Object.keys(ROLES).forEach(function(k){
+      var o = document.createElement("option");
+      o.value = k; o.textContent = ROLES[k];
+      if(p.role === k) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", function(){
+      p.role = sel.value;
+      if(p.role !== "acceptor"){ state.asm.forEach(function(a){ if(a.acceptor === p.id) a.acceptor = null; }); }
+      if(p.role !== "gene"){ state.asm.forEach(function(a){ if(a.gene === p.id) a.gene = null; }); }
+      if(p.role !== "module"){ state.asm.forEach(function(a){ a.modules = a.modules.filter(function(x){ return x !== p.id; }); }); }
+      render(); save();
+    });
+    tdR.appendChild(sel); tr.appendChild(tdR);
+
+    function addNum(key, step, lab){
+      var td = el("td"); td.setAttribute("data-l", lab);
+      var i = numInput(p[key], step, 0, lab + " for " + labelOf(p));
+      i.placeholder = key === "conc" ? "nominal" : "";
+      i.addEventListener("input", function(){ p[key] = num(i.value); refresh(); save(); });
+      td.appendChild(i); tr.appendChild(td);
+    }
+    addNum("conc","10","ng/µL");
+    addNum("bp","100","Length bp");
+    addNum("have","1","On hand µL");
+
+    var tdV = el("td","out"); tdV.dataset.cell = "vol"; tdV.setAttribute("data-l","Use µL");
+    tdV.appendChild(el("b","","—")); tdV.appendChild(el("small","",""));
+    tr.appendChild(tdV);
+
+    var tdM = el("td","out nominal"); tdM.dataset.cell = "mass"; tdM.setAttribute("data-l","Mass");
+    tdM.appendChild(el("b","","—")); tdM.appendChild(el("small","",""));
+    tr.appendChild(tdM);
+
+    var tdA = el("td","td-act");
+    var acts = el("div","acts");
+
+    acts.appendChild(dupButton("Duplicate " + labelOf(p), function(){
+      var copy = JSON.parse(JSON.stringify(p));
+      copy.id = nid();
+      copy.name = (p.name && p.name.trim() ? p.name.trim() : "Part") + " copy";
+      state.parts.splice(state.parts.indexOf(p) + 1, 0, copy);
+      render(); save();
+      var row = partBody.querySelector('tr[data-pid="' + copy.id + '"] input[type=text]');
+      if(row){ row.focus(); row.select(); }
+    }));
+
+    var del = el("button","icon-btn","×");
+    del.title = "Remove part";
+    del.setAttribute("aria-label","Remove " + labelOf(p));
+    del.addEventListener("click", function(){
+      state.parts = state.parts.filter(function(x){ return x.id !== p.id; });
+      state.asm.forEach(function(a){
+        if(a.acceptor === p.id) a.acceptor = null;
+        if(a.gene === p.id) a.gene = null;
+        a.modules = a.modules.filter(function(x){ return x !== p.id; });
+      });
+      render(); save();
+    });
+    acts.appendChild(del);
+    tdA.appendChild(acts); tr.appendChild(tdA);
+
+    partBody.appendChild(tr);
+  });
+}
+
+/* ---------- assemblies ---------- */
+function renderAssemblies(){
+  asmBody.textContent = "";
+  if(!state.asm.length){
+    asmBody.appendChild(el("div","empty","No assemblies yet. Add one and pick the parts that go into the tube."));
+    return;
+  }
+  state.asm.forEach(function(a, idx){
+    var box = el("div","asm"); box.dataset.aid = a.id;
+
+    var top = el("div","asm-top");
+    top.appendChild(el("div","asm-no", String(idx+1)));
+    var name = document.createElement("input");
+    name.type = "text"; name.className = "cell" + (a.auto ? " auto" : "");
+    name.value = a.auto ? autoNameFor(a) : a.name;
+    name.placeholder = "Named from its parts — type to override";
+    name.setAttribute("aria-label","Assembly name");
+    name.addEventListener("input", function(){
+      a.name = name.value;
+      a.auto = name.value.trim() === "";
+      name.className = "cell" + (a.auto ? " auto" : "");
+      refresh(); save();
+    });
+    name.addEventListener("blur", function(){ if(a.auto) name.value = autoNameFor(a); });
+    top.appendChild(name);
+
+    var acts = el("div","acts");
+    acts.appendChild(dupButton("Duplicate this assembly", function(){
+      var copy = JSON.parse(JSON.stringify(a));
+      copy.id = nid();
+      copy.modules = a.modules.slice();
+      if(!copy.auto) copy.name = (a.name && a.name.trim() ? a.name.trim() : "Assembly") + " copy";
+      state.asm.splice(state.asm.indexOf(a) + 1, 0, copy);
+      render(); save();
+      toast("Assembly copied");
+    }));
+
+    var del = el("button","icon-btn","×");
+    del.title = "Remove assembly";
+    del.setAttribute("aria-label","Remove assembly " + (idx+1));
+    del.addEventListener("click", function(){
+      state.asm = state.asm.filter(function(x){ return x.id !== a.id; });
+      render(); save();
+    });
+    acts.appendChild(del);
+    top.appendChild(acts);
+    box.appendChild(top);
+
+    var pickers = el("div","pickers");
+    [["acceptor","Acceptor","single"],["gene","Gene plasmid","single"],["module","Modules","multi"]].forEach(function(cfg){
+      var role = cfg[0], label = cfg[1], mode = cfg[2];
+      var pick = el("div","pick");
+      pick.appendChild(el("div","plabel", label));
+      var chips = el("div","chips");
+      var pool = state.parts.filter(function(p){ return p.role === role; });
+      if(!pool.length){
+        chips.appendChild(el("div","chip-none","No parts with this role yet."));
+      }
+      pool.forEach(function(p){
+        var on = (mode === "single") ? (a[role] === p.id) : (a.modules.indexOf(p.id) !== -1);
+        var c = el("button","chip" + (role === "module" ? " rmod" : role === "gene" ? " rgene" : ""));
+        c.type = "button"; c.dataset.pid = p.id;
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+        c.appendChild(el("span","nm", labelOf(p)));
+        c.addEventListener("click", function(){
+          if(mode === "single"){
+            a[role] = (a[role] === p.id) ? null : p.id;
+          } else {
+            var i = a.modules.indexOf(p.id);
+            if(i === -1) a.modules.push(p.id); else a.modules.splice(i,1);
+          }
+          renderAssemblies(); refresh(); save();
+        });
+        chips.appendChild(c);
+      });
+      pick.appendChild(chips);
+      pickers.appendChild(pick);
+    });
+    box.appendChild(pickers);
+
+    box.appendChild(el("div","mix-list",""));
+    box.appendChild(el("div","asm-sum",""));
+
+    asmBody.appendChild(box);
+  });
+}
+
+/* ---------- recompute ---------- */
+function refresh(){
+  var badParts = 0, badSites = 0, noLength = 0;
+
+  Array.prototype.forEach.call(partBody.querySelectorAll("tr[data-pid]"), function(tr){
+    var p = partById(tr.dataset.pid);
+    if(!p) return;
+    var accRef = refAcceptor();
+    var v = partVolume(p, accRef), m = partMass(p, accRef);
+    var nominal = !(p.conc !== null && p.conc > 0);
+    var tooBig = (v !== null && P().total !== null && v > P().total);
+    if(tooBig) badParts++;
+    if(fellBack(p, accRef)) noLength++;
+
+    /* sequence / site audit line under the name */
+    var meta = tr.querySelector(".seqmeta");
+    if(meta){
+      meta.textContent = "";
+      var sc = siteCount(p);
+      if(pos(p.bp) !== null){
+        meta.appendChild(el("span","", p.bp.toLocaleString() + " bp"));
+      } else if(p.bp !== null && p.bp !== undefined){
+        meta.appendChild(el("span","warn", "length must be above zero"));
+      }
+      if(sc !== null){
+        var expected = 2;
+        var okSites = (sc === expected);
+        if(!okSites) badSites++;
+        meta.appendChild(el("i","dot" + (okSites ? "" : " bad")));
+        meta.appendChild(el("span", okSites ? "ok" : "warn",
+          P().enzyme.replace(/\s*\(.*\)/,"") + " ×" + sc + (okSites ? "" : " — expected " + expected)));
+      } else if(p.seq){
+        meta.appendChild(el("span","", "sequence loaded"));
+      }
+      var fr = fallbackReason(p, accRef);
+      if(fr) meta.appendChild(el("span","warn", fr));
+    }
+
+    var tdV = tr.querySelector('[data-cell="vol"]');
+    var tdM = tr.querySelector('[data-cell="mass"]');
+    tdV.className = "out" + (nominal ? " nominal" : "") + (tooBig ? " bad" : "");
+    tdV.children[0].textContent = v === null ? "—" : fmt(v);
+    tdV.children[1].textContent = v === null ? "" : (nominal ? "as written" : "µL");
+    tdM.className = "out nominal";
+    tdM.children[0].textContent = m === null ? "—" : fmt(m, 0);
+    tdM.children[1].textContent = m === null ? "" : "ng";
+  });
+
+  partWarn.textContent = "";
+  if(badParts){
+    var w = el("div","warn-banner");
+    var t = el("div");
+    t.appendChild(el("b","", badParts + (badParts === 1 ? " part is" : " parts are") + " too dilute. "));
+    t.appendChild(document.createTextNode("Delivering the protocol's mass would take more than a whole reaction — concentrate the prep or lower the mass."));
+    w.appendChild(t); partWarn.appendChild(w);
+  }
+  if(badSites){
+    var w2 = el("div","warn-banner");
+    var t2 = el("div");
+    t2.appendChild(el("b","", badSites + (badSites === 1 ? " part does not have" : " parts do not have") +
+      " two " + P().enzyme.replace(/\s*\(.*\)/,"") + " sites. "));
+    t2.appendChild(document.createTextNode("A level-0 part should carry exactly one site at each end; anything else means an internal site or a missing one."));
+    w2.appendChild(t2); partWarn.appendChild(w2);
+  }
+  if(noLength){
+    var accRef2 = refAcceptor();
+    var w3 = el("div","warn-banner soft");
+    var t3 = el("div");
+    if(!accRef2){
+      t3.appendChild(el("b","","No part is set as the acceptor. "));
+      t3.appendChild(document.createTextNode("Molar dosing measures every insert against the acceptor — set one part's role to Acceptor. Until then the protocol's fixed volumes are used."));
+    } else if(!accRef2.bp){
+      t3.appendChild(el("b","","The acceptor has no length. "));
+      t3.appendChild(document.createTextNode("Give " + labelOf(accRef2) + " a length in bp — drop in its .gb file or type it — and every insert is dosed against it."));
+    } else {
+      t3.appendChild(el("b","", noLength + (noLength === 1 ? " insert has no length. " : " inserts have no length. ")));
+      t3.appendChild(document.createTextNode("Those fall back to the protocol's fixed volume. Drop in a .gb or .fasta file, or type the bp."));
+    }
+    w3.appendChild(t3); partWarn.appendChild(w3);
+  }
+
+  Array.prototype.forEach.call(asmBody.querySelectorAll(".asm"), function(box){
+    var a = null;
+    for(var i=0;i<state.asm.length;i++){ if(state.asm[i].id === box.dataset.aid) a = state.asm[i]; }
+    if(!a) return;
+
+    if(a.auto){
+      var an = autoNameFor(a);
+      a.name = an;
+      var ni = box.querySelector("input.cell");
+      if(ni && document.activeElement !== ni && ni.value !== an) ni.value = an;
+    }
+
+    var list = box.querySelector(".mix-list");
+    var sum  = box.querySelector(".asm-sum");
+    list.textContent = ""; sum.textContent = "";
+
+    var parts = asmParts(a);
+    if(!parts.length){
+      list.appendChild(el("div","empty-line","Pick the parts that go into this tube."));
+      sum.className = "asm-sum";
+      return;
+    }
+
+    var water = asmWater(a);
+    var over = (water !== null && water < -1e-9);
+
+    function line(v, nameTxt, noteTxt, cls){
+      var row = el("div","cline" + (cls ? " " + cls : ""));
+      row.appendChild(el("b","", v));
+      row.appendChild(el("span","u","µL"));
+      var nm = el("span","nm", nameTxt);
+      if(noteTxt) nm.appendChild(el("small","", noteTxt));
+      row.appendChild(nm);
+      return row;
+    }
+
+    var acc = accOf(a);
+    parts.forEach(function(p){
+      var v = partVolume(p, acc);
+      var m = partMass(p, acc);
+      var f = partFmol(p, acc);
+      var note = ROLES[p.role].toLowerCase();
+      if(m !== null) note += " · " + fmt(m,0) + " ng";
+      if(f !== null) note += " · " + fmt(f,1) + " fmol";
+      var fr2 = fallbackReason(p, acc);
+      if(fr2) note += " · " + fr2 + ", nominal volume";
+      list.appendChild(line(fmt(v), labelOf(p), note, over ? "bad" : ""));
+    });
+    P().reagents.forEach(function(rg){
+      list.appendChild(line(fmt(rg.vol), rg.name || "reagent", "", "reagent"));
+    });
+    list.appendChild(line(over ? "—" : fmt(water), "water", "", "water rule" + (over ? " bad" : "")));
+
+    if(over){
+      sum.className = "asm-sum bad";
+      sum.textContent = "DNA and reagents come to " + fmt(P().total - water) +
+        " µL, more than the " + fmt(P().total,0) + " µL reaction — trim a module or raise the reaction volume.";
+    } else {
+      sum.className = "asm-sum";
+      sum.appendChild(el("span","", a.modules.length + (a.modules.length === 1 ? " module" : " modules")));
+      sum.appendChild(el("span","", "DNA " + fmt(asmDNA(a)) + " µL"));
+      sum.appendChild(el("span","", "reagents " + fmt(reagentTotal(),1) + " µL"));
+      sum.appendChild(el("span","tot", "total " + fmt(P().total,1) + " µL"));
+    }
+  });
+
+  renderRunSheet();
+  renderMasterMix();
+  renderUsage();
+}
+
+/* ---------- reaction summary ---------- */
+function renderRunSheet(){
+  runBody.textContent = "";
+  if(!state.asm.length){
+    runBody.appendChild(el("div","empty","Your assemblies will be listed here as a single run sheet."));
+    return;
+  }
+  var totDNA = 0, totWater = 0, totVol = 0, anyBad = false, tubes = 0;
+
+  var grid = el("div","combo-grid");
+  var head = el("div","combo-row combo-head");
+  ["#","Assembly","Modules","DNA","Water"].forEach(function(h,i){
+    head.appendChild(el("span", i >= 2 ? "r" : "", h));
+  });
+  grid.appendChild(head);
+
+  state.asm.forEach(function(a, i){
+    var d = asmDNA(a), w = asmWater(a);
+    var bad = (w !== null && w < -1e-9);
+    if(bad) anyBad = true; else if(d !== null){
+      tubes++; totDNA += d;
+      if(w !== null) totWater += w;
+      if(P().total !== null) totVol += P().total;
+    }
+    var row = el("div","combo-row" + (bad ? " bad" : ""));
+    row.appendChild(el("span","no", String(i+1)));
+    row.appendChild(el("span","nm", asmLabel(a, i)));
+    row.appendChild(el("span","r dim", String(a.modules.length)));
+    row.appendChild(el("span","r dnav", d === null ? "—" : fmt(d)));
+    row.appendChild(el("span","r wat", bad ? "over" : (w === null ? "—" : fmt(w))));
+    grid.appendChild(row);
+  });
+  runBody.appendChild(grid);
+
+  var foot = el("div","combo-foot");
+  function stat(label, value, cls){
+    var d = el("div","cstat" + (cls ? " " + cls : ""));
+    d.appendChild(el("span","",label));
+    d.appendChild(el("b","",value));
+    return d;
+  }
+  foot.appendChild(stat("Tubes", String(tubes)));
+  foot.appendChild(stat("DNA", fmt(totDNA) + " µL", "dna"));
+  foot.appendChild(stat("Reagents", fmt(reagentTotal() * tubes) + " µL", "reagent"));
+  foot.appendChild(stat("Water", fmt(totWater) + " µL", "water"));
+  foot.appendChild(stat("Total volume", fmt(totVol,1) + " µL"));
+  runBody.appendChild(foot);
+
+  if(anyBad){
+    runBody.appendChild(el("div","warn-banner combo-warn","A tube asks for more than its reaction volume — those tubes are left out of the totals."));
+  }
+}
+
+/* ---------- master mix ---------- */
+/** parts that appear in every assembly — those can be pooled instead of pipetted tube by tube */
+function sharedParts(){
+  if(state.asm.length < 2) return [];
+  return asmParts(state.asm[0]).filter(function(p){
+    var v0 = partVolume(p, accOf(state.asm[0]));
+    return state.asm.every(function(a){
+      if(asmParts(a).indexOf(p) === -1) return false;
+      var v = partVolume(p, accOf(a));      /* molar dosing can differ between acceptors */
+      return v !== null && v0 !== null && Math.abs(v - v0) < 1e-9;
+    });
+  });
+}
+
+function renderMasterMix(){
+  mmBody.textContent = "";
+  var n = (state.mmN !== null && state.mmN > 0) ? state.mmN : state.asm.length;
+  if(!n){
+    mmBody.appendChild(el("div","empty","Set a number of reactions, or add assemblies and match them."));
+    return;
+  }
+  var mult = n * (1 + (state.excess || 0) / 100);
+
+  // water only joins the mix when every tube needs the same amount
+  var waters = state.asm.map(asmWater).filter(function(w){ return w !== null && w >= -1e-9; });
+  var sameWater = waters.length === state.asm.length && state.asm.length > 0 &&
+                  waters.every(function(w){ return Math.abs(w - waters[0]) < 1e-9; });
+
+  var pooled = (state.mmShared === false) ? [] : sharedParts();
+
+  var grid = el("div","combo-grid");
+  var head = el("div","combo-row combo-head");
+  ["","Component","","Per rxn","× " + fmt(mult,2)].forEach(function(h,i){
+    head.appendChild(el("span", i >= 3 ? "r" : "", h));
+  });
+  grid.appendChild(head);
+
+  var total = 0;
+  function mmRow(label, per, cls, tag){
+    var row = el("div","combo-row");
+    row.appendChild(el("span","no",""));
+    var nm = el("span","nm", label);
+    if(tag) nm.appendChild(el("span","tagmm", tag));
+    row.appendChild(nm);
+    row.appendChild(el("span","r dim",""));
+    row.appendChild(el("span","r dim", per === null ? "—" : fmt(per,2)));
+    row.appendChild(el("span","r " + (cls || "dnav"), per === null ? "—" : fmt(per * mult)));
+    grid.appendChild(row);
+    if(per !== null) total += per * mult;
+  }
+
+  P().reagents.forEach(function(rg){ mmRow(rg.name || "reagent", rg.vol, "dnav"); });
+  pooled.forEach(function(pt){ mmRow(labelOf(pt), partVolume(pt, accOf(state.asm[0])), "shared", "in every tube"); });
+  if(sameWater) mmRow("water", waters[0], "wat");
+
+  mmBody.appendChild(grid);
+
+  var foot = el("div","combo-foot");
+  function stat(label, value, cls){
+    var d = el("div","cstat" + (cls ? " " + cls : ""));
+    d.appendChild(el("span","",label));
+    d.appendChild(el("b","",value));
+    return d;
+  }
+  foot.appendChild(stat("Reactions", String(n)));
+  foot.appendChild(stat("Excess", (state.excess || 0) + "%", ""));
+  foot.appendChild(stat("Master mix", fmt(total) + " µL", "reagent"));
+  foot.appendChild(stat("Per tube", fmt(total / mult) + " µL", ""));
+  mmBody.appendChild(foot);
+
+  // what is left to pipette tube by tube
+  if(state.asm.length){
+    var wrap = el("div","pertube");
+    wrap.appendChild(el("h4","", "Then add to each tube"));
+    state.asm.forEach(function(a, idx){
+      var rest = asmParts(a).filter(function(pt){ return pooled.indexOf(pt) === -1; });
+      var row = el("div","ptrow");
+      row.appendChild(el("span","no", String(idx+1)));
+      var bits = el("span","bits");
+      if(!rest.length && sameWater){
+        bits.appendChild(el("span","none","nothing — the mix is the whole reaction"));
+      } else {
+        rest.forEach(function(pt, k){
+          if(k) bits.appendChild(el("span","sep","+"));
+          bits.appendChild(el("b","", fmt(partVolume(pt, accOf(a)))));
+          bits.appendChild(document.createTextNode(" µL " + labelOf(pt)));
+        });
+        if(!sameWater){
+          var w = asmWater(a);
+          if(rest.length) bits.appendChild(el("span","sep","+"));
+          bits.appendChild(el("b","", w === null || w < 0 ? "—" : fmt(w)));
+          bits.appendChild(document.createTextNode(" µL water"));
+        }
+      }
+      row.appendChild(bits);
+      wrap.appendChild(row);
+    });
+    mmBody.appendChild(wrap);
+  }
+
+  var note = el("div","mm-note");
+  var bits = [];
+  if(pooled.length){
+    bits.push(pooled.length === 1
+      ? "“" + labelOf(pooled[0]) + "” is in every tube, so it is pooled into the mix."
+      : pooled.length + " parts are in every tube, so they are pooled into the mix.");
+  } else if(state.asm.length > 1 && state.mmShared === false){
+    bits.push("Pooling shared parts is off — every part is pipetted tube by tube.");
+  } else if(state.asm.length > 1){
+    bits.push("No part is in all of your tubes, so the mix is reagents only.");
+  }
+  bits.push(sameWater
+    ? "Water is in the mix — every tube needs the same " + fmt(waters[0]) + " µL."
+    : "Water is not in the mix — your tubes need different amounts.");
+  bits.push("Add " + fmt(total / mult) + " µL of mix per tube.");
+  note.appendChild(el("b","", bits.shift() + " "));
+  note.appendChild(document.createTextNode(bits.join(" ")));
+  mmBody.appendChild(note);
+}
+
+document.getElementById("mmShared").addEventListener("change", function(){
+  state.mmShared = this.checked;
+  refresh(); save();
+});
+
+document.getElementById("btnMmSync").addEventListener("click", function(){
+  state.mmN = null;
+  syncStrip(); refresh(); save();
+  toast("Master mix follows your " + state.asm.length + " assemblies");
+});
+
+/* ---------- part usage ---------- */
+var lastLevel = {};
+
+function usageData(){
+  var map = {};
+  function bump(p, v, where){
+    if(!map[p.id]) map[p.id] = { p:p, total:0, uses:[], unknown:false };
+    map[p.id].uses.push(where);
+    if(v === null){ map[p.id].unknown = true; return; }
+    map[p.id].total += v;
+  }
+  state.asm.forEach(function(a, i){
+    var accU = accOf(a);
+    asmParts(a).forEach(function(p){ bump(p, partVolume(p, accU), "asm " + (i+1)); });
+  });
+  var out = [];
+  state.parts.forEach(function(p){ if(map[p.id]) out.push(map[p.id]); });
+  return out;
+}
+
+function renderUsage(){
+  var rows = usageData();
+  usageBody.textContent = "";
+  if(!rows.length){
+    usageBody.appendChild(el("div","empty","Add a part to an assembly and the volume you need shows up here."));
+    return;
+  }
+
+  Array.prototype.forEach.call(partBody.querySelectorAll("tr[data-pid]"), function(tr){
+    var hi = tr.querySelectorAll("input[type=number]")[1];
+    if(hi){ hi.classList.remove("short","tight"); hi.title = ""; }
+  });
+
+  var grand = 0, short = 0, tight = 0;
+  var body = el("div","");
+
+  rows.forEach(function(r){
+    var amt = r.total;
+    var have = (typeof r.p.have === "number" && r.p.have > 0) ? r.p.have : null;
+    var frac = (have && isFinite(amt) && !r.unknown) ? amt / have : null;
+    var level = "";
+    if(frac !== null){
+      if(frac > 1 + 1e-9){ level = "short"; short++; }
+      else if(frac >= 0.8){ level = "tight"; tight++; }
+    }
+
+    if(level){
+      var prow = partBody.querySelector('tr[data-pid="' + r.p.id + '"]');
+      var hi = prow && prow.querySelectorAll("input[type=number]")[1];
+      if(hi){
+        hi.classList.add(level);
+        hi.title = level === "short"
+          ? "Needs " + fmt(amt) + " µL across " + r.uses.length + " reaction(s) — " + fmt(amt - have) + " µL more than you have"
+          : "Needs " + fmt(amt) + " µL — " + Math.round(frac*100) + "% of what you have";
+      }
+    }
+
+    var row = el("div","sum-row" + (level ? " " + level : ""));
+    var top = el("div","sum-top");
+    var n = el("div","sum-name");
+    n.appendChild(document.createTextNode(labelOf(r.p)));
+    n.appendChild(el("small","", r.uses.join(", ")));
+    top.appendChild(n);
+
+    var v = el("div","sum-val");
+    if(r.unknown){
+      v.appendChild(document.createTextNode("—"));
+      v.appendChild(el("small","", have ? "of " + fmt(have,1) + " µL" : ""));
+    } else {
+      grand += amt;
+      v.appendChild(document.createTextNode(fmt(amt) + " µL"));
+      v.appendChild(el("small","", have ? "of " + fmt(have,1) + " µL" : ""));
+    }
+    top.appendChild(v);
+    row.appendChild(top);
+
+    if(r.unknown) row.appendChild(el("div","use-note pending","waiting on a concentration"));
+
+    if(frac !== null){
+      var track = el("div","use-bar");
+      var fill = el("i","");
+      var pct = Math.max(2, Math.min(100, frac * 100));
+      var prev = lastLevel[r.p.id];
+      lastLevel[r.p.id] = pct;
+      fill.style.width = (prev === undefined ? 0 : prev).toFixed(1) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      (function(f, t2, to, from){
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            f.style.width = to.toFixed(1) + "%";
+            if(from === undefined || Math.abs(to - from) > 1.5){
+              t2.classList.add("slosh");
+              setTimeout(function(){ t2.classList.remove("slosh"); }, 760);
+            }
+          });
+        });
+      })(fill, track, pct, prev);
+
+      var note = el("div","use-note");
+      note.appendChild(el("b","", Math.round(frac*100) + "%"));
+      note.appendChild(document.createTextNode(level === "short"
+        ? "  —  " + fmt(amt - have) + " µL short"
+        : "  of what you have"));
+      row.appendChild(note);
+    }
+
+    body.appendChild(row);
+  });
+
+  if(short || tight){
+    var w = el("div","warn-banner" + (short ? "" : " soft"));
+    var t0 = el("div");
+    if(short){
+      t0.appendChild(el("b","", short + (short === 1 ? " part runs out." : " parts run out.")));
+      t0.appendChild(document.createTextNode(" You need more than you have on hand."));
+    } else {
+      t0.appendChild(el("b","", tight + (tight === 1 ? " part is tight." : " parts are tight.")));
+      t0.appendChild(document.createTextNode(" Over 80% of that prep is spoken for."));
+    }
+    w.appendChild(t0);
+    usageBody.appendChild(w);
+  }
+
+  usageBody.appendChild(body);
+
+  var live = {};
+  state.parts.forEach(function(p){ live[p.id] = 1; });
+  Object.keys(lastLevel).forEach(function(k){ if(!live[k]) delete lastLevel[k]; });
+
+  var t = el("div","sum-total");
+  t.appendChild(el("span","","Total DNA pipetted"));
+  t.appendChild(el("b","", fmt(grand) + " µL"));
+  usageBody.appendChild(t);
+}
+
+/* ============================================================
+   Minimal .xlsx writer — a ZIP (stored, no compression) of the
+   OOXML parts. Self-contained: no library, nothing fetched.
+   ============================================================ */
+
+var CRC_TABLE = (function(){
+  var t = new Uint32Array(256), c, n, k;
+  for(n=0;n<256;n++){
+    c = n;
+    for(k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  var c = 0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function utf8(str){ return new TextEncoder().encode(str); }
+
+function zipStore(files){
+  var parts = [], central = [], offset = 0;
+  var DOS_TIME = 0, DOS_DATE = 0x2821;      // fixed stamp: 2020-01-01
+
+  function u16(v){ return [v & 255, (v >>> 8) & 255]; }
+  function u32(v){ return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+
+  files.forEach(function(f){
+    var name = utf8(f.name), data = f.data, crc = crc32(data);
+    var local = [].concat(
+      [0x50,0x4B,0x03,0x04], u16(20), u16(0x0800), u16(0), u16(DOS_TIME), u16(DOS_DATE),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0)
+    );
+    parts.push(new Uint8Array(local), name, data);
+    central.push([].concat(
+      [0x50,0x4B,0x01,0x02], u16(20), u16(20), u16(0x0800), u16(0), u16(DOS_TIME), u16(DOS_DATE),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length),
+      u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset)
+    ));
+    central.push(name);
+    offset += local.length + name.length + data.length;
+  });
+
+  var cdBytes = [], cdSize = 0;
+  central.forEach(function(c){
+    var arr = (c instanceof Uint8Array) ? c : new Uint8Array(c);
+    cdBytes.push(arr); cdSize += arr.length;
+  });
+  var eocd = new Uint8Array([].concat(
+    [0x50,0x4B,0x05,0x06], u16(0), u16(0), u16(files.length), u16(files.length),
+    u32(cdSize), u32(offset), u16(0)
+  ));
+
+  var total = offset + cdSize + eocd.length;
+  var out = new Uint8Array(total), pos = 0;
+  parts.forEach(function(a){ out.set(a, pos); pos += a.length; });
+  cdBytes.forEach(function(a){ out.set(a, pos); pos += a.length; });
+  out.set(eocd, pos);
+  return out;
+}
+
+function xesc(v){
+  return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                  .replace(/"/g,"&quot;");
+}
+function colLetter(i){
+  var s = "";
+  i += 1;
+  while(i > 0){ var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; }
+  return s;
+}
+
+/* style slots used by the sheets below */
+var S = {
+  plain:0, title:1, head:2, bold:3, num:4, numBold:5, note:6,
+  total:7, int:8, big:9, wrap:10, section:11, unit:12, totalNum:13
+};
+
+var STYLES_XML =
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+'<numFmts count="1"><numFmt numFmtId="164" formatCode="0.00"/></numFmts>' +
+'<fonts count="6">' +
+ '<font><sz val="11"/><name val="Calibri"/></font>' +                                     /* 0 */
+ '<font><b/><sz val="11"/><name val="Calibri"/></font>' +                                 /* 1 */
+ '<font><b/><sz val="15"/><color rgb="FF0E5C64"/><name val="Calibri"/></font>' +          /* 2 */
+ '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +          /* 3 */
+ '<font><i/><sz val="10"/><color rgb="FF6B7A7D"/><name val="Calibri"/></font>' +          /* 4 */
+ '<font><b/><sz val="13"/><color rgb="FF0E5C64"/><name val="Calibri"/></font>' +          /* 5 */
+'</fonts>' +
+'<fills count="5">' +
+ '<fill><patternFill patternType="none"/></fill>' +
+ '<fill><patternFill patternType="gray125"/></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FF0E7C86"/><bgColor indexed="64"/></patternFill></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FFEDF2F3"/><bgColor indexed="64"/></patternFill></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FFDEF0F2"/><bgColor indexed="64"/></patternFill></fill>' +
+'</fills>' +
+'<borders count="4">' +
+ '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+ '<border><left/><right/><top/><bottom style="thin"><color rgb="FFC0CBCD"/></bottom><diagonal/></border>' +
+ '<border><left style="thin"><color rgb="FFC0CBCD"/></left><right style="thin"><color rgb="FFC0CBCD"/></right>' +
+   '<top style="thin"><color rgb="FFC0CBCD"/></top><bottom style="thin"><color rgb="FFC0CBCD"/></bottom><diagonal/></border>' +
+ '<border><left/><right/><top style="medium"><color rgb="FF0E7C86"/></top><bottom/><diagonal/></border>' +
+'</borders>' +
+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+'<cellXfs count="14">' +
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                              /* 0 plain */
+ '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                /* 1 title */
+ '<xf numFmtId="0" fontId="3" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' + /* 2 head */
+ '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>' +                /* 3 bold */
+ '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +      /* 4 num */
+ '<xf numFmtId="164" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' + /* 5 numBold */
+ '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                /* 6 note */
+ '<xf numFmtId="0" fontId="1" fillId="3" borderId="3" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +   /* 7 total */
+ '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +        /* 8 int */
+ '<xf numFmtId="164" fontId="5" fillId="4" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>' + /* 9 big */
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' + /* 10 wrap */
+ '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +                  /* 11 section */
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>' +                              /* 12 unit/text */
+ '<xf numFmtId="164" fontId="1" fillId="3" borderId="3" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' + /* 13 totalNum */
+'</cellXfs>' +
+'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+'</styleSheet>';
+
+/** one worksheet: rows of cells, each cell {v, s} or a bare string/number */
+function sheetXml(rows, cols, freezeRow){
+  var body = "";
+  rows.forEach(function(cells, r){
+    var rn = r + 1, cx = "";
+    (cells || []).forEach(function(cell, ci){
+      if(cell === null || cell === undefined || cell === "") return;
+      var v = (typeof cell === "object") ? cell.v : cell;
+      var st = (typeof cell === "object" && cell.s !== undefined) ? cell.s : 0;
+      if(v === null || v === undefined || v === "") {
+        if(!st) return;
+        cx += '<c r="' + colLetter(ci) + rn + '" s="' + st + '"/>';
+        return;
+      }
+      var ref = colLetter(ci) + rn;
+      if(typeof v === "number" && isFinite(v)){
+        cx += '<c r="' + ref + '" s="' + st + '"><v>' + v + '</v></c>';
+      } else {
+        cx += '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">' +
+              xesc(v) + '</t></is></c>';
+      }
+    });
+    if(cx) body += '<row r="' + rn + '">' + cx + '</row>';
+  });
+
+  var colsXml = "";
+  if(cols && cols.length){
+    colsXml = "<cols>";
+    cols.forEach(function(w, i){
+      colsXml += '<col min="' + (i+1) + '" max="' + (i+1) + '" width="' + w + '" customWidth="1"/>';
+    });
+    colsXml += "</cols>";
+  }
+  var pane = freezeRow
+    ? '<sheetView showGridLines="0" workbookViewId="0"><pane ySplit="' + freezeRow +
+      '" topLeftCell="A' + (freezeRow+1) + '" activePane="bottomLeft" state="frozen"/></sheetView>'
+    : '<sheetView showGridLines="0" workbookViewId="0"/>';
+
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+    '<sheetViews>' + pane + '</sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="15"/>' +
+    colsXml +
+    '<sheetData>' + body + '</sheetData>' +
+    '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>' +
+    '<pageSetup orientation="portrait" fitToWidth="1" fitToHeight="0" paperSize="9"/>' +
+    '</worksheet>';
+}
+
+/** sheets: [{name, rows, cols, freeze}] -> Uint8Array of a .xlsx */
+function buildXlsx(sheets){
+  var files = [];
+  var types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+  sheets.forEach(function(_, i){
+    types += '<Override PartName="/xl/worksheets/sheet' + (i+1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+  });
+  types += '</Types>';
+
+  files.push({ name:"[Content_Types].xml", data:utf8(types) });
+  files.push({ name:"_rels/.rels", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>') });
+
+  var sheetTags = "", rels = "";
+  sheets.forEach(function(sh, i){
+    sheetTags += '<sheet name="' + xesc(sh.name) + '" sheetId="' + (i+1) + '" r:id="rId' + (i+1) + '"/>';
+    rels += '<Relationship Id="rId' + (i+1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i+1) + '.xml"/>';
+  });
+  rels += '<Relationship Id="rId' + (sheets.length+1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+
+  files.push({ name:"xl/workbook.xml", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets>' + sheetTags + '</sheets></workbook>') });
+  files.push({ name:"xl/_rels/workbook.xml.rels", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rels +
+    '</Relationships>') });
+  files.push({ name:"xl/styles.xml", data:utf8(STYLES_XML) });
+  sheets.forEach(function(sh, i){
+    files.push({ name:"xl/worksheets/sheet" + (i+1) + ".xml",
+                 data:utf8(sheetXml(sh.rows, sh.cols, sh.freeze)) });
+  });
+
+  return zipStore(files);
+}
+
+/* ---------- export ---------- */
+
+/* ---------- the workbook ---------- */
+function buildWorkbook(){
+  var n = (state.mmN !== null && state.mmN > 0) ? state.mmN : state.asm.length;
+  if(!n) n = 1;
+  var mult = n * (1 + (state.excess || 0) / 100);
+  var waters = state.asm.map(asmWater).filter(function(w){ return w !== null && w >= -1e-9; });
+  var sameWater = waters.length === state.asm.length && state.asm.length > 0 &&
+                  waters.every(function(w){ return Math.abs(w - waters[0]) < 1e-9; });
+  var pooled = (state.mmShared === false) ? [] : sharedParts();
+  var stamp = (state.title || "Untitled run") + "   ·   " + (state.date || "") +
+              "   ·   " + (P().name || "protocol");
+  var sheets = [];
+
+  /* --- 1. Master mix --- */
+  var mm = [
+    [{v:"Master mix", s:S.title}],
+    [{v:stamp, s:S.note}],
+    [],
+    [{v:"Component",s:S.head},{v:"Per rxn (µL)",s:S.head},
+     {v:"Total for " + n + " + " + (state.excess||0) + "% (µL)",s:S.head},{v:"Note",s:S.head}]
+  ];
+  var mmTotal = 0, perTube = 0;
+  P().reagents.forEach(function(rg){
+    if(rg.vol === null) return;
+    mmTotal += rg.vol * mult; perTube += rg.vol;
+    mm.push([{v:rg.name || "reagent",s:S.unit},{v:rg.vol,s:S.num},
+             {v:rg.vol*mult,s:S.big},{v:"reagent",s:S.unit}]);
+  });
+  pooled.forEach(function(pt){
+    var v = partVolume(pt, accOf(state.asm[0]));
+    if(v === null) return;
+    mmTotal += v * mult; perTube += v;
+    mm.push([{v:labelOf(pt),s:S.unit},{v:v,s:S.num},
+             {v:v*mult,s:S.big},{v:"in every tube",s:S.unit}]);
+  });
+  if(sameWater){
+    mmTotal += waters[0] * mult; perTube += waters[0];
+    mm.push([{v:"water",s:S.unit},{v:waters[0],s:S.num},
+             {v:waters[0]*mult,s:S.big},{v:"same in every tube",s:S.unit}]);
+  }
+  mm.push([{v:"MASTER MIX",s:S.total},{v:perTube,s:S.totalNum},
+           {v:mmTotal,s:S.totalNum},{v:"per tube  /  total",s:S.total}]);
+  mm.push([]);
+  mm.push([{v:"Add " + fmt(perTube) + " µL of master mix to each of the " + n +
+            " tubes, then the parts on the next sheet.", s:S.note}]);
+  if(pooled.length){
+    mm.push([{v:(pooled.length === 1 ? "“" + labelOf(pooled[0]) + "” is" : pooled.length + " parts are") +
+              " in every tube, so pooled here rather than pipetted tube by tube.", s:S.note}]);
+  }
+  sheets.push({ name:"Master mix", cols:[36,14,20,22], freeze:4, rows:mm });
+
+  /* --- 2. Per tube --- */
+  var pt2 = [
+    [{v:"Then add to each tube", s:S.title}],
+    [{v:"After " + fmt(perTube) + " µL of master mix", s:S.note}],
+    [],
+    [{v:"#",s:S.head},{v:"Assembly",s:S.head},{v:"Add to the tube",s:S.head},{v:"Water (µL)",s:S.head}]
+  ];
+  state.asm.forEach(function(a, idx){
+    var rest = asmParts(a).filter(function(x){ return pooled.indexOf(x) === -1; });
+    var accW = accOf(a);
+    var bits = rest.map(function(x){
+      var v = partVolume(x, accW);
+      return (v === null ? "?" : fmt(v)) + " µL  " + labelOf(x);
+    }).join("\n");
+    var w = asmWater(a);
+    pt2.push([{v:idx+1,s:S.int},{v:asmLabel(a,idx),s:S.wrap},
+              {v:bits || "(master mix only)",s:S.wrap},
+              sameWater ? {v:"in the mix",s:S.unit}
+                        : {v:(w === null || w < 0) ? "—" : w, s:(w === null || w < 0) ? S.unit : S.numBold}]);
+  });
+  if(!state.asm.length) pt2.push([{v:"No assemblies.",s:S.note}]);
+  sheets.push({ name:"Per tube", cols:[5,30,42,13], freeze:4, rows:pt2 });
+
+  /* --- 3. Assemblies --- */
+  var asRows = [
+    [{v:"Assemblies", s:S.title}],
+    [{v:stamp, s:S.note}],
+    [],
+    [{v:"#",s:S.head},{v:"Assembly",s:S.head},{v:"Modules",s:S.head},{v:"DNA (µL)",s:S.head},
+     {v:"Reagents (µL)",s:S.head},{v:"Water (µL)",s:S.head},{v:"Reaction (µL)",s:S.head}]
+  ];
+  var tDNA = 0, tW = 0, tubes = 0;
+  state.asm.forEach(function(a, idx){
+    var d = asmDNA(a), w = asmWater(a);
+    var bad = (w !== null && w < -1e-9);
+    if(!bad && d !== null){ tubes++; tDNA += d; if(w !== null) tW += w; }
+    asRows.push([{v:idx+1,s:S.int},{v:asmLabel(a,idx),s:S.wrap},{v:a.modules.length,s:S.int},
+                 {v:d === null ? "—" : d, s:d === null ? S.unit : S.numBold},
+                 {v:reagentTotal(),s:S.num},
+                 {v:bad ? "over" : (w === null ? "—" : w), s:(bad || w === null) ? S.unit : S.num},
+                 {v:P().total,s:S.num}]);
+  });
+  asRows.push([{v:"TOTAL",s:S.total},{v:tubes + (tubes === 1 ? " tube" : " tubes"),s:S.total},
+               {v:"",s:S.total},{v:tDNA,s:S.totalNum},{v:reagentTotal()*tubes,s:S.totalNum},
+               {v:tW,s:S.totalNum},{v:P().total*tubes,s:S.totalNum}]);
+  sheets.push({ name:"Assemblies", cols:[5,34,10,11,14,11,13], freeze:4, rows:asRows });
+
+  /* --- 4. Parts --- */
+  var pRows = [
+    [{v:"Parts", s:S.title}],
+    [{v:"Blank concentration means the protocol volume is used as written", s:S.note}],
+    [],
+    [{v:"Part",s:S.head},{v:"Role",s:S.head},{v:"Measured (ng/µL)",s:S.head},{v:"Length (bp)",s:S.head},
+     {v:"Use (µL)",s:S.head},{v:"Mass (ng)",s:S.head},{v:"fmol",s:S.head},{v:"On hand (µL)",s:S.head}]
+  ];
+  state.parts.forEach(function(x){
+    var accP = refAcceptor();
+    var v = partVolume(x, accP), m = partMass(x, accP), fm = partFmol(x, accP);
+    pRows.push([{v:labelOf(x),s:S.unit},{v:ROLES[x.role],s:S.unit},
+                {v:x.conc === null ? "nominal" : x.conc, s:x.conc === null ? S.unit : S.num},
+                {v:x.bp === null || x.bp === undefined ? "" : x.bp, s:S.int},
+                {v:v === null ? "—" : v, s:v === null ? S.unit : S.big},
+                {v:m === null ? "—" : m, s:m === null ? S.unit : S.num},
+                {v:fm === null ? "" : fm, s:S.num},
+                {v:x.have === null ? "" : x.have, s:S.num}]);
+  });
+  if(!state.parts.length) pRows.push([{v:"No parts.",s:S.note}]);
+  sheets.push({ name:"Parts", cols:[30,16,17,13,12,12,11,14], freeze:4, rows:pRows });
+
+  /* --- 5. Part usage --- */
+  var use = usageData();
+  var uRows = [
+    [{v:"Part usage", s:S.title}],
+    [{v:"Across every assembly in this run", s:S.note}],
+    [],
+    [{v:"Part",s:S.head},{v:"Needed (µL)",s:S.head},{v:"On hand (µL)",s:S.head},
+     {v:"Status",s:S.head},{v:"Used in",s:S.head}]
+  ];
+  var grand = 0;
+  use.forEach(function(r){
+    var have = (typeof r.p.have === "number" && r.p.have > 0) ? r.p.have : null;
+    var status = r.unknown ? "waiting on a concentration"
+               : have === null ? ""
+               : (r.total > have ? "SHORT by " + fmt(r.total - have) + " µL"
+                 : (r.total / have >= 0.8 ? "tight — " + Math.round(r.total/have*100) + "%" : "ok"));
+    if(!r.unknown) grand += r.total;
+    uRows.push([{v:labelOf(r.p),s:S.unit},{v:r.unknown ? "—" : r.total, s:r.unknown ? S.unit : S.numBold},
+                {v:have === null ? "" : have, s:S.num},{v:status,s:S.unit},
+                {v:r.uses.join(", "),s:S.wrap}]);
+  });
+  uRows.push([{v:"TOTAL DNA PIPETTED",s:S.total},{v:grand,s:S.totalNum},{v:"",s:S.total},
+              {v:"",s:S.total},{v:"",s:S.total}]);
+  sheets.push({ name:"Part usage", cols:[30,13,14,24,30], freeze:4, rows:uRows });
+
+  /* --- 6. Protocol --- */
+  var accR = refAcceptor();
+  var accF = (accR && accR.bp) ? fmolOf(P().acceptorMass, accR.bp) : null;
+  var prRows = [
+    [{v:"Protocol — " + (P().name || "untitled"), s:S.title}],
+    [{v:"Reaction volume " + fmt(P().total,1) + " µL   ·   " +
+        (isMolar()
+          ? "molar dosing: acceptor " + fmt(P().acceptorMass,0) + " ng, inserts at " +
+            fmt(P().ratio,1) + "× its molar amount" +
+            (accF === null ? "" : " (" + fmt(accF,1) + " fmol → " + fmt(accF * P().ratio,1) + " fmol each)") +
+            ", " + gPerBp() + " g/mol per bp"
+          : "mass dosing: a fixed ng per part") +
+        "   ·   " + P().enzyme + (activeSite() ? " (" + activeSite() + ")" : ""), s:S.note}],
+    [],
+    [{v:"DNA parts",s:S.section},{v:"",s:S.section},{v:"",s:S.section},{v:"",s:S.section}],
+    [{v:"Part type",s:S.head},{v:"Nominal volume (µL)",s:S.head},
+     {v:"Nominal conc (ng/µL)",s:S.head},{v:"Mass delivered (ng)",s:S.head}]
+  ];
+  Object.keys(ROLES).forEach(function(role){
+    var r = P().parts[role];
+    prRows.push([{v:ROLES[role] + (role === "module" ? " (each)" : ""),s:S.unit},
+                 {v:r.vol,s:S.num},{v:r.conc,s:S.num},
+                 {v:roleMass(role) === null ? "—" : roleMass(role), s:S.big}]);
+  });
+  prRows.push([]);
+  prRows.push([{v:"Reagents",s:S.section},{v:"",s:S.section},{v:"",s:S.section},{v:"",s:S.section}]);
+  prRows.push([{v:"Reagent",s:S.head},{v:"Per reaction (µL)",s:S.head},{v:"",s:S.head},{v:"",s:S.head}]);
+  P().reagents.forEach(function(rg){
+    prRows.push([{v:rg.name || "reagent",s:S.unit},{v:rg.vol,s:S.big},{v:"",s:S.unit},{v:"",s:S.unit}]);
+  });
+  prRows.push([{v:"Reagent total",s:S.total},{v:reagentTotal(),s:S.totalNum},{v:"",s:S.total},{v:"",s:S.total}]);
+  sheets.push({ name:"Protocol", cols:[28,20,22,20], freeze:0, rows:prRows });
+
+  return buildXlsx(sheets);
+}
+
+function tableRows(){
+  var rows = [];
+  rows.push(["Assembly run", state.title || "(untitled)"]);
+  rows.push(["Date", state.date || ""]);
+  rows.push(["Reaction volume [uL]", P().total]);
+  rows.push([]);
+
+  rows.push(["Protocol — DNA parts","nominal volume [uL]","nominal conc [ng/uL]","mass [ng]"]);
+  Object.keys(ROLES).forEach(function(role){
+    var r = P().parts[role];
+    rows.push([ROLES[role], r.vol, r.conc, roleMass(role)]);
+  });
+  rows.push([]);
+  rows.push(["Protocol — reagents","volume [uL]"]);
+  P().reagents.forEach(function(rg){ rows.push([rg.name, rg.vol]); });
+  rows.push([]);
+
+  rows.push(["Part","Role","measured [ng/uL]","use [uL]","mass [ng]","on hand [uL]"]);
+  state.parts.forEach(function(p){
+    var accRef = refAcceptor();
+    var v = partVolume(p, accRef), m = partMass(p, accRef);
+    rows.push([labelOf(p), ROLES[p.role], p.conc, v === null ? "" : v.toFixed(3),
+               m === null ? "" : m.toFixed(1), p.have]);
+  });
+  rows.push([]);
+
+  rows.push(["Assembly","modules","DNA [uL]","water [uL]","reaction [uL]","components"]);
+  state.asm.forEach(function(a, i){
+    var d = asmDNA(a), w = asmWater(a);
+    var accA = accOf(a);
+    var comps = asmParts(a).map(function(p){
+      var v = partVolume(p, accA);
+      return labelOf(p) + " " + (v === null ? "?" : v.toFixed(2));
+    }).join(" + ");
+    rows.push([(i+1) + ". " + asmLabel(a,i), a.modules.length,
+               d === null ? "" : d.toFixed(3), w === null ? "" : w.toFixed(3),
+               P().total, comps]);
+  });
+
+  var n = (state.mmN !== null && state.mmN > 0) ? state.mmN : state.asm.length;
+  if(n){
+    var mult = n * (1 + (state.excess || 0) / 100);
+    var waters = state.asm.map(asmWater).filter(function(w){ return w !== null && w >= -1e-9; });
+    var sameWater = waters.length === state.asm.length && state.asm.length > 0 &&
+                    waters.every(function(w){ return Math.abs(w - waters[0]) < 1e-9; });
+    var pooled = (state.mmShared === false) ? [] : sharedParts();
+
+    rows.push([]);
+    rows.push(["Master mix — " + n + " reactions + " + (state.excess || 0) + "% excess",
+               "per rxn [uL]", "total [uL]", "note"]);
+    var mmTotal = 0;
+    P().reagents.forEach(function(rg){
+      if(rg.vol === null) return;
+      mmTotal += rg.vol * mult;
+      rows.push([rg.name || "reagent", rg.vol, (rg.vol * mult).toFixed(3), "reagent"]);
+    });
+    pooled.forEach(function(pt){
+      var v = partVolume(pt, accOf(state.asm[0]));
+      if(v === null) return;
+      mmTotal += v * mult;
+      rows.push([labelOf(pt), v.toFixed(3), (v * mult).toFixed(3), "shared by every tube"]);
+    });
+    if(sameWater){
+      mmTotal += waters[0] * mult;
+      rows.push(["water", waters[0].toFixed(3), (waters[0] * mult).toFixed(3), "same in every tube"]);
+    }
+    rows.push(["TOTAL master mix", (mmTotal / mult).toFixed(3), mmTotal.toFixed(3), "per tube / total"]);
+
+    if(state.asm.length){
+      rows.push([]);
+      rows.push(["Then add to each tube","components"]);
+      state.asm.forEach(function(a, idx){
+        var rest = asmParts(a).filter(function(pt){ return pooled.indexOf(pt) === -1; });
+        var accC = accOf(a);
+        var bits = rest.map(function(pt){
+          var v = partVolume(pt, accC);
+          return labelOf(pt) + " " + (v === null ? "?" : v.toFixed(2));
+        });
+        if(!sameWater){
+          var w = asmWater(a);
+          bits.push("water " + (w === null || w < 0 ? "?" : w.toFixed(2)));
+        }
+        rows.push([(idx+1) + ". " + asmLabel(a, idx), bits.length ? bits.join(" + ") : "(mix only)"]);
+      });
+    }
+  }
+
+  var use = usageData();
+  if(use.length){
+    rows.push([]);
+    rows.push(["Part usage","needed [uL]","on hand [uL]","status","used in"]);
+    use.forEach(function(r){
+      var have = (typeof r.p.have === "number" && r.p.have > 0) ? r.p.have : null;
+      var status = have === null ? "" : (r.total > have ? "SHORT by " + (r.total-have).toFixed(2) + " uL"
+                  : (r.total/have >= 0.8 ? "tight (" + Math.round(r.total/have*100) + "%)" : "ok"));
+      rows.push([labelOf(r.p), r.total.toFixed(3), have === null ? "" : have, status, r.uses.join(" / ")]);
+    });
+  }
+  return rows;
+}
+function toCSV(){
+  return tableRows().map(function(r){
+    return r.map(function(c){
+      var v = (c === null || c === undefined) ? "" : String(c);
+      return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+    }).join(",");
+  }).join("\n");
+}
+function toTSV(){
+  return tableRows().map(function(r){
+    return r.map(function(c){ return (c === null || c === undefined) ? "" : String(c).replace(/\t/g," "); }).join("\t");
+  }).join("\n");
+}
+
+var toastEl = document.getElementById("toast"), toastT;
+function toast(msg, actionLabel, fn){
+  toastEl.textContent = "";
+  toastEl.appendChild(document.createTextNode(msg));
+  if(actionLabel && fn){
+    var a = el("button","toast-act", actionLabel);
+    a.type = "button";
+    a.addEventListener("click", function(){
+      toastEl.classList.remove("on"); clearTimeout(toastT); fn();
+    });
+    toastEl.appendChild(a);
+  }
+  toastEl.classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ toastEl.classList.remove("on"); }, actionLabel ? 8000 : 2600);
+}
+
+function fileStem(){
+  var t = (state.title || "cBench").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-");
+  return (state.date || "") + (t ? "_" + t : "");
+}
+/** plain browser download — used when the page runs as a local file */
+function localDownload(bytes, name, mime){
+  try{
+    var blob = new Blob([bytes], {type:mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+    return true;
+  } catch(e){ return false; }
+}
+document.getElementById("btnCopy").addEventListener("click", function(){
+  var txt = toTSV();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste straight into a spreadsheet"); },
+      function(){ toast("Couldn’t reach the clipboard. Try Export Excel."); });
+  } else { toast("Clipboard unavailable here. Try Export Excel."); }
+});
+var XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+document.getElementById("btnCsv").addEventListener("click", function(){
+  var bytes, name = fileStem() + ".xlsx";
+  try { bytes = buildWorkbook(); }
+  catch(e){ toast("Couldn’t build the workbook — use Copy for Excel instead."); return; }
+
+  function fallback(msg){
+    if(localDownload(bytes, name, XLSX_MIME)){ toast("Saved to your downloads."); return; }
+    toast(msg || "Couldn’t save the workbook — use Copy for Excel instead.");
+  }
+
+  if(!window.claude || !window.claude.use){ fallback(); return; }
+  window.claude.use("downloads").then(function(dl){
+    if(!dl){ fallback(); return; }
+    return dl.save({ filename: name, data: bytes.buffer })
+      .then(function(){ toast("Workbook saved."); })
+      .catch(function(err){
+        var code = err && err.code;
+        if(code === "declined") return;
+        if(code === "rejected_extension" || code === "extension_not_enabled"){
+          return dl.save({ filename: fileStem() + ".csv", data: toCSV() })
+            .then(function(){ toast("Excel files aren’t allowed here — saved a CSV instead."); })
+            .catch(function(){ fallback("Downloads are blocked here — use Copy for Excel."); });
+        }
+        fallback();
+      });
+  }).catch(function(){ fallback(); });
+});
+
+/* ---------- explainers ---------- */
+var openTip = null;
+function placeTip(btn){
+  var tip = btn.parentNode.querySelector(".tip");
+  if(!tip) return;
+  var b = btn.getBoundingClientRect();
+  var w = tip.offsetWidth, h = tip.offsetHeight, pad = 10;
+  var centre = b.left + b.width / 2;
+  var left = Math.min(Math.max(pad, centre - 30), Math.max(pad, window.innerWidth - w - pad));
+  var top  = b.bottom + 9;
+  if(top + h > window.innerHeight - pad && b.top - h - 9 > pad){
+    top = b.top - h - 9; tip.classList.add("above");
+  } else { tip.classList.remove("above"); }
+  tip.style.left = left + "px";
+  tip.style.top  = top + "px";
+  tip.style.setProperty("--arrow", Math.round(Math.max(10, Math.min(centre - left - 4, w - 18))) + "px");
+}
+Array.prototype.forEach.call(document.querySelectorAll(".tip-btn"), function(btn){
+  function open(){ openTip = btn; placeTip(btn); }
+  function close(){ if(openTip === btn) openTip = null; }
+  btn.addEventListener("mouseenter", open);
+  btn.addEventListener("focus", open);
+  btn.parentNode.addEventListener("mouseleave", close);
+  btn.addEventListener("blur", close);
+  btn.addEventListener("click", function(ev){ ev.preventDefault(); open(); });
+});
+window.addEventListener("scroll", function(){ if(openTip) placeTip(openTip); }, {passive:true});
+window.addEventListener("resize", function(){ if(openTip) placeTip(openTip); });
+
+/* ---------- quick dilute: C1·V1 = C2·V2 — the empty box is the one worked out ---------- */
+var calcEl = {
+  s: document.getElementById("calcS"),   // stock concentration
+  i: document.getElementById("calcI"),   // volume of stock
+  t: document.getElementById("calcT"),   // target concentration
+  v: document.getElementById("calcV")    // final volume
+};
+var calcKeys = ["s","i","t","v"];
+var calcName = { s:"stock concentration", i:"initial volume", t:"target concentration", v:"final volume" };
+var calcRow = {};
+Array.prototype.forEach.call(document.querySelectorAll(".crow[data-f]"), function(r){ calcRow[r.dataset.f] = r; });
+var calcOut  = document.getElementById("calcOut");
+var calcNote = document.getElementById("calcNote");
+var calcAuto = null;    // the box this run filled in, so it can be emptied again next time
+
+function calcRun(){
+  // whatever we filled last time is not the user's input — clear it before reading
+  if(calcAuto){ calcEl[calcAuto].value = ""; calcAuto = null; }
+
+  var val = {};
+  calcKeys.forEach(function(k){ val[k] = num(calcEl[k].value); });
+  var blank = calcKeys.filter(function(k){ return val[k] === null; });
+
+  calcOut.textContent = "";
+  calcNote.className = "cnote";
+  calcKeys.forEach(function(k){ calcRow[k].classList.remove("computed"); });
+
+  if(blank.length > 1){
+    calcNote.textContent = "Leave one box empty — that's the one worked out.";
+    return;
+  }
+
+  var bad = calcKeys.filter(function(k){ return val[k] !== null && val[k] <= 0; });
+  if(bad.length){
+    calcNote.className = "cnote bad";
+    calcNote.textContent = "Every box needs to be above zero.";
+    return;
+  }
+
+  var out = blank[0] || null;
+
+  if(out){
+    var r;
+    if(out === "i")      r = val.t * val.v / val.s;
+    else if(out === "v") r = val.s * val.i / val.t;
+    else if(out === "s") r = val.t * val.v / val.i;
+    else                 r = val.s * val.i / val.v;
+
+    if(!isFinite(r) || r <= 0){
+      calcNote.className = "cnote bad";
+      calcNote.textContent = "That combination doesn't work out.";
+      return;
+    }
+    val[out] = Math.round(r * 1000) / 1000;
+    calcEl[out].value = String(val[out]);
+    calcAuto = out;
+    calcRow[out].classList.add("computed");
+  }
+
+  if(val.t > val.s + 1e-9){
+    calcNote.className = "cnote bad";
+    calcNote.textContent = "You want more than the stock holds — diluting can only go down.";
+    return;
+  }
+  if(val.i > val.v + 1e-9){
+    calcNote.className = "cnote bad";
+    calcNote.textContent = "The stock volume is more than the final volume.";
+    return;
+  }
+
+  var W = val.v - val.i;
+  function line(vv, nameTxt, cls){
+    var row = el("div","cline" + (cls ? " " + cls : ""));
+    row.appendChild(el("b","", fmt(vv)));
+    row.appendChild(el("span","u","µL"));
+    row.appendChild(el("span","nm", nameTxt));
+    return row;
+  }
+  calcOut.appendChild(line(val.i, "stock"));
+  calcOut.appendChild(line(W, "water", "water"));
+
+  var head = out ? (calcName[out].charAt(0).toUpperCase() + calcName[out].slice(1) + " worked out  ·  ")
+                 : (Math.abs(val.s * val.i - val.t * val.v) < 1e-6 * Math.max(1, val.s * val.i)
+                    ? "" : "These four don't balance — clear one box.  ");
+  if(!out && head){
+    calcNote.className = "cnote bad";
+    calcNote.textContent = head + "As entered: " + fmt(val.s * val.i, 1) + " ng in, " +
+                           fmt(val.t * val.v, 1) + " ng out.";
+    calcOut.textContent = "";
+    return;
+  }
+  calcNote.textContent = head + fmt(val.s / val.t, 1) + "× dilution  ·  " + fmt(val.i) + " + " + fmt(W) +
+                         " = " + fmt(val.v) + " µL at " + fmt(val.t, 1) + " ng/µL";
+}
+
+calcKeys.forEach(function(k){
+  var inp = calcEl[k];
+  inp.addEventListener("input", function(){
+    if(calcAuto === k) calcAuto = null;      // typing over the answer makes it an input
+    // emptying a box means "solve this one instead" — keep the previous answer as an input
+    if(inp.value.trim() === "" && calcAuto && calcAuto !== k) calcAuto = null;
+    state.calc = { s:calcEl.s.value, i:calcEl.i.value, t:calcEl.t.value, v:calcEl.v.value, a:calcAuto };
+    calcRun();
+    state.calc.a = calcAuto;
+    save();
+  });
+  inp.addEventListener("wheel", function(ev){ if(document.activeElement === inp) ev.preventDefault(); }, {passive:false});
+});
+
+document.getElementById("calcClear").addEventListener("click", function(){
+  calcAuto = null;
+  calcKeys.forEach(function(k){ calcEl[k].value = ""; });
+  state.calc = null;
+  calcRun(); save();
+});
+
+if(state.calc){
+  calcKeys.forEach(function(k){ calcEl[k].value = state.calc[k] || ""; });
+  calcAuto = state.calc.a || null;
+}
+calcRun();
+
+/* ---------- theme ---------- */
+var btnTheme = document.getElementById("btnTheme");
+function applyTheme(t, remember){
+  var dark = (t === "dark");
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  btnTheme.setAttribute("aria-pressed", dark ? "true" : "false");
+  var lab = dark ? "Switch to light mode" : "Switch to dark mode";
+  btnTheme.setAttribute("aria-label", lab);
+  btnTheme.title = lab;
+  if(remember){ try { localStorage.setItem("clonebench-theme", dark ? "dark" : "light"); } catch(e){} }
+}
+btnTheme.addEventListener("click", function(){
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark", true);
+});
+applyTheme(document.documentElement.getAttribute("data-theme") || "light", false);
+
+/* ---------- wiring ---------- */
+var expTitle = document.getElementById("expTitle");
+var expDate  = document.getElementById("expDate");
+var dTotal   = document.getElementById("dTotal");
+var dExcess  = document.getElementById("dExcess");
+var mmN      = document.getElementById("mmN");
+var mmX      = document.getElementById("mmX");
+
+function syncStrip(){
+  expTitle.value = state.title || "";
+  expDate.value = state.date || "";
+  dTotal.value = P().total;
+  if(protoName) protoName.value = P().name || "";
+  dExcess.value = state.excess;
+  mmN.value = (state.mmN !== null && state.mmN !== undefined) ? state.mmN : state.asm.length;
+  mmX.value = state.excess;
+  document.getElementById("mmShared").checked = state.mmShared !== false;
+}
+expTitle.addEventListener("input", function(){ state.title = expTitle.value; save(); });
+expDate.addEventListener("input", function(){ state.date = expDate.value; save(); });
+dTotal.addEventListener("input", function(){
+  P().total = num(dTotal.value); renderProtoPicker(); renderProtocol(); refresh(); save();
+});
+dExcess.addEventListener("input", function(){
+  state.excess = num(dExcess.value) || 0; mmX.value = state.excess; refresh(); save();
+});
+mmN.addEventListener("input", function(){ state.mmN = num(mmN.value); refresh(); save(); });
+mmX.addEventListener("input", function(){
+  state.excess = num(mmX.value) || 0; dExcess.value = state.excess; refresh(); save();
+});
+[dTotal,dExcess,mmN,mmX].forEach(function(i){
+  i.addEventListener("wheel", function(ev){ if(document.activeElement === i) ev.preventDefault(); }, {passive:false});
+});
+
+function togglePanel(){
+  var open = document.getElementById("protoPanel").classList.toggle("open");
+  document.getElementById("btnProtocol").setAttribute("aria-expanded", open ? "true" : "false");
+  if(open) document.getElementById("protoPanel").scrollIntoView({block:"nearest"});
+}
+document.getElementById("btnProtocol").addEventListener("click", togglePanel);
+document.getElementById("btnProtocol2").addEventListener("click", togglePanel);
+
+document.getElementById("btnAddPart").addEventListener("click", function(){
+  state.parts.push(blankPart("module",""));
+  render(); save();
+  var rows = partBody.querySelectorAll("tr[data-pid] input[type=text]");
+  if(rows.length) rows[rows.length-1].focus();
+});
+document.getElementById("btnAddAsm").addEventListener("click", function(){
+  state.asm.push({ id:nid(), name:"", auto:true, acceptor:null, gene:null, modules:[] });
+  render(); save();
+});
+
+function clearSection(what){
+  var snap = JSON.stringify({ p:state.parts, a:state.asm });
+  var n = 0, label = "";
+  if(what === "parts"){
+    n = state.parts.length;
+    if(!n) return toast("Nothing to remove.");
+    state.parts = [];
+    state.asm.forEach(function(a){ a.acceptor = null; a.gene = null; a.modules = []; });
+    label = n + (n === 1 ? " part removed" : " parts removed");
+  } else {
+    n = state.asm.length;
+    if(!n) return toast("Nothing to remove.");
+    state.asm = [];
+    label = n + (n === 1 ? " assembly removed" : " assemblies removed");
+  }
+  render(); save();
+  toast(label, "Undo", function(){
+    var prev = JSON.parse(snap);
+    state.parts = prev.p; state.asm = prev.a;
+    render(); save();
+    toast("Put back");
+  });
+}
+document.getElementById("btnClearParts").addEventListener("click", function(){ clearSection("parts"); });
+document.getElementById("btnClearAsm").addEventListener("click", function(){ clearSection("asm"); });
+
+document.getElementById("btnNew").addEventListener("click", function(){
+  var before = JSON.stringify({ t:state.title, p:state.parts, a:state.asm });
+  state.title = "";
+  state.date = new Date().toISOString().slice(0,10);
+  state.parts = [];
+  state.asm = [];
+  state.mmN = null;
+  syncStrip(); render(); save();
+  expTitle.focus();
+  toast("Board cleared — your protocol is kept", "Undo", function(){
+    var prev = JSON.parse(before);
+    state.title = prev.t; state.parts = prev.p; state.asm = prev.a;
+    syncStrip(); render(); save();
+    toast("Board restored");
+  });
+});
+
+function render(){
+  renderProtoPicker();
+  renderProtocol();
+  renderParts();
+  renderAssemblies();
+  syncStripCount();
+  refresh();
+}
+function syncStripCount(){
+  if(state.mmN === null || state.mmN === undefined) mmN.value = state.asm.length;
+}
+
+syncStrip();
+render();
+})();
+</script>
+
+</body>
+</html>

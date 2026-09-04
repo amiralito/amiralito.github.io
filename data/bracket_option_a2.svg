@@ -1,0 +1,19 @@
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52.44 154.45">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #231f20;
+        stroke-miterlimit: 10;
+        stroke-width: .75px;
+      }
+    </style>
+  </defs>
+  <!-- Root stem and About leaf -->
+  <polyline class="cls-1" points="52.44 0.38 15.44 0.38 15.44 51.61 0 51.61"/>
+  <!-- Clade stem -->
+  <polyline class="cls-1" points="15.44 51.61 15.44 102.84 37.19 102.84"/>
+  <!-- 3-leaf crown: Research, Pubs, Tools -->
+  <polyline class="cls-1" points="52.44 51.61 37.19 51.61 37.19 154.07 52.44 154.07"/>
+  <line class="cls-1" x1="37.19" y1="102.84" x2="52.44" y2="102.84"/>
+</svg>

@@ -1,0 +1,2927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>prepBench</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23D9600F'/%3E%3Cg transform='translate(16,16) scale(1.3) translate(-16,-16)'%3E%3Cpath d='M12 6.5h8v15a4 4 0 0 1-8 0z' fill='none' stroke='%23fff' stroke-width='2.3'/%3E%3Cpath d='M12.6 15.5h6.8v6a3.4 3.4 0 0 1-6.8 0z' fill='%23fff'/%3E%3Cpath d='M10.4 6.5h11.2' stroke='%23fff' stroke-width='2.3' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<script>
+/* Stamp the theme before anything paints. Light is the default; the OS setting
+   is only consulted if the viewer has never chosen here. */
+(function(){
+  var t = "light";
+  try { t = localStorage.getItem("od600-prep-bench-theme") || "light"; } catch(e){}
+  document.documentElement.setAttribute("data-theme", t === "dark" ? "dark" : "light");
+})();
+</script>
+
+<style>
+/* ---------- tokens: light is the base set ---------- */
+:root{
+  --ground:#F6F8F5;
+  --surface:#FFFFFF;
+  --surface-2:#F0F3EE;
+  --line:#DEE3DA;
+  --line-strong:#C6CDC1;
+  --ink:#141A16;
+  --ink-2:#4A544C;
+  --ink-3:#79837A;
+  --culture:#D9600F;      /* 600 nm — the wavelength this whole tool is about */
+  --culture-soft:#FBEADC;
+  --buffer:#3D7391;
+  --buffer-soft:#E2EDF3;
+  --danger:#B32D22;
+  --danger-soft:#FAE7E4;
+  --warn:#8E5B10;
+  --warn-fill:#DFA22A;
+  --warn-soft:#FBF0DC;
+  --glass-hi:rgba(255,255,255,.75);
+  --glass-shade:rgba(20,26,22,.07);
+  --liquid-hi:rgba(255,255,255,.38);
+  --liquid-lo:rgba(0,0,0,.17);
+  --ok:#2E7150;
+  --focus:#D9600F;
+  --shadow:0 1px 2px rgba(20,26,22,.05), 0 8px 24px -18px rgba(20,26,22,.35);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1411;
+    --surface:#161C18;
+    --surface-2:#1D2420;
+    --line:#2A322C;
+    --line-strong:#3B453D;
+    --ink:#E9EEE9;
+    --ink-2:#AAB4AC;
+    --ink-3:#7E887F;
+    --culture:#FF9147;
+    --culture-soft:#33210F;
+    --buffer:#7FB4D4;
+    --buffer-soft:#12232C;
+    --danger:#F0796A;
+    --danger-soft:#331916;
+    --warn:#E5A94E;
+    --warn-fill:#E8A93F;
+    --warn-soft:#332612;
+    --glass-hi:rgba(255,255,255,.10);
+    --glass-shade:rgba(0,0,0,.35);
+    --liquid-hi:rgba(255,255,255,.26);
+    --liquid-lo:rgba(0,0,0,.30);
+    --ok:#69C495;
+    --focus:#FF9147;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1411;
+  --surface:#161C18;
+  --surface-2:#1D2420;
+  --line:#2A322C;
+  --line-strong:#3B453D;
+  --ink:#E9EEE9;
+  --ink-2:#AAB4AC;
+  --ink-3:#7E887F;
+  --culture:#FF9147;
+  --culture-soft:#33210F;
+  --buffer:#7FB4D4;
+  --buffer-soft:#12232C;
+  --danger:#F0796A;
+  --danger-soft:#331916;
+  --warn:#E5A94E;
+  --warn-fill:#E8A93F;
+  --warn-soft:#332612;
+  --glass-hi:rgba(255,255,255,.10);
+  --glass-shade:rgba(0,0,0,.35);
+  --liquid-hi:rgba(255,255,255,.26);
+  --liquid-lo:rgba(0,0,0,.30);
+  --ok:#69C495;
+  --focus:#FF9147;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.9);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",Arial,sans-serif;margin:0;text-wrap:balance}
+.num{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.topbar::after{
+  content:"";display:block;height:2px;
+  background:linear-gradient(90deg,#3D2B8F 0%,#2F6FB8 22%,#2E8E52 42%,#C9C22A 62%,#D9600F 78%,#8E2019 100%);
+  opacity:.85;
+}
+.topbar-in{
+  max-width:1500px;margin:0 auto;padding:12px 20px;
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mark{width:23px;height:23px;flex-shrink:0}
+.mark .m-glass,.mark .m-lip{fill:none;stroke:var(--ink);stroke-width:2.1;stroke-linecap:round}
+.mark .m-liquid{fill:var(--culture)}
+.brand b{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.01em}
+.brand span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.09em;text-transform:uppercase}
+.exp{display:flex;align-items:center;gap:8px;flex:1 1 260px;min-width:220px}
+.exp input[type=text]{
+  flex:1;min-width:120px;background:transparent;border:0;border-bottom:1px dashed var(--line-strong);
+  font:inherit;font-weight:500;color:var(--ink);padding:3px 2px;
+}
+.exp input[type=date]{
+  background:transparent;border:0;border-bottom:1px dashed var(--line-strong);
+  font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-2);padding:3px 2px;
+}
+.exp input:focus-visible{outline:none;border-bottom-color:var(--focus);border-bottom-style:solid}
+.bar-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- controls ---------- */
+button{font:inherit;cursor:pointer}
+.btn{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  border-radius:6px;padding:6px 12px;font-size:13.5px;font-weight:500;
+  display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;
+}
+.btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn-primary{background:var(--culture);border-color:var(--culture);color:#fff}
+:root[data-theme="dark"] .btn-primary{color:#20130A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-primary{color:#20130A}}
+.btn-primary:hover{filter:brightness(1.06);background:var(--culture);border-color:var(--culture)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--ink-2)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn-sm{padding:3px 8px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled:hover{background:var(--surface);border-color:var(--line-strong)}
+.btn-primary:disabled:hover{background:var(--culture);border-color:var(--culture)}
+
+input[type=number],input[type=text].cell{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:5px;
+  padding:6px 8px;font:inherit;color:var(--ink);
+}
+input[type=number]{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+input:focus-visible{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+/* ---------- layout ---------- */
+main{max-width:1500px;margin:0 auto;padding:20px 20px 80px}
+.cols{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
+@media (min-width:1180px){.cols{grid-template-columns:minmax(0,1fr) 330px}}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.card + .card{margin-top:20px}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:13px 16px;border-bottom:1px solid var(--line);background:var(--surface);
+}
+.card-head h2{font-size:15px;font-weight:600;letter-spacing:.02em;display:flex;align-items:baseline;gap:9px}
+.card-head h2 em{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-weight:400}
+
+/* defaults strip */
+.defaults{
+  display:flex;gap:0;flex-wrap:wrap;align-items:stretch;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);
+  margin-bottom:20px;overflow:hidden;
+}
+.def{padding:10px 16px;border-right:1px solid var(--line);flex:1 1 150px;min-width:140px}
+.def:last-of-type{border-right:0}
+.def label{display:block;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.def-row{display:flex;align-items:center;gap:6px}
+.def-row .unit{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);flex-shrink:0}
+.def-apply{display:flex;align-items:center;padding:10px 14px;background:var(--surface-2);border-left:1px solid var(--line)}
+
+/* ---------- data grid ---------- */
+.grid{width:100%;overflow-x:auto}
+.grid table{width:100%;border-collapse:collapse;min-width:860px}
+.grid th{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+  text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+  background:var(--surface-2);
+}
+.grid th.l{text-align:left}
+.grid td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.grid tr:last-child td{border-bottom:0}
+.grid tbody tr:hover{background:var(--surface-2)}
+.w-name{width:auto;min-width:150px}
+.w-num{width:96px}
+.w-out{width:118px;text-align:right}
+.w-bar{width:104px}
+.w-act{width:34px}
+
+.out{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;line-height:1.25}
+.out b{font-weight:600;font-size:15px;display:block}
+.out small{display:block;font-size:11px;color:var(--ink-3);font-weight:400}
+.out.culture b{color:var(--culture)}
+.out.buffer b{color:var(--buffer)}
+.out.bad b{color:var(--danger)}
+
+.bar{height:8px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.bar .b-culture{background:var(--culture)}
+.bar .b-buffer{background:var(--buffer);opacity:.55}
+.bar.over{border-color:var(--danger)}
+.bar.over i{background:var(--danger)}
+.bar-note{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-3);margin-top:3px;text-align:right}
+.bar-note.bad{color:var(--danger)}
+
+.icon-btn{
+  border:0;background:transparent;color:var(--ink-3);border-radius:5px;padding:4px 6px;line-height:1;font-size:15px;
+}
+.icon-btn:hover{background:var(--danger-soft);color:var(--danger)}
+.icon-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+.solo-box{display:flex;justify-content:center}
+input[type=checkbox]{accent-color:var(--culture);width:15px;height:15px;cursor:pointer}
+
+.card-foot{padding:11px 16px;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12.5px;color:var(--ink-3)}
+
+/* ---------- mixes ---------- */
+.mix{border-bottom:1px solid var(--line);padding:14px 16px}
+.mix:last-child{border-bottom:0}
+.mix-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.mix-no{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--ink-3);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+  min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.mix-top input.cell{flex:1 1 200px;min-width:150px;width:auto}
+.mix-top input.cell.auto{color:var(--ink-2);border-style:dashed}
+.mix-top input.cell.auto:focus-visible{border-style:solid;color:var(--ink)}
+.mix-tail{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.mix-vol{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.mix-vol input{width:72px}
+.mix-vol .unit{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+  border-radius:20px;padding:3px 11px;font-size:13px;display:inline-flex;align-items:center;gap:7px;
+  transition:all .12s;
+}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--culture-soft);border-color:var(--culture);color:var(--culture);font-weight:500}
+.chip .v{font-family:"IBM Plex Mono",monospace;font-size:11.5px;opacity:.85}
+.chip .v:empty{display:none}
+.chip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* the pipetting list — the numbers you read while holding a pipette */
+.mix-list{margin-top:12px;border-top:1px solid var(--line)}
+.cline{
+  display:flex;align-items:baseline;gap:9px;padding:7px 2px;
+  border-bottom:1px solid var(--line);
+}
+.cline b{
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:23px;font-weight:600;line-height:1.15;color:var(--culture);
+  min-width:5.4ch;text-align:right;letter-spacing:-.01em;
+}
+.cline .u{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.cline .nm{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
+.cline.buf b{color:var(--buffer)}
+.cline.buf .nm{color:var(--ink-2)}
+.cline.bad b{color:var(--danger)}
+.empty-line{padding:12px 2px;color:var(--ink-3);font-size:13.5px}
+.mix-sum{
+  display:flex;gap:14px;flex-wrap:wrap;padding:9px 2px 0;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
+}
+.mix-sum .tot{color:var(--ink-2);font-weight:500}
+.mix-sum.bad{color:var(--danger);font-size:12.5px;line-height:1.6}
+
+/* ---------- combination summary ---------- */
+.combo-grid{width:100%}
+.combo-row{
+  display:grid;grid-template-columns:34px minmax(0,1fr) 58px 92px 92px;
+  align-items:baseline;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);
+}
+.combo-row:last-child{border-bottom:0}
+.combo-row .r{text-align:right}
+.combo-row .no{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);text-align:right;
+}
+.combo-row .nm{font-size:14px;overflow-wrap:anywhere}
+.combo-row .dim{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3)}
+.combo-row span:nth-child(4),.combo-row span:nth-child(5){
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:14px;
+}
+.combo-row .buf{color:var(--buffer);font-weight:500}
+.combo-row .cult{color:var(--culture);font-weight:500}
+.combo-row .cmeta{
+  display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-3);
+  margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.combo-row.bad .cult{color:var(--danger)}
+.combo-head{
+  background:var(--surface-2);border-bottom:1px solid var(--line);
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding-top:9px;padding-bottom:9px;
+}
+.combo-head span{font-family:inherit!important;font-size:inherit!important}
+.combo-row.bad{background:var(--danger-soft)}
+.combo-row.bad .buf{color:var(--danger)}
+.combo-foot{
+  display:flex;gap:26px;flex-wrap:wrap;padding:13px 16px;
+  background:var(--surface-2);border-top:1px solid var(--line);
+}
+.cstat{display:flex;flex-direction:column;gap:2px}
+.cstat span{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+}
+.cstat b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:17px;font-weight:600}
+.cstat.culture b{color:var(--culture)}
+.cstat.buffer b{color:var(--buffer)}
+.combo-warn{border-bottom:0;border-top:1px solid var(--danger)}
+
+/* ---------- rail ---------- */
+.rail{position:sticky;top:78px}
+.sum-row{padding:9px 16px;border-bottom:1px solid var(--line)}
+.sum-row:last-child{border-bottom:0}
+.sum-top{display:flex;align-items:baseline;gap:10px}
+/* a culture tube on its side: glass barrel, liquid filled from the left */
+.use-bar{
+  position:relative;height:14px;margin-top:8px;border-radius:999px;overflow:hidden;
+  border:1px solid var(--line-strong);
+  background:linear-gradient(180deg,var(--glass-shade) 0%,transparent 34%,transparent 64%,var(--glass-shade) 100%),var(--surface-2);
+}
+.use-bar i{
+  position:relative;display:block;height:100%;border-radius:999px;
+  background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--culture);
+  box-shadow:1px 0 2px rgba(0,0,0,.18);
+  transition:width 620ms cubic-bezier(.22,.92,.24,1);
+}
+.use-bar i::after{            /* the meniscus at the liquid's surface */
+  content:"";position:absolute;right:0;top:1px;bottom:1px;width:3px;
+  border-radius:999px;background:var(--liquid-hi);opacity:.75;
+}
+/* the surface settles for a moment after the level moves */
+.use-bar.slosh i::after{animation:menisc 700ms cubic-bezier(.22,.92,.24,1)}
+.use-bar.slosh{animation:tubeglow 700ms ease-out}
+@keyframes menisc{
+  0%{width:3px;opacity:.75}
+  28%{width:7px;opacity:1}
+  60%{width:2px;opacity:.6}
+  100%{width:3px;opacity:.75}
+}
+@keyframes tubeglow{
+  0%{box-shadow:0 0 0 0 transparent}
+  30%{box-shadow:0 0 0 3px color-mix(in srgb,var(--culture) 16%,transparent)}
+  100%{box-shadow:0 0 0 0 transparent}
+}
+.use-bar::after{               /* the sheen along the top of the glass */
+  content:"";position:absolute;left:7px;right:7px;top:2px;height:2px;border-radius:2px;
+  background:var(--glass-hi);pointer-events:none;
+}
+.use-note{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);margin-top:5px;
+}
+.use-note b{font-size:13.5px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.use-note.pending{margin-top:7px;font-style:italic}
+.sum-row.tight .use-bar i{background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--warn-fill)}
+.sum-row.tight .use-note,.sum-row.tight .use-note b{color:var(--warn)}
+.sum-row.short{background:var(--danger-soft)}
+.sum-row.short .use-bar{border-color:var(--danger)}
+.sum-row.short .use-bar i{background:linear-gradient(180deg,var(--liquid-hi) 0%,transparent 46%,var(--liquid-lo) 100%),var(--danger)}
+.sum-row.short .use-note,.sum-row.short .use-note b{color:var(--danger)}
+.sum-row.short .sum-val{color:var(--danger)}
+input[type=number].tight{border-color:var(--warn);background:var(--warn-soft)}
+input[type=number].short{border-color:var(--danger);background:var(--danger-soft);color:var(--danger);font-weight:600}
+.warn-banner.soft{background:var(--warn-soft);border-bottom-color:var(--warn);color:var(--warn)}
+.sum-name{flex:1;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.sum-name small{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.sum-val{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600;color:var(--culture);white-space:nowrap}
+.sum-val small{display:block;text-align:right;font-weight:400;color:var(--ink-3);font-size:10.5px}
+.sum-total{display:flex;justify-content:space-between;align-items:baseline;padding:11px 16px;background:var(--surface-2);border-top:1px solid var(--line)}
+.sum-total span{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.sum-total b{font-family:"IBM Plex Mono",monospace;font-size:16px}
+.excess{display:flex;align-items:center;gap:7px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.excess input{width:62px}
+
+.empty{padding:22px 16px;color:var(--ink-3);font-size:13.5px;text-align:center}
+
+.warn-banner{
+  display:flex;gap:9px;align-items:flex-start;padding:10px 16px;
+  background:var(--danger-soft);border-bottom:1px solid var(--danger);color:var(--danger);font-size:13px;
+}
+.warn-banner b{font-weight:600}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+  background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:7px;font-size:13.5px;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60;box-shadow:var(--shadow);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast-act{
+  margin-left:12px;background:transparent;border:1px solid var(--ink-3);color:var(--ground);
+  border-radius:5px;padding:3px 10px;font:inherit;font-size:12.5px;font-weight:600;
+}
+.toast-act:hover{background:var(--ink-2);color:var(--ground)}
+.toast-act:focus-visible{outline:2px solid var(--culture);outline-offset:2px}
+
+.foot{max-width:1500px;margin:0 auto;padding:0 20px 40px;color:var(--ink-3);font-size:12px;line-height:1.7}
+.foot code{font-family:"IBM Plex Mono",monospace;color:var(--ink-2);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.credit{
+  margin:34px auto 0;padding-top:22px;border-top:1px solid var(--line);max-width:1500px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:28px;flex-wrap:wrap;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;color:var(--ink-3);
+}
+.credit-left{display:flex;align-items:baseline;gap:32px;flex-wrap:wrap}
+.credit a{
+  color:var(--ink-3);text-decoration:none;
+  border-bottom:1px dotted var(--line-strong);padding-bottom:2px;
+  transition:color .15s,border-color .15s;
+}
+.credit a:hover{color:var(--culture);border-bottom-color:var(--culture)}
+.credit a:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:2px}
+
+
+/* ---------- section explainers ---------- */
+.card-head{position:relative}
+.tip-wrap{position:relative;display:inline-flex;align-items:center}
+.tip-btn{
+  width:16px;height:16px;border-radius:50%;border:1px solid var(--line-strong);
+  background:transparent;color:var(--ink-3);font-family:"IBM Plex Sans Condensed",sans-serif;
+  font-size:10.5px;font-weight:700;line-height:1;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:color .13s,border-color .13s,background .13s;
+}
+.tip-btn:hover{color:var(--culture);border-color:var(--culture);background:var(--culture-soft)}
+.tip-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tip{
+  position:fixed;top:0;left:0;z-index:80;width:300px;max-width:calc(100vw - 20px);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:9px;
+  padding:11px 13px;box-shadow:0 2px 4px rgba(0,0,0,.06),0 14px 34px -14px rgba(0,0,0,.4);
+  font-size:12.5px;line-height:1.6;color:var(--ink-2);font-weight:400;letter-spacing:0;
+  opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:opacity .14s,transform .14s,visibility .14s;
+  text-transform:none;
+}
+.tip::before{
+  content:"";position:absolute;top:-5px;left:var(--arrow,13px);width:8px;height:8px;
+  background:var(--surface);border-left:1px solid var(--line-strong);border-top:1px solid var(--line-strong);
+  transform:rotate(45deg);
+}
+.tip.above::before{top:auto;bottom:-5px;border-left:0;border-top:0;
+  border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.tip b{color:var(--ink);font-weight:600}
+.tip-wrap:hover .tip,.tip-wrap:focus-within .tip{opacity:1;visibility:visible;transform:translateY(0)}
+@media (max-width:860px){ .tip{width:272px} }
+
+/* ---------- construct library ---------- */
+.panel{display:none;margin-bottom:20px}
+.panel.open{display:block}
+.lib-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{position:relative}
+.search input{
+  width:190px;background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:6px 10px;font:inherit;font-size:13.5px;color:var(--ink);
+}
+.lib-grid{width:100%;overflow-x:auto}
+.lib-grid table{width:100%;border-collapse:collapse;min-width:1020px}
+.lib-grid th{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 9px;
+  border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap;
+}
+.lib-grid td{padding:5px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+.lib-grid tr:last-child td{border-bottom:0}
+.lib-grid tbody tr:hover{background:var(--surface-2)}
+.lib-grid input.cell{font-size:13.5px;padding:5px 7px}
+.lib-grid input.cell.mono{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.lib-grid td.tick{width:34px;text-align:center}
+.lib-grid td.act{width:34px}
+.c-name{min-width:150px}
+.c-od{width:82px}
+.c-mid{min-width:112px}
+.c-notes{min-width:150px}
+
+.paste-zone{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--surface-2);display:none}
+.paste-zone.open{display:block}
+.paste-zone textarea{
+  width:100%;min-height:104px;resize:vertical;background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:9px 11px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink);line-height:1.6;
+}
+.paste-zone textarea:focus-visible{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+.paste-help{font-size:12.5px;color:var(--ink-3);margin:0 0 8px}
+.paste-help code{font-family:"IBM Plex Mono",monospace;background:var(--surface);border:1px solid var(--line);padding:1px 5px;border-radius:4px;color:var(--ink-2)}
+.map-wrap{margin-top:12px;overflow-x:auto}
+.map-wrap table{border-collapse:collapse;min-width:100%;font-size:12.5px}
+.map-wrap th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+.map-wrap td{
+  padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace;color:var(--ink-2);max-width:200px;overflow:hidden;text-overflow:ellipsis;
+}
+.map-wrap select{
+  font:inherit;font-size:12px;font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:5px;padding:3px 5px;
+}
+.map-wrap select.ignored{color:var(--ink-3);border-style:dashed}
+.map-wrap select:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.paste-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.paste-count{font-size:13px;color:var(--ink-2)}
+.paste-count b{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.dupe{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2)}
+
+/* ---------- combination import ---------- */
+.file-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+.file-btn{cursor:pointer}
+.mix-prev{margin-top:12px;border-top:1px solid var(--line)}
+.prev-row{display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}
+.prev-no{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  min-width:18px;text-align:right;padding-top:3px;flex-shrink:0;
+}
+.prev-body{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.prev-plus{color:var(--ink-3);font-family:"IBM Plex Mono",monospace;font-size:12px}
+.prev-comp{
+  font-size:12.5px;padding:2px 9px;border-radius:20px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink-2);
+}
+.prev-comp.ok{border-color:var(--culture);background:var(--culture-soft);color:var(--culture)}
+.prev-comp.lib{border-color:var(--buffer);background:var(--buffer-soft);color:var(--buffer)}
+.prev-comp.new{border-style:dashed;color:var(--ink-3)}
+
+.meta{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);
+  margin-top:3px;display:flex;align-items:center;gap:5px;line-height:1.4;
+}
+.meta i{font-style:normal;color:var(--culture);font-size:9px}
+.meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- theme toggle ---------- */
+.theme-btn{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+  border-radius:6px;padding:5px 7px;display:inline-flex;align-items:center;justify-content:center;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.theme-btn:hover{background:var(--surface-2);color:var(--ink);border-color:var(--ink-3)}
+.theme-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.theme-btn svg{width:16px;height:16px;display:block;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.theme-btn .i-moon{display:none}
+:root[data-theme="dark"] .theme-btn .i-sun{display:none}
+:root[data-theme="dark"] .theme-btn .i-moon{display:block}
+
+.count-badge{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--ink-3);
+}
+.btn[aria-expanded="true"] .count-badge{background:var(--culture-soft);border-color:var(--culture);color:var(--culture)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- phone ---------- */
+@media (max-width:860px){
+  body{font-size:15px}
+  /* 16px stops iOS zooming the page when a field takes focus */
+  input[type=number],input[type=text].cell,input[type=search],.exp input[type=text],.exp input[type=date],textarea{font-size:16px}
+  .btn,.theme-btn{min-height:38px}
+  .btn-sm{padding:7px 11px;font-size:13.5px}
+  .icon-btn{min-width:36px;min-height:36px;font-size:19px}
+  input[type=checkbox]{width:20px;height:20px}
+
+  main{padding:14px 12px 60px}
+  /* the bar wraps to three rows on a phone — let it scroll away rather than
+     eat a seventh of the screen on every card */
+  .topbar{position:static}
+  .topbar-in{padding:9px 12px;gap:10px}
+  .brand b{font-size:17px}
+  .brand span{display:none}
+  .exp{flex:1 1 100%;order:3}
+  .bar-actions{margin-left:auto;gap:6px}
+  .card{border-radius:9px}
+  .card + .card{margin-top:14px}
+  .card-head{padding:11px 13px}
+  .card-head h2 em{display:none}
+  .card-foot{padding:11px 13px}
+  .cols{gap:14px}
+  .foot{padding:0 12px 30px}
+
+  /* defaults strip: 2 across, apply button full width */
+  .defaults{margin-bottom:14px}
+  .def{flex:1 1 44%;min-width:0;border-bottom:1px solid var(--line)}
+  .def:nth-of-type(2n){border-right:0}
+  .def-apply{flex:1 1 100%;border-left:0;justify-content:center}
+  .def-apply .btn{width:100%;justify-content:center}
+
+  /* culture rows become cards */
+  .grid{overflow-x:visible}
+  .grid table{min-width:0;display:block}
+  .grid thead{display:none}
+  .grid tbody{display:block}
+  .grid tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;padding:13px 13px 15px;border-bottom:1px solid var(--line);position:relative}
+  .grid tbody tr:last-child{border-bottom:0}
+  .grid tbody tr:hover{background:transparent}
+  .grid td{border:0;padding:0;display:block}
+  .grid td[data-l]::before{
+    content:attr(data-l);display:block;font-family:"IBM Plex Sans Condensed",sans-serif;
+    font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px;
+  }
+  .grid td.td-name{grid-column:1 / -1;padding-right:40px}
+  /* five inputs is an odd number — let "On hand" span so culture and buffer stay paired */
+  .grid td[data-l="On hand"]{grid-column:1 / -1}
+  .grid td.td-bar{grid-column:1 / -1;margin-top:2px}
+  .grid td.td-act{position:absolute;top:9px;right:8px}
+  .w-num,.w-out,.w-bar{width:auto}
+  .out{text-align:left;padding:7px 9px;border-radius:7px;background:var(--surface-2)}
+  .out b{font-size:21px}
+  .out.culture{background:var(--culture-soft)}
+  .out.buffer{background:var(--buffer-soft)}
+  .out.bad{background:var(--danger-soft)}
+  .solo-box{justify-content:flex-start;height:34px;align-items:center}
+
+  /* mixes */
+  .mix{padding:13px}
+  .mix-top{gap:8px}
+  .mix-no{order:0}
+  .mix-top input.cell{order:1;flex:1 1 55%;min-width:0}
+  .mix-tail{order:2;flex:0 0 auto}
+  .mix-vol input{width:66px}
+  .cline b{font-size:26px;min-width:5.2ch}
+  .cline{padding:9px 2px}
+  .chip{padding:6px 13px;font-size:14px}
+
+  /* construct library becomes cards too */
+  .lib-grid{overflow-x:visible}
+  .lib-grid table{min-width:0;display:block}
+  .lib-grid thead{display:none}
+  .lib-grid tbody{display:block}
+  .lib-grid tbody tr{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;
+    padding:13px 13px 14px 13px;border-bottom:1px solid var(--line);position:relative;
+  }
+  .lib-grid tbody tr:hover{background:transparent}
+  .lib-grid td{display:block;border:0;padding:0}
+  .lib-grid td[data-l]::before{
+    content:attr(data-l);display:block;font-family:"IBM Plex Sans Condensed",sans-serif;
+    font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px;
+  }
+  .lib-grid td:nth-child(2){grid-column:1 / -1;padding-right:74px}
+  .lib-grid td:nth-child(9){grid-column:1 / -1}
+  .lib-grid td.tick{position:absolute;top:12px;right:44px;width:auto}
+  .lib-grid td.act{position:absolute;top:8px;right:6px;width:auto}
+  .lib-tools{width:100%}
+  .search{flex:1 1 100%}
+  .search input{width:100%}
+  .paste-zone{padding:13px}
+  .card-foot .btn{width:100%;justify-content:center}
+  .card-foot .hint{width:100%}
+
+  .combo-row{grid-template-columns:26px minmax(0,1fr) 74px 74px;gap:8px;padding:10px 13px}
+  #comboBody .combo-row span:nth-child(3){display:none}   /* part count drops on a phone */
+  #soloBody .combo-row{grid-template-columns:22px minmax(0,1fr) 62px 62px 56px;gap:6px}
+  .combo-head{font-size:9.5px}
+  .combo-foot{gap:16px;padding:12px 13px}
+  .cstat b{font-size:15px}
+  .rail{position:static}
+  .toast{left:12px;right:12px;bottom:14px;transform:translateY(12px);max-width:none}
+  .toast.on{transform:translateY(0)}
+}
+@media (max-width:420px){
+  .grid tbody tr{grid-template-columns:1fr 1fr}
+  .cline b{font-size:24px}
+  .brand b{font-size:16px}
+}
+</style>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path class="m-glass" d="M12 6.5h8v15a4 4 0 0 1-8 0z"/>
+        <path class="m-liquid" d="M12.6 15.6h6.8v5.9a3.4 3.4 0 0 1-6.8 0z"/>
+        <path class="m-lip" d="M10.4 6.5h11.2"/>
+      </svg>
+      <b>prepBench</b><span>dilution planner</span>
+    </div>
+    <div class="exp">
+      <input type="text" id="expTitle" placeholder="Experiment name" aria-label="Experiment name">
+      <input type="date" id="expDate" aria-label="Date">
+    </div>
+    <div class="bar-actions">
+      <button class="theme-btn" id="btnTheme" type="button" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+        <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.3M12 19.3v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.3M19.3 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+        <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>
+      </button>
+      <button class="btn btn-sm" id="btnLib" aria-expanded="false" aria-controls="libPanel">Constructs <span class="count-badge" id="libCount">0</span></button>
+      <button class="btn btn-ghost btn-sm" id="btnNew">Clear board</button>
+      <button class="btn btn-sm" id="btnCopy">Copy for Excel</button>
+      <button class="btn btn-primary btn-sm" id="btnCsv">Export Excel</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="defaults">
+    <div class="def">
+      <label for="dDil">Dilution factor</label>
+      <div class="def-row"><input type="number" id="dDil" min="1" step="1"><span class="unit">×</span></div>
+    </div>
+    <div class="def">
+      <label for="dTarget">Target OD<sub>600</sub></label>
+      <div class="def-row"><input type="number" id="dTarget" min="0" step="0.05"></div>
+    </div>
+    <div class="def">
+      <label for="dVol">Final volume</label>
+      <div class="def-row"><input type="number" id="dVol" min="0" step="0.5"><span class="unit">mL</span></div>
+    </div>
+    <div class="def">
+      <label for="dHave">Culture on hand</label>
+      <div class="def-row"><input type="number" id="dHave" min="0" step="0.5"><span class="unit">mL</span></div>
+    </div>
+    <div class="def-apply">
+      <button class="btn btn-sm" id="btnApplyAll">Apply to all rows</button>
+    </div>
+  </div>
+
+  <section class="card panel" id="libPanel">
+    <div class="card-head">
+      <h2>Construct library <em>reused across runs — kept in this browser</em>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Your constructs, kept between runs, with their default target OD, Agro strain, plasmid, tag, antibiotics and stock location.</span></span>
+      </h2>
+      <div class="lib-tools">
+        <div class="search"><input type="search" id="libSearch" placeholder="Filter constructs" aria-label="Filter constructs"></div>
+        <button class="btn btn-sm" id="btnPaste" aria-expanded="false" aria-controls="pasteZone">Paste a list</button>
+        <button class="btn btn-sm" id="btnAddConstruct">+ Add construct</button>
+        <button class="btn btn-ghost btn-sm" id="btnClearLib">Remove all</button>
+      </div>
+    </div>
+
+    <div class="paste-zone" id="pasteZone">
+      <p class="paste-help">Paste from a spreadsheet or a plain list — one construct per line, columns separated by tabs or commas. Then check the column each one lands in. A bare list of names works too. <code>Rx:HA⇥GV3101⇥pICSL86977⇥HA⇥0.3</code></p>
+      <textarea id="pasteText" spellcheck="false" aria-label="Paste construct list" placeholder="Rx:HA	GV3101	pICSL86977	HA	0.3&#10;NRC2EEE:mCherry	GV3101	pICH86988	4xMyc	0.3&#10;PVX-GFP	GV3101	pGR106	GFP	0.05"></textarea>
+      <div id="mapWrap"></div>
+      <div class="paste-actions">
+        <button class="btn btn-primary btn-sm" id="btnImport" disabled>Add to library</button>
+        <label class="dupe"><input type="checkbox" id="dupeUpdate" checked> Update constructs that already exist</label>
+        <span class="paste-count" id="pasteCount"></span>
+      </div>
+    </div>
+
+    <div class="lib-grid">
+      <table>
+        <thead>
+          <tr>
+            <th class="tick"><input type="checkbox" id="libAll" aria-label="Select all constructs"></th>
+            <th class="c-name">Construct</th>
+            <th class="c-od">Target OD</th>
+            <th class="c-mid">Agro strain</th>
+            <th class="c-mid">Plasmid</th>
+            <th class="c-mid">Tag</th>
+            <th class="c-mid">Antibiotics</th>
+            <th class="c-mid">Stock</th>
+            <th class="c-notes">Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="libBody"></tbody>
+      </table>
+    </div>
+    <div class="card-foot">
+      <button class="btn btn-primary btn-sm" id="btnToRun">Add selected to run</button>
+      <span class="hint" id="libHint"></span>
+    </div>
+  </section>
+
+  <datalist id="constructNames"></datalist>
+
+  <div class="cols">
+    <div>
+      <section class="card">
+        <div class="card-head">
+          <h2>Cultures <em>culture mL = final vol × target OD ÷ (OD read × dilution)</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">One row per culture. The OD you read and the dilution you read it at give the volume of neat culture, and the buffer that makes it up to the final volume.</span></span>
+          </h2>
+          <div class="lib-tools">
+            <button class="btn btn-ghost btn-sm" id="btnClearStrains">Remove all</button>
+            <button class="btn btn-sm" id="btnAddRow">+ Add strain</button>
+          </div>
+        </div>
+        <div id="strainWarn"></div>
+        <div class="grid">
+          <table>
+            <thead>
+              <tr>
+                <th class="l w-name">Strain</th>
+                <th class="w-num">OD read</th>
+                <th class="w-num">Dilution</th>
+                <th class="w-num">Target OD</th>
+                <th class="w-num">Final mL</th>
+                <th class="w-num" title="How much neat culture you actually grew for this strain">On hand</th>
+                <th class="w-out">Culture</th>
+                <th class="w-out">Buffer</th>
+                <th class="w-bar">Make-up</th>
+                <th class="w-num" title="Include this strain as a stand-alone infiltration in the prep summary">Solo</th>
+                <th class="w-act"></th>
+              </tr>
+            </thead>
+            <tbody id="strainBody"></tbody>
+          </table>
+        </div>
+        <div class="card-foot">
+          <span class="hint">OD read is the value off the spectrophotometer on the diluted sample — the dilution factor is applied for you. <b>Solo</b> counts a strain as its own infiltration in the prep summary; untick it for strains you only use inside mixes.</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Mixes <em>co-infiltration combinations</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">One tube per co-infiltration. Each component is dosed against this tube's final volume and its own target OD; buffer tops the tube up.</span></span>
+          </h2>
+          <div class="lib-tools">
+            <button class="btn btn-ghost btn-sm" id="btnClearMixes">Remove all</button>
+            <button class="btn btn-sm" id="btnMixImport" aria-expanded="false" aria-controls="mixImport">Import list</button>
+            <button class="btn btn-sm" id="btnAddMix">+ Add mix</button>
+          </div>
+        </div>
+
+        <div class="paste-zone" id="mixImport">
+          <p class="paste-help">One combination per line, components joined by <code>+</code>. Numbering like <code>1.</code> is ignored. To name a mix yourself, put the name first and a tab or <code>|</code> before the components — otherwise it is named after what goes in it.</p>
+          <div class="file-row">
+            <label class="btn btn-sm file-btn">
+              Choose a .txt file<input type="file" id="mixFile" accept=".txt,.csv,.tsv,text/plain" hidden>
+            </label>
+            <span class="hint" id="mixFileName">…or paste below</span>
+          </div>
+          <textarea id="mixText" spellcheck="false" aria-label="Paste combination list" placeholder="GFP + Rx:HA + NRC2&#10;CP:GFP + Rx:HA + NRC2&#10;Rx4 + AvrXv3 + NRC0"></textarea>
+          <div id="mixPreview"></div>
+          <div class="paste-actions">
+            <button class="btn btn-primary btn-sm" id="btnMixAdd" disabled>Add mixes</button>
+            <label class="dupe"><input type="checkbox" id="mixCreate" checked> Create culture rows for names I don’t have yet</label>
+            <span class="paste-count" id="mixCount"></span>
+          </div>
+        </div>
+
+        <div id="mixBody"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Construct summary <em>each construct on its own</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Every construct as a single-strain tube: the neat culture and the buffer that brings it to its own final volume.</span></span>
+          </h2>
+        </div>
+        <div id="soloBody"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Combination summary <em>what goes on the bench</em>
+            <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">Every mix in one list: component count, buffer and final volume per tube, with the run totals.</span></span>
+          </h2>
+        </div>
+        <div id="comboBody"></div>
+      </section>
+    </div>
+
+    <div class="rail">
+      <section class="card">
+        <div class="card-head"><h2>Prep summary
+          <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="What is this section?">i</button><span class="tip" role="tooltip">How much neat culture each construct needs across every mix it appears in, plus its own row if Solo is ticked, set against what you have on hand.</span></span>
+        </h2></div>
+        <div class="excess">
+          <label for="dExcess">Extra for dead volume</label>
+          <input type="number" id="dExcess" min="0" max="200" step="5"><span class="unit num">%</span>
+        </div>
+        <div id="sumBody"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="foot">
+  <p>Each strain’s culture volume is <code>final volume × target OD ÷ (OD read × dilution)</code>; buffer makes up the rest. In a mix, every component is dosed against the mix’s own final volume and its own target OD, and the buffer tops the tube up. Work is saved in this browser as you type.</p>
+  <div class="credit">
+    <div class="credit-left">
+      <span>made by amiralito :)</span>
+      <a href="https://amiralito.github.io" target="_blank" rel="noopener noreferrer">website</a>
+      <a href="https://github.com/amiralito" target="_blank" rel="noopener noreferrer">github</a>
+    </div>
+    <span class="credit-right">mit license</span>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+var KEY = "od600-prep-bench-v1";
+var uid = 0;
+function nid(){ uid += 1; return "i" + Date.now().toString(36) + uid; }
+
+var LIBFIELDS = ["name","targetOD","agro","plasmid","tag","abx","loc","notes"];
+var LIBLABELS = { name:"Construct", targetOD:"Target OD", agro:"Agro strain", plasmid:"Plasmid",
+                  tag:"Tag", abx:"Antibiotics", loc:"Stock", notes:"Notes" };
+
+function blankStrain(d, name){
+  return { id:nid(), name:name||"", od:null, dil:d.dil, target:d.target, vol:d.vol,
+           have:(typeof d.have === "number" ? d.have : 2), solo:true, cid:null };
+}
+function blankConstruct(){
+  return { id:nid(), name:"", targetOD:null, agro:"", plasmid:"", tag:"", abx:"", loc:"", notes:"" };
+}
+
+function seed(){
+  var d = { dil:10, target:0.3, vol:2, have:2 };
+  var s1 = blankStrain(d,"GFP"); s1.od = 0.30; s1.target = 0.2;
+  var s2 = blankStrain(d,"Rx:HA"); s2.od = 0.48;
+  var s3 = blankStrain(d,"NRC2"); s3.od = 0.34;
+  var s4 = blankStrain(d,"CP:GFP"); s4.od = 0.56; s4.target = 0.2;
+  return {
+    title:"",
+    date:new Date().toISOString().slice(0,10),
+    defaults:d,
+    excess:0,
+    library:[],
+    strains:[s1,s2,s3,s4],
+    mixes:[
+      { id:nid(), name:"", auto:true, vol:2, parts:[s1.id,s2.id,s3.id] },
+      { id:nid(), name:"", auto:true, vol:2, parts:[s4.id,s2.id,s3.id] }
+    ]
+  };
+}
+
+var state;
+try {
+  var raw = localStorage.getItem(KEY);
+  state = raw ? JSON.parse(raw) : seed();
+} catch(e){ state = seed(); }
+if(!state || !state.strains){ state = seed(); }
+if(typeof state.excess !== "number"){ state.excess = 0; }
+if(!Array.isArray(state.library)){ state.library = []; }
+if(typeof state.defaults.have !== "number"){ state.defaults.have = 2; }
+state.strains.forEach(function(s){
+  if(typeof s.have !== "number"){ s.have = state.defaults.have; }
+});
+state.mixes.forEach(function(m){
+  if(typeof m.auto !== "boolean"){ m.auto = !(m.name && m.name.trim()); }
+});
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+}
+
+/* ---------- maths ---------- */
+function num(v){ var n = parseFloat(v); return isFinite(n) ? n : null; }
+
+/** effective OD of the neat culture */
+function neatOD(s){
+  if(s.od === null || s.dil === null) return null;
+  var v = s.od * s.dil;
+  return v > 0 ? v : null;
+}
+/** mL of neat culture needed to hit `target` OD in `vol` mL */
+function cultureFor(s, vol, target){
+  var n = neatOD(s);
+  if(n === null || vol === null || target === null) return null;
+  return vol * target / n;
+}
+function strainCulture(s){ return cultureFor(s, s.vol, s.target); }
+
+function fmt(v, dp){
+  if(v === null || !isFinite(v)) return "—";
+  return v.toFixed(dp === undefined ? 3 : dp);
+}
+function ul(v){
+  if(v === null || !isFinite(v)) return "";
+  return Math.round(v * 1000).toLocaleString() + " µL";
+}
+function labelOf(s){ return (s.name && s.name.trim()) ? s.name.trim() : "Untitled strain"; }
+function constructById(id){
+  for(var i=0;i<state.library.length;i++){ if(state.library[i].id === id) return state.library[i]; }
+  return null;
+}
+function constructByName(n){
+  var k = (n||"").trim().toLowerCase();
+  if(!k) return null;
+  for(var i=0;i<state.library.length;i++){
+    if((state.library[i].name||"").trim().toLowerCase() === k) return state.library[i];
+  }
+  return null;
+}
+/** the construct a run row is linked to — by id, falling back to an exact name match */
+function linkedConstruct(s){
+  var c = s.cid ? constructById(s.cid) : null;
+  return c || constructByName(s.name);
+}
+/** a mix with no hand-typed name is named after whatever is in the tube */
+function autoNameFor(m){
+  var names = [];
+  m.parts.forEach(function(pid){
+    var s = strainById(pid);
+    if(s) names.push(labelOf(s));
+  });
+  return names.join(" + ");
+}
+function mixLabel(m, idx){
+  var n = (m.auto ? autoNameFor(m) : m.name) || "";
+  return n.trim() || ("mix " + (idx+1));
+}
+function metaLine(c){
+  if(!c) return "";
+  return [c.agro, c.plasmid, c.tag, c.abx, c.loc].filter(function(x){ return x && String(x).trim(); }).join(" · ");
+}
+function strainById(id){
+  for(var i=0;i<state.strains.length;i++){ if(state.strains[i].id === id) return state.strains[i]; }
+  return null;
+}
+
+/* ---------- element helper ---------- */
+function el(tag, cls, txt){
+  var e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(txt !== undefined && txt !== null) e.textContent = txt;
+  return e;
+}
+function numInput(val, step, min, label){
+  var i = document.createElement("input");
+  i.type = "number"; i.step = step; i.inputMode = "decimal";
+  if(min !== undefined) i.min = min;
+  i.value = (val === null || val === undefined) ? "" : val;
+  if(label) i.setAttribute("aria-label", label);
+  i.addEventListener("wheel", function(ev){ if(document.activeElement === i) ev.preventDefault(); }, {passive:false});
+  return i;
+}
+
+/* ---------- render: strains ---------- */
+var strainBody = document.getElementById("strainBody");
+var mixBody = document.getElementById("mixBody");
+var sumBody = document.getElementById("sumBody");
+var comboBody = document.getElementById("comboBody");
+var soloBody = document.getElementById("soloBody");
+var strainWarn = document.getElementById("strainWarn");
+
+function renderStrains(){
+  strainBody.textContent = "";
+  if(!state.strains.length){
+    var tr0 = el("tr");
+    var td0 = el("td"); td0.colSpan = 11;
+    td0.appendChild(el("div","empty","No strains yet — add one to start."));
+    tr0.appendChild(td0); strainBody.appendChild(tr0);
+    return;
+  }
+  state.strains.forEach(function(s){
+    var tr = el("tr"); tr.dataset.sid = s.id;
+
+    var tdN = el("td","td-name");
+    var name = document.createElement("input");
+    name.type = "text"; name.className = "cell"; name.value = s.name;
+    name.placeholder = "Strain / construct";
+    name.setAttribute("list","constructNames");
+    name.setAttribute("aria-label","Strain name");
+    name.addEventListener("input", function(){
+      s.name = name.value;
+      var c = constructByName(name.value);
+      if(c){
+        s.cid = c.id;
+        if(c.targetOD !== null && c.targetOD !== undefined && c.targetOD !== ""){
+          s.target = c.targetOD;
+          var ti = tr.querySelectorAll("input[type=number]")[2];
+          if(ti) ti.value = c.targetOD;
+        }
+      } else { s.cid = null; }
+      recompute(); save();
+    });
+    tdN.appendChild(name);
+    tdN.appendChild(el("div","meta",""));
+    tr.appendChild(tdN);
+
+    function addNum(key, step, lab){
+      var td = el("td"); td.setAttribute("data-l", lab);
+      var i = numInput(s[key], step, 0, lab + " for " + labelOf(s));
+      i.addEventListener("input", function(){ s[key] = num(i.value); recompute(); save(); });
+      td.appendChild(i); tr.appendChild(td);
+    }
+    addNum("od","0.01","OD read");
+    addNum("dil","1","Dilution");
+    addNum("target","0.05","Target OD");
+    addNum("vol","0.5","Final mL");
+    addNum("have","0.5","On hand");
+
+    var tdC = el("td","out culture"); tdC.setAttribute("data-l","Culture mL");
+    tdC.dataset.cell = "culture";
+    tdC.appendChild(el("b","","—")); tdC.appendChild(el("small","",""));
+    tr.appendChild(tdC);
+
+    var tdB = el("td","out buffer"); tdB.setAttribute("data-l","Buffer mL");
+    tdB.dataset.cell = "buffer";
+    tdB.appendChild(el("b","","—")); tdB.appendChild(el("small","",""));
+    tr.appendChild(tdB);
+
+    var tdBar = el("td","td-bar"); tdBar.dataset.cell = "bar"; tdBar.setAttribute("data-l","Make-up");
+    var bar = el("div","bar");
+    bar.appendChild(el("i","b-culture"));
+    bar.appendChild(el("i","b-buffer"));
+    tdBar.appendChild(bar);
+    tdBar.appendChild(el("div","bar-note",""));
+    tr.appendChild(tdBar);
+
+    var tdS = el("td"); tdS.setAttribute("data-l","Solo");
+    var wrap = el("div","solo-box");
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!s.solo;
+    cb.setAttribute("aria-label","Include " + labelOf(s) + " as a stand-alone infiltration");
+    cb.addEventListener("change", function(){ s.solo = cb.checked; recompute(); save(); });
+    wrap.appendChild(cb); tdS.appendChild(wrap); tr.appendChild(tdS);
+
+    var tdA = el("td","td-act");
+    var del = el("button","icon-btn","×");
+    del.title = "Remove strain";
+    del.setAttribute("aria-label","Remove " + labelOf(s));
+    del.addEventListener("click", function(){
+      state.strains = state.strains.filter(function(x){ return x.id !== s.id; });
+      state.mixes.forEach(function(m){ m.parts = m.parts.filter(function(p){ return p !== s.id; }); });
+      render(); save();
+    });
+    tdA.appendChild(del); tr.appendChild(tdA);
+
+    strainBody.appendChild(tr);
+  });
+}
+
+/* ---------- construct library ---------- */
+var libPanel   = document.getElementById("libPanel");
+var libBody    = document.getElementById("libBody");
+var libCount   = document.getElementById("libCount");
+var libSearch  = document.getElementById("libSearch");
+var libAll     = document.getElementById("libAll");
+var libHint    = document.getElementById("libHint");
+var dataList   = document.getElementById("constructNames");
+var picked     = {};   // construct id -> selected for "add to run"
+
+function renderDatalist(){
+  dataList.textContent = "";
+  var seen = {};
+  state.library.forEach(function(c){
+    var n = (c.name||"").trim();
+    if(!n || seen[n.toLowerCase()]) return;
+    seen[n.toLowerCase()] = 1;
+    var o = document.createElement("option");
+    o.value = n;
+    var m = metaLine(c);
+    if(m) o.label = m;
+    dataList.appendChild(o);
+  });
+}
+
+function renderLibrary(){
+  var q = (libSearch.value || "").trim().toLowerCase();
+  libBody.textContent = "";
+  libCount.textContent = String(state.library.length);
+
+  var shown = state.library.filter(function(c){
+    if(!q) return true;
+    return LIBFIELDS.some(function(f){ return String(c[f] === null ? "" : c[f]).toLowerCase().indexOf(q) !== -1; });
+  });
+
+  if(!shown.length){
+    var tr0 = el("tr"), td0 = el("td"); td0.colSpan = 10;
+    td0.appendChild(el("div","empty", state.library.length
+      ? "No construct matches “" + libSearch.value + "”."
+      : "Nothing in the library yet. Paste a list, or add constructs one at a time."));
+    tr0.appendChild(td0); libBody.appendChild(tr0);
+  }
+
+  shown.forEach(function(c){
+    var tr = el("tr"); tr.dataset.cid = c.id;
+
+    var tdT = el("td","tick");
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!picked[c.id];
+    cb.setAttribute("aria-label","Select " + (c.name || "construct") + " to add to the run");
+    cb.addEventListener("change", function(){
+      if(cb.checked) picked[c.id] = true; else delete picked[c.id];
+      updateLibHint();
+    });
+    tdT.appendChild(cb); tr.appendChild(tdT);
+
+    function textCell(field, cls, ph){
+      var td = el("td"); td.setAttribute("data-l", LIBLABELS[field]);
+      var i = document.createElement("input");
+      i.type = "text"; i.className = "cell" + (cls ? " " + cls : "");
+      i.value = c[field] || ""; i.placeholder = ph || "";
+      i.setAttribute("aria-label", LIBLABELS[field] + (c.name ? " for " + c.name : ""));
+      i.addEventListener("input", function(){
+        c[field] = i.value;
+        if(field === "name"){ renderDatalist(); }
+        recompute(); updateLibHint(); save();
+      });
+      td.appendChild(i); tr.appendChild(td);
+    }
+
+    textCell("name","","Construct name");
+
+    var tdOD = el("td"); tdOD.setAttribute("data-l","Target OD");
+    var od = numInput(c.targetOD, "0.05", 0, "Default target OD" + (c.name ? " for " + c.name : ""));
+    od.addEventListener("input", function(){ c.targetOD = num(od.value); save(); });
+    tdOD.appendChild(od); tr.appendChild(tdOD);
+
+    textCell("agro","mono","GV3101");
+    textCell("plasmid","mono","");
+    textCell("tag","mono","");
+    textCell("abx","mono","");
+    textCell("loc","mono","");
+    textCell("notes","","");
+
+    var tdA = el("td","act");
+    var del = el("button","icon-btn","×");
+    del.title = "Remove from library";
+    del.setAttribute("aria-label","Remove " + (c.name || "construct") + " from the library");
+    del.addEventListener("click", function(){
+      state.library = state.library.filter(function(x){ return x.id !== c.id; });
+      delete picked[c.id];
+      state.strains.forEach(function(s){ if(s.cid === c.id) s.cid = null; });
+      renderDatalist(); renderLibrary(); recompute(); save();
+    });
+    tdA.appendChild(del); tr.appendChild(tdA);
+
+    libBody.appendChild(tr);
+  });
+
+  libAll.checked = shown.length > 0 && shown.every(function(c){ return picked[c.id]; });
+  updateLibHint();
+}
+
+function updateLibHint(){
+  var n = Object.keys(picked).length;
+  libHint.textContent = n
+    ? (n === 1 ? "1 construct selected — it goes into the Cultures table with its default target OD."
+               : n + " constructs selected — they go into the Cultures table with their default target ODs.")
+    : "Tick constructs, then add them to the run. Names also autocomplete in the Cultures table.";
+  document.getElementById("btnToRun").disabled = !n;
+}
+
+libSearch.addEventListener("input", renderLibrary);
+libAll.addEventListener("change", function(){
+  var q = (libSearch.value || "").trim().toLowerCase();
+  state.library.forEach(function(c){
+    var hit = !q || LIBFIELDS.some(function(f){ return String(c[f] === null ? "" : c[f]).toLowerCase().indexOf(q) !== -1; });
+    if(!hit) return;
+    if(libAll.checked) picked[c.id] = true; else delete picked[c.id];
+  });
+  renderLibrary();
+});
+
+document.getElementById("btnLib").addEventListener("click", function(){
+  var open = libPanel.classList.toggle("open");
+  this.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open){ renderLibrary(); libPanel.scrollIntoView({block:"nearest"}); }
+});
+
+document.getElementById("btnAddConstruct").addEventListener("click", function(){
+  var c = blankConstruct();
+  state.library.push(c);
+  libSearch.value = "";
+  renderLibrary(); renderDatalist(); save();
+  var rows = libBody.querySelectorAll("tr[data-cid='" + c.id + "'] input[type=text]");
+  if(rows.length) rows[0].focus();
+});
+
+document.getElementById("btnToRun").addEventListener("click", function(){
+  var added = 0;
+  state.library.forEach(function(c){
+    if(!picked[c.id]) return;
+    var s = blankStrain(state.defaults, c.name);
+    s.cid = c.id;
+    if(c.targetOD !== null && c.targetOD !== undefined && c.targetOD !== "") s.target = c.targetOD;
+    s.solo = false;
+    state.strains.push(s);
+    added++;
+  });
+  if(!added) return;
+  picked = {};
+  render(); save();
+  toast(added + (added === 1 ? " construct added" : " constructs added") + " — fill in the OD readings");
+  document.getElementById("strainBody").scrollIntoView({block:"nearest"});
+});
+
+/* ---------- paste + column mapping ---------- */
+var pasteZone  = document.getElementById("pasteZone");
+var pasteText  = document.getElementById("pasteText");
+var mapWrap    = document.getElementById("mapWrap");
+var pasteCount = document.getElementById("pasteCount");
+var btnImport  = document.getElementById("btnImport");
+var parsed = { rows:[], map:[] };
+
+var AGRO_RE = /\b(gv3101|agl-?1|lba4404|eha10[15]|c58c1|c58|at\d{3,})\b/i;
+var ABX_RE  = /\b(kan|rif|gent|carb|amp|spec|strep|tet|hyg)\b/i;
+var TAG_RE  = /\b(\d?x?\s?(ha|myc|flag|v5|gfp|yfp|rfp|mcherry|mch|his|strep-?tag|gs))\b/i;
+
+function splitLines(txt){
+  return txt.replace(/\r/g,"").split("\n").filter(function(l){ return l.trim() !== ""; });
+}
+function parsePaste(txt){
+  var lines = splitLines(txt);
+  if(!lines.length) return { rows:[], map:[] };
+  var delim = lines.some(function(l){ return l.indexOf("\t") !== -1; }) ? "\t"
+            : (lines.some(function(l){ return l.indexOf(",") !== -1; }) ? "," : null);
+
+  var rows = lines.map(function(l){
+    if(!delim) return [l.trim()];
+    return splitDelimited(l, delim);
+  });
+  var width = rows.reduce(function(a,r){ return Math.max(a, r.length); }, 0);
+  rows.forEach(function(r){ while(r.length < width) r.push(""); });
+
+  // header row?
+  var head = rows[0].map(function(c){ return c.trim().toLowerCase(); });
+  var HEADMAP = {
+    name:"name", construct:"name", sample:"name", strain:"name", gene:"name",
+    "target od":"targetOD", targetod:"targetOD", "final od":"targetOD", "final od600":"targetOD", od:"targetOD",
+    agro:"agro", "agro strain":"agro", agrobacterium:"agro", "agrobacterium strain":"agro", background:"agro",
+    plasmid:"plasmid", vector:"plasmid", construct_id:"plasmid", binary:"plasmid", "binary vector":"plasmid",
+    tag:"tag", epitope:"tag", "epitope tag":"tag",
+    antibiotic:"abx", antibiotics:"abx", selection:"abx", resistance:"abx", marker:"abx",
+    stock:"loc", location:"loc", "stock location":"loc", glycerol:"loc", box:"loc", position:"loc",
+    notes:"notes", note:"notes", comment:"notes", comments:"notes", description:"notes"
+  };
+  var hasHeader = head.some(function(h){ return HEADMAP[h]; }) &&
+                  !head.every(function(h){ return h === "" || isFinite(parseFloat(h)); });
+  var map;
+  if(hasHeader){
+    map = head.map(function(h){ return HEADMAP[h] || "ignore"; });
+    rows = rows.slice(1);
+  } else {
+    map = guessMap(rows, width);
+  }
+  if(map.indexOf("name") === -1 && width > 0) map[0] = "name";
+  // no duplicate assignments
+  var used = {};
+  map = map.map(function(f){
+    if(f === "ignore") return f;
+    if(used[f]) return "ignore";
+    used[f] = 1; return f;
+  });
+  return { rows:rows, map:map };
+}
+function splitDelimited(line, delim){
+  if(delim === "\t") return line.split("\t").map(function(c){ return c.trim(); });
+  var out = [], cur = "", q = false;
+  for(var i=0;i<line.length;i++){
+    var ch = line[i];
+    if(q){
+      if(ch === '"' && line[i+1] === '"'){ cur += '"'; i++; }
+      else if(ch === '"'){ q = false; }
+      else cur += ch;
+    } else if(ch === '"'){ q = true; }
+    else if(ch === delim){ out.push(cur.trim()); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+function guessMap(rows, width){
+  var map = [];
+  var sample = rows.slice(0, 12);
+  for(var c=0;c<width;c++){
+    var vals = sample.map(function(r){ return (r[c]||"").trim(); }).filter(function(v){ return v; });
+    var f = "ignore";
+    if(vals.length){
+      var nums = vals.filter(function(v){ var n = parseFloat(v); return isFinite(n) && String(n) === v.replace(/^\+/,""); });
+      if(nums.length === vals.length && vals.every(function(v){ var n = parseFloat(v); return n > 0 && n <= 3; })) f = "targetOD";
+      else if(vals.filter(function(v){ return AGRO_RE.test(v); }).length >= Math.ceil(vals.length/2)) f = "agro";
+      else if(vals.filter(function(v){ return ABX_RE.test(v); }).length >= Math.ceil(vals.length/2)) f = "abx";
+      else if(vals.filter(function(v){ return TAG_RE.test(v) && v.length <= 12; }).length >= Math.ceil(vals.length/2)) f = "tag";
+      else if(vals.filter(function(v){ return /^p[A-Za-z0-9]/.test(v) && v.length <= 22 && !/\s/.test(v); }).length >= Math.ceil(vals.length/2)) f = "plasmid";
+    }
+    map.push(f);
+  }
+  if(map.indexOf("name") === -1) map[0] = "name";
+  var rest = ["plasmid","tag","abx","loc","notes"];
+  for(var i=0;i<map.length;i++){
+    if(map[i] === "ignore" && i !== 0){
+      var next = rest.shift();
+      if(next && map.indexOf(next) === -1) map[i] = next;
+    }
+  }
+  return map;
+}
+
+function renderMapper(){
+  mapWrap.textContent = "";
+  btnImport.disabled = true;
+  pasteCount.textContent = "";
+  if(!parsed.rows.length) return;
+
+  var width = parsed.map.length;
+  var table = document.createElement("table");
+  var thead = el("thead"), htr = el("tr");
+  for(var c=0;c<width;c++){
+    (function(ci){
+      var th = el("th");
+      var sel = document.createElement("select");
+      sel.setAttribute("aria-label","What is in column " + (ci+1) + "?");
+      var opts = [["ignore","— skip —"]].concat(LIBFIELDS.map(function(f){ return [f, LIBLABELS[f]]; }));
+      opts.forEach(function(o){
+        var op = document.createElement("option");
+        op.value = o[0]; op.textContent = o[1];
+        if(parsed.map[ci] === o[0]) op.selected = true;
+        sel.appendChild(op);
+      });
+      if(parsed.map[ci] === "ignore") sel.className = "ignored";
+      sel.addEventListener("change", function(){
+        if(sel.value !== "ignore"){
+          for(var k=0;k<parsed.map.length;k++){ if(k !== ci && parsed.map[k] === sel.value) parsed.map[k] = "ignore"; }
+        }
+        parsed.map[ci] = sel.value;
+        renderMapper();
+      });
+      th.appendChild(sel); htr.appendChild(th);
+    })(c);
+  }
+  thead.appendChild(htr); table.appendChild(thead);
+
+  var tb = el("tbody");
+  parsed.rows.slice(0,4).forEach(function(r){
+    var tr = el("tr");
+    for(var c=0;c<width;c++){ tr.appendChild(el("td","", r[c] || "·")); }
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  mapWrap.appendChild(table);
+
+  var ni = parsed.map.indexOf("name");
+  var valid = ni !== -1 ? parsed.rows.filter(function(r){ return (r[ni]||"").trim(); }) : [];
+  var dup = 0;
+  valid.forEach(function(r){ if(constructByName(r[ni])) dup++; });
+
+  if(ni === -1){
+    pasteCount.textContent = "Set one column to “Construct” to import.";
+  } else {
+    pasteCount.textContent = "";
+    var b = el("b","", String(valid.length));
+    pasteCount.appendChild(b);
+    pasteCount.appendChild(document.createTextNode(valid.length === 1 ? " construct ready" : " constructs ready"));
+    if(dup) pasteCount.appendChild(document.createTextNode(" · " + dup + " already in the library"));
+    if(parsed.rows.length > 4) pasteCount.appendChild(document.createTextNode(" · showing first 4"));
+    btnImport.disabled = valid.length === 0;
+  }
+}
+
+pasteText.addEventListener("input", function(){
+  parsed = parsePaste(pasteText.value);
+  renderMapper();
+});
+
+document.getElementById("btnPaste").addEventListener("click", function(){
+  var open = pasteZone.classList.toggle("open");
+  this.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open) pasteText.focus();
+});
+
+btnImport.addEventListener("click", function(){
+  var ni = parsed.map.indexOf("name");
+  if(ni === -1) return;
+  var update = document.getElementById("dupeUpdate").checked;
+  var added = 0, updated = 0;
+  parsed.rows.forEach(function(r){
+    var nm = (r[ni] || "").trim();
+    if(!nm) return;
+    var existing = constructByName(nm);
+    var target = existing;
+    if(existing && !update){ return; }
+    if(!existing){ target = blankConstruct(); state.library.push(target); added++; }
+    else updated++;
+    parsed.map.forEach(function(f, ci){
+      if(f === "ignore") return;
+      var v = (r[ci] || "").trim();
+      if(f === "name"){ target.name = nm; return; }
+      if(f === "targetOD"){ if(v !== "") target.targetOD = num(v); return; }
+      if(v !== "") target[f] = v;
+    });
+  });
+  pasteText.value = "";
+  parsed = { rows:[], map:[] };
+  renderMapper();
+  renderDatalist(); renderLibrary(); recompute(); save();
+  var msg = [];
+  if(added) msg.push(added + " added");
+  if(updated) msg.push(updated + " updated");
+  toast(msg.length ? "Library: " + msg.join(", ") : "Nothing new to add");
+});
+
+/* ---------- import a list of combinations ---------- */
+var mixImport  = document.getElementById("mixImport");
+var mixText    = document.getElementById("mixText");
+var mixPreview = document.getElementById("mixPreview");
+var mixCount   = document.getElementById("mixCount");
+var btnMixAdd  = document.getElementById("btnMixAdd");
+var mixFileName= document.getElementById("mixFileName");
+var mixParsed  = [];
+
+function normName(n){ return (n||"").trim().toLowerCase().replace(/\s+/g," "); }
+
+function findStrainByName(n){
+  var k = normName(n);
+  if(!k) return null;
+  for(var i=0;i<state.strains.length;i++){
+    if(normName(state.strains[i].name) === k) return state.strains[i];
+  }
+  return null;
+}
+
+function parseMixList(txt){
+  var out = [];
+  txt.replace(/\r/g,"").split("\n").forEach(function(raw){
+    var line = raw.trim();
+    if(!line || /^[#/]{1,2}\s/.test(line)) return;
+
+    // an explicit name is separated by a tab or a pipe — never by ":", which
+    // shows up inside construct names like Rx:HA
+    var name = "", rest = line;
+    var sep = line.indexOf("\t") !== -1 ? "\t" : (line.indexOf("|") !== -1 ? "|" : null);
+    if(sep){
+      var bits = line.split(sep);
+      name = bits.shift().trim();
+      rest = bits.join(sep).trim();
+    }
+    // drop list numbering: "1." / "12)" / "3 -"
+    rest = rest.replace(/^\s*\d+\s*[.)\-–:]\s*/, "");
+    if(!sep) name = "";
+    else name = name.replace(/^\s*\d+\s*[.)\-–:]\s*/, "");
+
+    var comps = rest.split(/\s*[+,;]\s*/).map(function(c){ return c.trim(); })
+                    .filter(function(c){ return c; });
+    if(!comps.length) return;
+
+    out.push({
+      name: name,
+      comps: comps.map(function(c){
+        var s = findStrainByName(c);
+        var lib = s ? null : constructByName(c);
+        return { text:c, strain:s, construct:lib, known: !!(s || lib) };
+      })
+    });
+  });
+  return out;
+}
+
+function renderMixPreview(){
+  mixPreview.textContent = "";
+  mixCount.textContent = "";
+  btnMixAdd.disabled = true;
+  if(!mixParsed.length) return;
+
+  var unknown = 0;
+  var wrap = el("div","mix-prev");
+  mixParsed.slice(0,6).forEach(function(m, i){
+    var row = el("div","prev-row");
+    row.appendChild(el("span","prev-no", String(i+1)));
+    var body = el("div","prev-body");
+    m.comps.forEach(function(c, j){
+      if(j) body.appendChild(el("span","prev-plus","+"));
+      var cls = c.strain ? "ok" : (c.construct ? "lib" : "new");
+      if(!c.known) unknown++;
+      var t = el("span","prev-comp " + cls, c.text);
+      t.title = c.strain ? "already in the Cultures table"
+              : c.construct ? "in your construct library — will be added to the run"
+              : "not known yet — a blank culture row will be created";
+      body.appendChild(t);
+    });
+    row.appendChild(body);
+    wrap.appendChild(row);
+  });
+  mixPreview.appendChild(wrap);
+
+  // count distinct names, not occurrences — one construct in five mixes is one new row
+  var newNames = {}, libNames = {};
+  mixParsed.forEach(function(m){
+    m.comps.forEach(function(c){
+      var k = normName(c.text);
+      if(!c.known) newNames[k] = 1;
+      else if(c.construct) libNames[k] = 1;
+    });
+  });
+  var totalUnknown = Object.keys(newNames).length;
+  var totalFromLib = Object.keys(libNames).length;
+
+  var b = el("b","", String(mixParsed.length));
+  mixCount.appendChild(b);
+  mixCount.appendChild(document.createTextNode(mixParsed.length === 1 ? " combination" : " combinations"));
+  if(totalFromLib) mixCount.appendChild(document.createTextNode(" · " + totalFromLib + " from the library"));
+  if(totalUnknown) mixCount.appendChild(document.createTextNode(" · " + totalUnknown + " new name" + (totalUnknown===1?"":"s")));
+  if(mixParsed.length > 6) mixCount.appendChild(document.createTextNode(" · showing first 6"));
+  btnMixAdd.disabled = false;
+}
+
+mixText.addEventListener("input", function(){
+  mixParsed = parseMixList(mixText.value);
+  renderMixPreview();
+});
+
+document.getElementById("mixFile").addEventListener("change", function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  mixFileName.textContent = f.name;
+  var r = new FileReader();
+  r.onload = function(){
+    mixText.value = String(r.result || "");
+    mixParsed = parseMixList(mixText.value);
+    renderMixPreview();
+  };
+  r.onerror = function(){ toast("Couldn’t read that file — paste the text instead."); };
+  r.readAsText(f);
+  this.value = "";
+});
+
+document.getElementById("btnMixImport").addEventListener("click", function(){
+  var open = mixImport.classList.toggle("open");
+  this.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open) mixText.focus();
+});
+
+btnMixAdd.addEventListener("click", function(){
+  var create = document.getElementById("mixCreate").checked;
+  var added = 0, madeRows = 0, skipped = 0;
+
+  mixParsed.forEach(function(pm){
+    var parts = [];
+    var ok = true;
+    pm.comps.forEach(function(c){
+      var s = findStrainByName(c.text);
+      if(!s){
+        var lib = constructByName(c.text);
+        if(lib || create){
+          s = blankStrain(state.defaults, lib ? lib.name : c.text);
+          s.solo = false;
+          if(lib){
+            s.cid = lib.id;
+            if(lib.targetOD !== null && lib.targetOD !== undefined && lib.targetOD !== "") s.target = lib.targetOD;
+          }
+          state.strains.push(s);
+          madeRows++;
+        } else { ok = false; return; }
+      }
+      if(parts.indexOf(s.id) === -1) parts.push(s.id);
+    });
+    if(!ok || !parts.length){ skipped++; return; }
+    var named = pm.name && pm.name.trim();
+    state.mixes.push({
+      id:nid(), name: named ? pm.name.trim() : "", auto: !named,
+      vol: state.defaults.vol, parts: parts
+    });
+    added++;
+  });
+
+  mixText.value = "";
+  mixFileName.textContent = "…or paste below";
+  mixParsed = [];
+  renderMixPreview();
+  render(); save();
+
+  var bits = [added + (added === 1 ? " mix" : " mixes") + " added"];
+  if(madeRows) bits.push(madeRows + " new culture row" + (madeRows === 1 ? "" : "s"));
+  if(skipped) bits.push(skipped + " skipped");
+  toast(bits.join(" · "));
+});
+
+/* ---------- render: mixes ---------- */
+function renderMixes(){
+  mixBody.textContent = "";
+  if(!state.mixes.length){
+    mixBody.appendChild(el("div","empty","No mixes. Add one to combine strains in a single tube — buffer tops it up to the final volume."));
+    return;
+  }
+  state.mixes.forEach(function(m, idx){
+    var box = el("div","mix"); box.dataset.mid = m.id;
+
+    var top = el("div","mix-top");
+    top.appendChild(el("div","mix-no", String(idx+1)));
+    var name = document.createElement("input");
+    name.type = "text"; name.className = "cell" + (m.auto ? " auto" : "");
+    name.value = m.auto ? autoNameFor(m) : m.name;
+    name.placeholder = "Named from its components — type to override";
+    name.setAttribute("aria-label","Mix name");
+    name.addEventListener("input", function(){
+      m.name = name.value;
+      m.auto = name.value.trim() === "";     // clearing it hands naming back to the components
+      name.className = "cell" + (m.auto ? " auto" : "");
+      recompute(); save();
+    });
+    // an emptied field shows its auto name again as soon as you step away
+    name.addEventListener("blur", function(){
+      if(m.auto) name.value = autoNameFor(m);
+    });
+    top.appendChild(name);
+
+    var tail = el("div","mix-tail");
+    var vol = el("div","mix-vol");
+    var vi = numInput(m.vol, "0.5", 0, "Final volume for mix " + (idx+1));
+    vi.style.width = "72px";
+    vi.addEventListener("input", function(){ m.vol = num(vi.value); recompute(); save(); });
+    vol.appendChild(vi); vol.appendChild(el("span","unit","mL"));
+    tail.appendChild(vol);
+
+    var del = el("button","icon-btn","×");
+    del.title = "Remove mix"; del.setAttribute("aria-label","Remove mix " + (idx+1));
+    del.addEventListener("click", function(){
+      state.mixes = state.mixes.filter(function(x){ return x.id !== m.id; });
+      render(); save();
+    });
+    tail.appendChild(del);
+    top.appendChild(tail);
+    box.appendChild(top);
+
+    var chips = el("div","chips");
+    state.strains.forEach(function(s){
+      var on = m.parts.indexOf(s.id) !== -1;
+      var c = el("button","chip");
+      c.type = "button";
+      c.dataset.sid = s.id;
+      c.setAttribute("aria-pressed", on ? "true" : "false");
+      c.appendChild(el("span","nm", labelOf(s)));
+      c.appendChild(el("span","v",""));
+      c.addEventListener("click", function(){
+        var i = m.parts.indexOf(s.id);
+        if(i === -1) m.parts.push(s.id); else m.parts.splice(i,1);
+        c.setAttribute("aria-pressed", m.parts.indexOf(s.id) !== -1 ? "true" : "false");
+        recompute(); save();
+      });
+      chips.appendChild(c);
+    });
+    box.appendChild(chips);
+
+    box.appendChild(el("div","mix-list",""));
+    box.appendChild(el("div","mix-sum",""));
+
+    mixBody.appendChild(box);
+  });
+}
+
+/* ---------- recompute (no DOM rebuild — keeps focus while typing) ---------- */
+function recompute(){
+  var badRows = 0;
+
+  // strain rows
+  Array.prototype.forEach.call(strainBody.querySelectorAll("tr[data-sid]"), function(tr){
+    var s = strainById(tr.dataset.sid);
+    if(!s) return;
+    var c = strainCulture(s);
+    var v = s.vol;
+    var b = (c === null || v === null) ? null : v - c;
+    var over = (c !== null && v !== null && c > v);
+    if(over) badRows++;
+
+    var meta = tr.children[0].children[1];
+    if(meta){
+      var lc = linkedConstruct(s);
+      var mt = metaLine(lc);
+      meta.textContent = "";
+      if(mt){
+        meta.appendChild(el("i","","●"));
+        var sp = el("span","", mt);
+        sp.title = mt + (lc.notes ? " — " + lc.notes : "");
+        meta.appendChild(sp);
+      }
+    }
+
+    var tdC = tr.querySelector('[data-cell="culture"]'),
+        tdB = tr.querySelector('[data-cell="buffer"]'),
+        tdBar = tr.querySelector('[data-cell="bar"]');
+    tdC.className = "out culture" + (over ? " bad" : "");
+    tdC.children[0].textContent = fmt(c);
+    tdC.children[1].textContent = c === null ? "" : ul(c);
+    tdB.className = "out buffer" + (over ? " bad" : "");
+    tdB.children[0].textContent = fmt(b);
+    tdB.children[1].textContent = b === null ? "" : ul(b);
+
+    var bar = tdBar.children[0], note = tdBar.children[1];
+    var frac = (c !== null && v) ? c / v : 0;
+    if(over){
+      bar.className = "bar over";
+      bar.children[0].style.width = "100%";
+      bar.children[1].style.width = "0%";
+      note.className = "bar-note bad";
+      note.textContent = "OD too low";
+    } else {
+      bar.className = "bar";
+      var pc = Math.max(0, Math.min(1, frac));
+      bar.children[0].style.width = (pc*100).toFixed(1) + "%";
+      bar.children[1].style.width = ((1-pc)*100).toFixed(1) + "%";
+      note.className = "bar-note";
+      note.textContent = (c === null) ? "" : (pc*100).toFixed(0) + "% culture";
+    }
+  });
+
+  strainWarn.textContent = "";
+  if(badRows){
+    var w = el("div","warn-banner");
+    var t = el("div");
+    t.appendChild(el("b","", badRows + (badRows===1 ? " strain is" : " strains are") + " too dilute. "));
+    t.appendChild(document.createTextNode("The neat culture sits below the target OD, so no volume of it reaches the target. Grow it longer, or lower the target OD."));
+    w.appendChild(t);
+    strainWarn.appendChild(w);
+  }
+
+  // mixes
+  Array.prototype.forEach.call(mixBody.querySelectorAll(".mix"), function(box){
+    var m = null;
+    for(var i=0;i<state.mixes.length;i++){ if(state.mixes[i].id === box.dataset.mid) m = state.mixes[i]; }
+    if(!m) return;
+
+    var total = 0, known = true;
+    var parts = [];
+    m.parts.forEach(function(pid){
+      var s = strainById(pid);
+      if(!s) return;
+      var c = cultureFor(s, m.vol, s.target);
+      if(c === null) known = false; else total += c;
+      parts.push({ s:s, c:c });
+    });
+
+    // chips carry the name only — the volumes live in the pipetting list below
+    Array.prototype.forEach.call(box.querySelectorAll(".chip"), function(c){
+      var s = strainById(c.dataset.sid);
+      if(!s) return;
+      c.children[0].textContent = labelOf(s);
+      c.children[1].textContent = "";
+    });
+
+    var buf = (m.vol === null || !known || !parts.length) ? null : m.vol - total;
+    var over = (buf !== null && buf < -1e-9);
+
+    if(m.auto){
+      var autoN = autoNameFor(m);
+      m.name = autoN;
+      var ni = box.querySelector("input.cell");
+      if(ni && document.activeElement !== ni && ni.value !== autoN) ni.value = autoN;
+    }
+
+    var list = box.querySelector(".mix-list");
+    var sum  = box.querySelector(".mix-sum");
+    list.textContent = ""; sum.textContent = "";
+
+    function line(value, unitTxt, nameTxt, cls){
+      var row = el("div","cline" + (cls ? " " + cls : ""));
+      row.appendChild(el("b","", value));
+      row.appendChild(el("span","u", unitTxt));
+      row.appendChild(el("span","nm", nameTxt));
+      return row;
+    }
+
+    if(!parts.length){
+      list.appendChild(el("div","empty-line","Pick the strains that go into this tube."));
+      return;
+    }
+
+    parts.forEach(function(p){
+      list.appendChild(line(fmt(p.c), "mL", labelOf(p.s), over ? "bad" : ""));
+    });
+    if(!over && buf !== null){
+      list.appendChild(line(fmt(buf), "mL", "buffer", "buf"));
+    }
+
+    if(over){
+      sum.className = "mix-sum bad";
+      sum.textContent = fmt(total) + " mL of culture exceeds the " + fmt(m.vol) +
+        " mL final volume — raise the final volume or lower a target OD.";
+    } else {
+      sum.className = "mix-sum";
+      sum.appendChild(el("span","", "culture total " + fmt(total) + " mL"));
+      sum.appendChild(el("span","", "buffer " + (buf === null ? "—" : fmt(buf) + " mL")));
+      sum.appendChild(el("span","", parts.length + (parts.length === 1 ? " component" : " components")));
+      sum.appendChild(el("span","tot", "final " + fmt(m.vol) + " mL"));
+    }
+  });
+
+  renderSummary();
+  renderConstructs();
+  renderCombos();
+}
+
+/* ---------- construct summary: one tube per construct ---------- */
+function renderConstructs(){
+  soloBody.textContent = "";
+  if(!state.strains.length){
+    soloBody.appendChild(el("div","empty","Each construct's own tube will be listed here."));
+    return;
+  }
+
+  var totCulture = 0, totBuffer = 0, totVol = 0, anyBad = false, tubes = 0;
+
+  var grid = el("div","combo-grid");
+  var head = el("div","combo-row combo-head");
+  ["#","Construct","Culture","Buffer","Final"].forEach(function(h,i){
+    head.appendChild(el("span", i >= 2 ? "r" : "", h));
+  });
+  grid.appendChild(head);
+
+  state.strains.forEach(function(st, i){
+    var c = strainCulture(st);
+    var v = st.vol;
+    var bad = (c !== null && v !== null && c > v);
+    var buf = (c === null || v === null) ? null : v - c;
+    if(bad) anyBad = true;
+
+    if(c !== null && !bad){
+      tubes++; totCulture += c;
+      if(buf !== null) totBuffer += buf;
+      if(v !== null) totVol += v;
+    }
+
+    var row = el("div","combo-row" + (bad ? " bad" : ""));
+    row.appendChild(el("span","no", String(i+1)));
+
+    var nm = el("span","nm");
+    nm.appendChild(document.createTextNode(labelOf(st)));
+    var lc = linkedConstruct(st);
+    var mt = metaLine(lc);
+    if(mt) nm.appendChild(el("small","cmeta", mt));
+    row.appendChild(nm);
+
+    row.appendChild(el("span","r cult", c === null ? "—" : fmt(c)));
+    row.appendChild(el("span","r buf", bad ? "over" : (buf === null ? "—" : fmt(buf))));
+    row.appendChild(el("span","r", v === null ? "—" : fmt(v)));
+    grid.appendChild(row);
+  });
+
+  soloBody.appendChild(grid);
+
+  var foot = el("div","combo-foot");
+  function stat(label, value, cls){
+    var d = el("div","cstat" + (cls ? " " + cls : ""));
+    d.appendChild(el("span","",label));
+    d.appendChild(el("b","",value));
+    return d;
+  }
+  foot.appendChild(stat("Tubes", String(tubes)));
+  foot.appendChild(stat("Culture", fmt(totCulture) + " mL", "culture"));
+  foot.appendChild(stat("Buffer to make", fmt(totBuffer) + " mL", "buffer"));
+  foot.appendChild(stat("Total volume", fmt(totVol) + " mL"));
+  soloBody.appendChild(foot);
+
+  if(anyBad){
+    soloBody.appendChild(el("div","warn-banner combo-warn","A construct sits below its target OD even neat — those tubes are left out of the totals."));
+  }
+}
+
+/* ---------- combination summary ---------- */
+function renderCombos(){
+  comboBody.textContent = "";
+  if(!state.mixes.length){
+    comboBody.appendChild(el("div","empty","Your mixes will be listed here as a single run sheet."));
+    return;
+  }
+
+  var totCulture = 0, totBuffer = 0, totVol = 0, anyBad = false;
+
+  var grid = el("div","combo-grid");
+  var head = el("div","combo-row combo-head");
+  ["#","Combination","Parts","Buffer","Final"].forEach(function(h,i){
+    head.appendChild(el("span", i >= 2 ? "r" : "", h));
+  });
+  grid.appendChild(head);
+
+  state.mixes.forEach(function(m, i){
+    var total = 0, known = true, n = 0;
+    m.parts.forEach(function(pid){
+      var st = strainById(pid);
+      if(!st) return;
+      n++;
+      var cv = cultureFor(st, m.vol, st.target);
+      if(cv === null) known = false; else total += cv;
+    });
+    var buf = (m.vol === null || !known || !n) ? null : m.vol - total;
+    var bad = (buf !== null && buf < -1e-9);
+    if(bad) anyBad = true;
+    if(known && n){ totCulture += total; }
+    if(buf !== null && !bad){ totBuffer += buf; }
+    if(m.vol !== null){ totVol += m.vol; }
+
+    var row = el("div","combo-row" + (bad ? " bad" : ""));
+    row.appendChild(el("span","no", String(i+1)));
+    row.appendChild(el("span","nm", mixLabel(m, i)));
+    row.appendChild(el("span","r dim", n ? String(n) : "—"));
+    row.appendChild(el("span","r buf", bad ? "over" : (buf === null ? "—" : fmt(buf))));
+    row.appendChild(el("span","r", m.vol === null ? "—" : fmt(m.vol)));
+    grid.appendChild(row);
+  });
+
+  comboBody.appendChild(grid);
+
+  var foot = el("div","combo-foot");
+  function stat(label, value, cls){
+    var d = el("div","cstat" + (cls ? " " + cls : ""));
+    d.appendChild(el("span","",label));
+    d.appendChild(el("b","",value));
+    return d;
+  }
+  foot.appendChild(stat("Tubes", String(state.mixes.length)));
+  foot.appendChild(stat("Culture", fmt(totCulture) + " mL", "culture"));
+  foot.appendChild(stat("Buffer to make", fmt(totBuffer) + " mL", "buffer"));
+  foot.appendChild(stat("Total volume", fmt(totVol) + " mL"));
+  comboBody.appendChild(foot);
+
+  if(anyBad){
+    comboBody.appendChild(el("div","warn-banner combo-warn","One or more tubes ask for more culture than their final volume — the numbers above skip their buffer."));
+  }
+}
+
+/* ---------- prep summary ---------- */
+function summaryData(){
+  var map = {};
+  function bump(s, amount, where){
+    if(!map[s.id]) map[s.id] = { s:s, total:0, uses:[], unknown:false };
+    map[s.id].uses.push(where);
+    if(amount === null){ map[s.id].unknown = true; return; }
+    map[s.id].total += amount;
+  }
+  state.strains.forEach(function(s){
+    if(s.solo){ bump(s, strainCulture(s), "solo"); }
+  });
+  state.mixes.forEach(function(m, i){
+    m.parts.forEach(function(pid){
+      var s = strainById(pid);
+      if(!s) return;
+      bump(s, cultureFor(s, m.vol, s.target), "mix " + (i+1));
+    });
+  });
+  var out = [];
+  state.strains.forEach(function(s){
+    if(map[s.id]) out.push(map[s.id]);
+  });
+  return out;
+}
+
+var lastLevel = {};   // strain id -> the fill fraction we last drew, so the liquid moves rather than jumps
+
+function renderSummary(){
+  var rows = summaryData();
+  var mult = 1 + (state.excess || 0)/100;
+  sumBody.textContent = "";
+  if(!rows.length){
+    sumBody.appendChild(el("div","empty","Tick “Solo” on a strain or add it to a mix, and the culture you need to grow shows up here."));
+    return;
+  }
+
+  var grand = 0, short = 0, tight = 0;
+  var body = el("div","");
+
+  // clear any previous marks on the Cultures rows
+  Array.prototype.forEach.call(strainBody.querySelectorAll("tr[data-sid]"), function(tr){
+    var hi = tr.querySelectorAll("input[type=number]")[4];
+    if(hi){ hi.classList.remove("short","tight"); hi.title = ""; }
+  });
+
+  rows.forEach(function(r){
+    var amt = r.total * mult;
+    var have = (typeof r.s.have === "number" && r.s.have > 0) ? r.s.have : null;
+    var frac = (have && isFinite(amt) && !r.unknown) ? amt / have : null;
+    var level = "";                              // "" | tight | short
+    if(frac !== null){
+      if(frac > 1 + 1e-9){ level = "short"; short++; }
+      else if(frac >= 0.8){ level = "tight"; tight++; }
+    }
+
+    if(level){
+      var srow = strainBody.querySelector('tr[data-sid="' + r.s.id + '"]');
+      var hi = srow && srow.querySelectorAll("input[type=number]")[4];
+      if(hi){
+        hi.classList.add(level);
+        hi.title = level === "short"
+          ? "Needs " + fmt(amt) + " mL across " + r.uses.length + " use(s) — " + fmt(amt - have) + " mL more than you have"
+          : "Needs " + fmt(amt) + " mL — " + Math.round(frac*100) + "% of what you have";
+      }
+    }
+
+    var row = el("div","sum-row" + (level ? " " + level : ""));
+
+    var top = el("div","sum-top");
+    var n = el("div","sum-name");
+    n.appendChild(document.createTextNode(labelOf(r.s)));
+    n.appendChild(el("small","", r.uses.length ? r.uses.join(", ") : "—"));
+    top.appendChild(n);
+
+    var v = el("div","sum-val");
+    if(r.unknown){
+      v.appendChild(document.createTextNode("—"));
+      v.appendChild(el("small","", have ? "of " + fmt(have, 1) + " mL" : ""));
+    } else {
+      grand += amt;
+      v.appendChild(document.createTextNode(fmt(amt) + " mL"));
+      v.appendChild(el("small","", have ? "of " + fmt(have, 1) + " mL" : ul(amt)));
+    }
+    top.appendChild(v);
+    row.appendChild(top);
+
+    if(r.unknown){
+      row.appendChild(el("div","use-note pending","waiting on an OD reading"));
+    }
+
+    if(frac !== null){
+      var track = el("div","use-bar");
+      var fill = el("i","");
+      var pct  = Math.max(2, Math.min(100, frac * 100));
+      var prev = lastLevel[r.s.id];
+      lastLevel[r.s.id] = pct;
+
+      // start where it was (or empty, for a level we have never drawn) and let CSS carry it across
+      fill.style.width = (prev === undefined ? 0 : prev).toFixed(1) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      (function(el2, tr2, to, from){
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            el2.style.width = to.toFixed(1) + "%";
+            if(from === undefined || Math.abs(to - from) > 1.5){
+              tr2.classList.add("slosh");
+              setTimeout(function(){ tr2.classList.remove("slosh"); }, 760);
+            }
+          });
+        });
+      })(fill, track, pct, prev);
+      var note = el("div","use-note");
+      note.appendChild(el("b","", Math.round(frac*100) + "%"));
+      note.appendChild(document.createTextNode(level === "short"
+        ? "  —  " + fmt(amt - have) + " mL short"
+        : "  of what you have"));
+      row.appendChild(note);
+    }
+
+    body.appendChild(row);
+  });
+
+  if(short || tight){
+    var w = el("div","warn-banner" + (short ? "" : " soft"));
+    var t0 = el("div");
+    if(short){
+      t0.appendChild(el("b","", short + (short === 1 ? " culture runs out." : " cultures run out.")));
+      t0.appendChild(document.createTextNode(" You need more than you grew — raise “on hand”, grow more, or drop a mix."));
+    } else {
+      t0.appendChild(el("b","", tight + (tight === 1 ? " culture is tight." : " cultures are tight.")));
+      t0.appendChild(document.createTextNode(" Over 80% of what you have is spoken for; little room for pipetting losses."));
+    }
+    w.appendChild(t0);
+    sumBody.appendChild(w);
+  }
+
+  sumBody.appendChild(body);
+
+  var live = {};
+  state.strains.forEach(function(s){ live[s.id] = 1; });
+  Object.keys(lastLevel).forEach(function(k){ if(!live[k]) delete lastLevel[k]; });
+
+  var t = el("div","sum-total");
+  t.appendChild(el("span","","Total neat culture"));
+  t.appendChild(el("b","", fmt(grand) + " mL"));
+  sumBody.appendChild(t);
+}
+
+/* ============================================================
+   Minimal .xlsx writer — a ZIP (stored, no compression) of the
+   OOXML parts. Self-contained: no library, nothing fetched.
+   ============================================================ */
+
+var CRC_TABLE = (function(){
+  var t = new Uint32Array(256), c, n, k;
+  for(n=0;n<256;n++){
+    c = n;
+    for(k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  var c = 0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function utf8(str){ return new TextEncoder().encode(str); }
+
+function zipStore(files){
+  var parts = [], central = [], offset = 0;
+  var DOS_TIME = 0, DOS_DATE = 0x2821;      // fixed stamp: 2020-01-01
+
+  function u16(v){ return [v & 255, (v >>> 8) & 255]; }
+  function u32(v){ return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+
+  files.forEach(function(f){
+    var name = utf8(f.name), data = f.data, crc = crc32(data);
+    var local = [].concat(
+      [0x50,0x4B,0x03,0x04], u16(20), u16(0x0800), u16(0), u16(DOS_TIME), u16(DOS_DATE),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0)
+    );
+    parts.push(new Uint8Array(local), name, data);
+    central.push([].concat(
+      [0x50,0x4B,0x01,0x02], u16(20), u16(20), u16(0x0800), u16(0), u16(DOS_TIME), u16(DOS_DATE),
+      u32(crc), u32(data.length), u32(data.length), u16(name.length),
+      u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset)
+    ));
+    central.push(name);
+    offset += local.length + name.length + data.length;
+  });
+
+  var cdBytes = [], cdSize = 0;
+  central.forEach(function(c){
+    var arr = (c instanceof Uint8Array) ? c : new Uint8Array(c);
+    cdBytes.push(arr); cdSize += arr.length;
+  });
+  var eocd = new Uint8Array([].concat(
+    [0x50,0x4B,0x05,0x06], u16(0), u16(0), u16(files.length), u16(files.length),
+    u32(cdSize), u32(offset), u16(0)
+  ));
+
+  var total = offset + cdSize + eocd.length;
+  var out = new Uint8Array(total), pos = 0;
+  parts.forEach(function(a){ out.set(a, pos); pos += a.length; });
+  cdBytes.forEach(function(a){ out.set(a, pos); pos += a.length; });
+  out.set(eocd, pos);
+  return out;
+}
+
+function xesc(v){
+  return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                  .replace(/"/g,"&quot;");
+}
+function colLetter(i){
+  var s = "";
+  i += 1;
+  while(i > 0){ var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; }
+  return s;
+}
+
+/* style slots used by the sheets below */
+var S = {
+  plain:0, title:1, head:2, bold:3, num:4, numBold:5, note:6,
+  total:7, int:8, big:9, wrap:10, section:11, unit:12, totalNum:13
+};
+
+var STYLES_XML =
+'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+'<numFmts count="1"><numFmt numFmtId="164" formatCode="0.000"/></numFmts>' +
+'<fonts count="6">' +
+ '<font><sz val="11"/><name val="Calibri"/></font>' +                                     /* 0 */
+ '<font><b/><sz val="11"/><name val="Calibri"/></font>' +                                 /* 1 */
+ '<font><b/><sz val="15"/><color rgb="FF9E4409"/><name val="Calibri"/></font>' +          /* 2 */
+ '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +          /* 3 */
+ '<font><i/><sz val="10"/><color rgb="FF79837A"/><name val="Calibri"/></font>' +          /* 4 */
+ '<font><b/><sz val="13"/><color rgb="FF9E4409"/><name val="Calibri"/></font>' +          /* 5 */
+'</fonts>' +
+'<fills count="5">' +
+ '<fill><patternFill patternType="none"/></fill>' +
+ '<fill><patternFill patternType="gray125"/></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FFD9600F"/><bgColor indexed="64"/></patternFill></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FFF0F3EE"/><bgColor indexed="64"/></patternFill></fill>' +
+ '<fill><patternFill patternType="solid"><fgColor rgb="FFFBEADC"/><bgColor indexed="64"/></patternFill></fill>' +
+'</fills>' +
+'<borders count="4">' +
+ '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+ '<border><left/><right/><top/><bottom style="thin"><color rgb="FFCBD2C6"/></bottom><diagonal/></border>' +
+ '<border><left style="thin"><color rgb="FFCBD2C6"/></left><right style="thin"><color rgb="FFCBD2C6"/></right>' +
+   '<top style="thin"><color rgb="FFCBD2C6"/></top><bottom style="thin"><color rgb="FFCBD2C6"/></bottom><diagonal/></border>' +
+ '<border><left/><right/><top style="medium"><color rgb="FFD9600F"/></top><bottom/><diagonal/></border>' +
+'</borders>' +
+'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+'<cellXfs count="14">' +
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                              /* 0 plain */
+ '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                /* 1 title */
+ '<xf numFmtId="0" fontId="3" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' + /* 2 head */
+ '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>' +                /* 3 bold */
+ '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +      /* 4 num */
+ '<xf numFmtId="164" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' + /* 5 numBold */
+ '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                /* 6 note */
+ '<xf numFmtId="0" fontId="1" fillId="3" borderId="3" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +   /* 7 total */
+ '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>' +        /* 8 int */
+ '<xf numFmtId="164" fontId="5" fillId="4" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right"/></xf>' + /* 9 big */
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' + /* 10 wrap */
+ '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +                  /* 11 section */
+ '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>' +                              /* 12 unit/text */
+ '<xf numFmtId="164" fontId="1" fillId="3" borderId="3" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' + /* 13 totalNum */
+'</cellXfs>' +
+'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+'</styleSheet>';
+
+/** one worksheet: rows of cells, each cell {v, s} or a bare string/number */
+function sheetXml(rows, cols, freezeRow){
+  var body = "";
+  rows.forEach(function(cells, r){
+    var rn = r + 1, cx = "";
+    (cells || []).forEach(function(cell, ci){
+      if(cell === null || cell === undefined || cell === "") return;
+      var v = (typeof cell === "object") ? cell.v : cell;
+      var st = (typeof cell === "object" && cell.s !== undefined) ? cell.s : 0;
+      if(v === null || v === undefined || v === "") {
+        if(!st) return;
+        cx += '<c r="' + colLetter(ci) + rn + '" s="' + st + '"/>';
+        return;
+      }
+      var ref = colLetter(ci) + rn;
+      if(typeof v === "number" && isFinite(v)){
+        cx += '<c r="' + ref + '" s="' + st + '"><v>' + v + '</v></c>';
+      } else {
+        cx += '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">' +
+              xesc(v) + '</t></is></c>';
+      }
+    });
+    if(cx) body += '<row r="' + rn + '">' + cx + '</row>';
+  });
+
+  var colsXml = "";
+  if(cols && cols.length){
+    colsXml = "<cols>";
+    cols.forEach(function(w, i){
+      colsXml += '<col min="' + (i+1) + '" max="' + (i+1) + '" width="' + w + '" customWidth="1"/>';
+    });
+    colsXml += "</cols>";
+  }
+  var pane = freezeRow
+    ? '<sheetView showGridLines="0" workbookViewId="0"><pane ySplit="' + freezeRow +
+      '" topLeftCell="A' + (freezeRow+1) + '" activePane="bottomLeft" state="frozen"/></sheetView>'
+    : '<sheetView showGridLines="0" workbookViewId="0"/>';
+
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+    '<sheetViews>' + pane + '</sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="15"/>' +
+    colsXml +
+    '<sheetData>' + body + '</sheetData>' +
+    '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>' +
+    '<pageSetup orientation="portrait" fitToWidth="1" fitToHeight="0" paperSize="9"/>' +
+    '</worksheet>';
+}
+
+/** sheets: [{name, rows, cols, freeze}] -> Uint8Array of a .xlsx */
+function buildXlsx(sheets){
+  var files = [];
+  var types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+  sheets.forEach(function(_, i){
+    types += '<Override PartName="/xl/worksheets/sheet' + (i+1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+  });
+  types += '</Types>';
+
+  files.push({ name:"[Content_Types].xml", data:utf8(types) });
+  files.push({ name:"_rels/.rels", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>') });
+
+  var sheetTags = "", rels = "";
+  sheets.forEach(function(sh, i){
+    sheetTags += '<sheet name="' + xesc(sh.name) + '" sheetId="' + (i+1) + '" r:id="rId' + (i+1) + '"/>';
+    rels += '<Relationship Id="rId' + (i+1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i+1) + '.xml"/>';
+  });
+  rels += '<Relationship Id="rId' + (sheets.length+1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+
+  files.push({ name:"xl/workbook.xml", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets>' + sheetTags + '</sheets></workbook>') });
+  files.push({ name:"xl/_rels/workbook.xml.rels", data:utf8(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rels +
+    '</Relationships>') });
+  files.push({ name:"xl/styles.xml", data:utf8(STYLES_XML) });
+  sheets.forEach(function(sh, i){
+    files.push({ name:"xl/worksheets/sheet" + (i+1) + ".xml",
+                 data:utf8(sheetXml(sh.rows, sh.cols, sh.freeze)) });
+  });
+
+  return zipStore(files);
+}
+
+/* ---------- export ---------- */
+
+/* ---------- the workbook ---------- */
+function buildWorkbook(){
+  var stamp = (state.title || "Untitled run") + "   ·   " + (state.date || "");
+  var mult = 1 + (state.excess || 0) / 100;
+  var sheets = [];
+
+  /* --- 1. Mix recipes: what goes in each tube --- */
+  var mr = [
+    [{v:"Mix recipes", s:S.title}],
+    [{v:stamp, s:S.note}],
+    [],
+    [{v:"#",s:S.head},{v:"Mix",s:S.head},{v:"Component",s:S.head},
+     {v:"Volume (mL)",s:S.head},{v:"µL",s:S.head},{v:"Type",s:S.head}]
+  ];
+  if(!state.mixes.length){
+    mr.push([{v:"No mixes in this run.",s:S.note}]);
+  }
+  state.mixes.forEach(function(m, i){
+    var total = 0, known = true, comps = [];
+    m.parts.forEach(function(pid){
+      var st = strainById(pid);
+      if(!st) return;
+      var cv = cultureFor(st, m.vol, st.target);
+      if(cv === null) known = false; else total += cv;
+      comps.push({ s:st, v:cv });
+    });
+    var buf = (m.vol === null || !known || !comps.length) ? null : m.vol - total;
+    var bad = (buf !== null && buf < -1e-9);
+
+    comps.forEach(function(c, k){
+      mr.push([
+        k === 0 ? {v:i+1,s:S.int} : {v:"",s:S.unit},
+        k === 0 ? {v:mixLabel(m,i),s:S.wrap} : {v:"",s:S.unit},
+        {v:labelOf(c.s),s:S.unit},
+        {v:c.v === null ? "—" : c.v, s:c.v === null ? S.unit : S.big},
+        {v:c.v === null ? "" : Math.round(c.v*1000), s:S.int},
+        {v:"culture",s:S.unit}
+      ]);
+    });
+    if(comps.length){
+      mr.push([{v:"",s:S.unit},{v:"",s:S.unit},{v:"buffer",s:S.unit},
+               {v:bad ? "over" : (buf === null ? "—" : buf), s:(bad || buf === null) ? S.unit : S.big},
+               {v:(bad || buf === null) ? "" : Math.round(buf*1000), s:S.int},
+               {v:bad ? "exceeds the final volume" : "infiltration buffer",s:S.unit}]);
+      mr.push([{v:"",s:S.total},{v:"",s:S.total},{v:"TOTAL",s:S.total},
+               {v:m.vol === null ? "" : m.vol, s:S.totalNum},
+               {v:m.vol === null ? "" : Math.round(m.vol*1000), s:S.total},
+               {v:comps.length + (comps.length === 1 ? " component" : " components"),s:S.total}]);
+      mr.push([]);
+    }
+  });
+  sheets.push({ name:"Mix recipes", cols:[5,30,26,13,10,26], freeze:4, rows:mr });
+
+  /* --- 2. Combinations --- */
+  var cb = [
+    [{v:"Combinations", s:S.title}],
+    [{v:stamp, s:S.note}],
+    [],
+    [{v:"#",s:S.head},{v:"Combination",s:S.head},{v:"Parts",s:S.head},
+     {v:"Culture (mL)",s:S.head},{v:"Buffer (mL)",s:S.head},{v:"Final (mL)",s:S.head}]
+  ];
+  var tC = 0, tB = 0, tV = 0, anyBad = false;
+  state.mixes.forEach(function(m, i){
+    var total = 0, known = true, n = 0;
+    m.parts.forEach(function(pid){
+      var st = strainById(pid); if(!st) return;
+      n++;
+      var cv = cultureFor(st, m.vol, st.target);
+      if(cv === null) known = false; else total += cv;
+    });
+    var buf = (m.vol === null || !known || !n) ? null : m.vol - total;
+    var bad = (buf !== null && buf < -1e-9);
+    if(bad) anyBad = true;
+    else { if(known && n) tC += total; if(buf !== null) tB += buf; if(m.vol !== null) tV += m.vol; }
+    cb.push([{v:i+1,s:S.int},{v:mixLabel(m,i),s:S.wrap},{v:n,s:S.int},
+             {v:known && n ? total : "—", s:(known && n) ? S.num : S.unit},
+             {v:bad ? "over" : (buf === null ? "—" : buf), s:(bad || buf === null) ? S.unit : S.big},
+             {v:m.vol === null ? "—" : m.vol, s:m.vol === null ? S.unit : S.num}]);
+  });
+  if(!state.mixes.length) cb.push([{v:"No mixes in this run.",s:S.note}]);
+  cb.push([{v:"TOTAL",s:S.total},{v:state.mixes.length + " tubes",s:S.total},{v:"",s:S.total},
+           {v:tC,s:S.totalNum},{v:tB,s:S.totalNum},{v:tV,s:S.totalNum}]);
+  cb.push([]);
+  cb.push([{v:"Buffer to make for the combinations: " + fmt(tB) + " mL", s:S.note}]);
+  if(anyBad) cb.push([{v:"A tube asks for more culture than its final volume — those are left out of the totals.", s:S.note}]);
+  sheets.push({ name:"Combinations", cols:[5,34,8,14,14,13], freeze:4, rows:cb });
+
+  /* --- 3. Construct tubes --- */
+  var ct = [
+    [{v:"Construct tubes", s:S.title}],
+    [{v:"Each construct on its own", s:S.note}],
+    [],
+    [{v:"#",s:S.head},{v:"Construct",s:S.head},{v:"Culture (mL)",s:S.head},
+     {v:"Buffer (mL)",s:S.head},{v:"Final (mL)",s:S.head},{v:"Details",s:S.head}]
+  ];
+  var sC = 0, sB = 0, sV = 0, tubes = 0, anyDilute = false;
+  state.strains.forEach(function(st, i){
+    var c = strainCulture(st), v = st.vol;
+    var bad = (c !== null && v !== null && c > v);
+    var buf = (c === null || v === null) ? null : v - c;
+    if(bad) anyDilute = true;
+    else if(c !== null){ tubes++; sC += c; if(buf !== null) sB += buf; if(v !== null) sV += v; }
+    var lc = linkedConstruct(st);
+    ct.push([{v:i+1,s:S.int},{v:labelOf(st),s:S.wrap},
+             {v:c === null ? "—" : c, s:c === null ? S.unit : S.big},
+             {v:bad ? "over" : (buf === null ? "—" : buf), s:(bad || buf === null) ? S.unit : S.num},
+             {v:v === null ? "—" : v, s:v === null ? S.unit : S.num},
+             {v:metaLine(lc) || "",s:S.wrap}]);
+  });
+  if(!state.strains.length) ct.push([{v:"No cultures in this run.",s:S.note}]);
+  ct.push([{v:"TOTAL",s:S.total},{v:tubes + (tubes === 1 ? " tube" : " tubes"),s:S.total},
+           {v:sC,s:S.totalNum},{v:sB,s:S.totalNum},{v:sV,s:S.totalNum},{v:"",s:S.total}]);
+  if(anyDilute){
+    ct.push([]);
+    ct.push([{v:"A construct sits below its target OD even neat — those are left out of the totals.", s:S.note}]);
+  }
+  sheets.push({ name:"Construct tubes", cols:[5,30,14,14,13,38], freeze:4, rows:ct });
+
+  /* --- 4. Prep summary --- */
+  var rows = summaryData();
+  var ps = [
+    [{v:"Prep summary", s:S.title}],
+    [{v:"Neat culture to grow" + (state.excess ? ", including " + state.excess + "% for dead volume" : ""), s:S.note}],
+    [],
+    [{v:"Construct",s:S.head},{v:"Needed (mL)",s:S.head},{v:"On hand (mL)",s:S.head},
+     {v:"Status",s:S.head},{v:"Used in",s:S.head}]
+  ];
+  var grand = 0;
+  rows.forEach(function(r){
+    var need = r.total * mult;
+    var have = (typeof r.s.have === "number" && r.s.have > 0) ? r.s.have : null;
+    var status = r.unknown ? "waiting on an OD reading"
+               : have === null ? ""
+               : (need > have ? "SHORT by " + fmt(need - have) + " mL"
+                 : (need / have >= 0.8 ? "tight — " + Math.round(need/have*100) + "%" : "ok"));
+    if(!r.unknown) grand += need;
+    ps.push([{v:labelOf(r.s),s:S.unit},
+             {v:r.unknown ? "—" : need, s:r.unknown ? S.unit : S.big},
+             {v:have === null ? "" : have, s:S.num},
+             {v:status,s:S.unit},{v:r.uses.join(", "),s:S.wrap}]);
+  });
+  if(!rows.length) ps.push([{v:"Nothing to prepare yet.",s:S.note}]);
+  ps.push([{v:"TOTAL NEAT CULTURE",s:S.total},{v:grand,s:S.totalNum},
+           {v:"",s:S.total},{v:"",s:S.total},{v:"",s:S.total}]);
+  sheets.push({ name:"Prep summary", cols:[30,14,15,26,30], freeze:4, rows:ps });
+
+  /* --- 5. Cultures (the readings) --- */
+  var cu = [
+    [{v:"Cultures", s:S.title}],
+    [{v:"culture mL = final volume × target OD ÷ (OD read × dilution)", s:S.note}],
+    [],
+    [{v:"Strain",s:S.head},{v:"OD read",s:S.head},{v:"Dilution",s:S.head},{v:"Target OD",s:S.head},
+     {v:"Final (mL)",s:S.head},{v:"On hand (mL)",s:S.head},{v:"Culture (mL)",s:S.head},
+     {v:"Buffer (mL)",s:S.head},{v:"Solo",s:S.head}]
+  ];
+  state.strains.forEach(function(st){
+    var c = strainCulture(st);
+    var buf = (c === null || st.vol === null) ? null : st.vol - c;
+    var bad = (c !== null && st.vol !== null && c > st.vol);
+    cu.push([{v:labelOf(st),s:S.unit},{v:st.od,s:S.num},{v:st.dil,s:S.int},{v:st.target,s:S.num},
+             {v:st.vol,s:S.num},{v:st.have === null ? "" : st.have, s:S.num},
+             {v:c === null ? "—" : c, s:(c === null || bad) ? S.unit : S.big},
+             {v:bad ? "OD too low" : (buf === null ? "—" : buf), s:(bad || buf === null) ? S.unit : S.num},
+             {v:st.solo ? "yes" : "", s:S.unit}]);
+  });
+  if(!state.strains.length) cu.push([{v:"No cultures.",s:S.note}]);
+  sheets.push({ name:"Cultures", cols:[28,11,10,12,12,14,14,14,8], freeze:4, rows:cu });
+
+  /* --- 6. Construct library, when there is one --- */
+  if(state.library.length){
+    var lb = [
+      [{v:"Construct library", s:S.title}],
+      [{v:"Kept between runs", s:S.note}],
+      [],
+      [{v:"Construct",s:S.head},{v:"Target OD",s:S.head},{v:"Agro strain",s:S.head},
+       {v:"Plasmid",s:S.head},{v:"Tag",s:S.head},{v:"Antibiotics",s:S.head},
+       {v:"Stock",s:S.head},{v:"Notes",s:S.head}]
+    ];
+    state.library.forEach(function(c){
+      lb.push([{v:c.name || "",s:S.unit},
+               {v:(c.targetOD === null || c.targetOD === undefined) ? "" : c.targetOD, s:S.num},
+               {v:c.agro || "",s:S.unit},{v:c.plasmid || "",s:S.unit},{v:c.tag || "",s:S.unit},
+               {v:c.abx || "",s:S.unit},{v:c.loc || "",s:S.unit},{v:c.notes || "",s:S.wrap}]);
+    });
+    sheets.push({ name:"Constructs", cols:[26,12,16,18,14,18,16,30], freeze:4, rows:lb });
+  }
+
+  return buildXlsx(sheets);
+}
+
+function tableRows(){
+  var rows = [];
+  rows.push(["Experiment", state.title || "(untitled)"]);
+  rows.push(["Date", state.date || ""]);
+  rows.push([]);
+  rows.push(["Sample","OD600 read","Dilution","Final OD600","Final volume [mL]","culture [mL]","buffer [mL]","culture on hand [mL]"]);
+  state.strains.forEach(function(s){
+    var c = strainCulture(s);
+    var b = (c === null || s.vol === null) ? null : s.vol - c;
+    rows.push([labelOf(s), s.od, s.dil, s.target, s.vol, c === null ? "" : c.toFixed(4), b === null ? "" : b.toFixed(4), s.have]);
+  });
+  if(state.mixes.length){
+    rows.push([]);
+    rows.push(["Mix","Final volume [mL]","culture total [mL]","buffer [mL]","Components (mL each)"]);
+    state.mixes.forEach(function(m, i){
+      var total = 0, comps = [];
+      m.parts.forEach(function(pid){
+        var s = strainById(pid); if(!s) return;
+        var c = cultureFor(s, m.vol, s.target);
+        if(c !== null){ total += c; comps.push(labelOf(s) + " " + c.toFixed(4)); }
+      });
+      var buf = m.vol === null ? null : m.vol - total;
+      rows.push([(i+1) + ". " + mixLabel(m, i), m.vol, total.toFixed(4), buf === null ? "" : buf.toFixed(4), comps.join(" + ")]);
+    });
+  }
+  var used = [];
+  state.strains.forEach(function(s){
+    var c = linkedConstruct(s);
+    if(c && used.indexOf(c) === -1) used.push(c);
+  });
+  if(used.length){
+    rows.push([]);
+    rows.push(["Construct","Default target OD","Agro strain","Plasmid","Tag","Antibiotics","Stock","Notes"]);
+    used.forEach(function(c){
+      rows.push([c.name, c.targetOD, c.agro, c.plasmid, c.tag, c.abx, c.loc, c.notes]);
+    });
+  }
+
+  var sum = summaryData();
+  if(sum.length){
+    var mult = 1 + (state.excess||0)/100;
+    rows.push([]);
+    rows.push(["Culture to grow" + (state.excess ? " (incl. " + state.excess + "% excess)" : ""), "needed [mL]", "on hand [mL]", "status", "used in"]);
+    sum.forEach(function(r){
+      var need = r.total * mult;
+      var have = (typeof r.s.have === "number" && r.s.have > 0) ? r.s.have : null;
+      var status = have === null ? "" : (need > have ? "SHORT by " + (need-have).toFixed(4) + " mL"
+                  : (need/have >= 0.8 ? "tight (" + Math.round(need/have*100) + "%)" : "ok"));
+      rows.push([labelOf(r.s), need.toFixed(4), have === null ? "" : have, status, r.uses.join(" / ")]);
+    });
+  }
+  return rows;
+}
+function toCSV(){
+  return tableRows().map(function(r){
+    return r.map(function(c){
+      var v = (c === null || c === undefined) ? "" : String(c);
+      return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+    }).join(",");
+  }).join("\n");
+}
+function toTSV(){
+  return tableRows().map(function(r){
+    return r.map(function(c){ return (c === null || c === undefined) ? "" : String(c).replace(/\t/g," "); }).join("\t");
+  }).join("\n");
+}
+
+var toastEl = document.getElementById("toast"), toastT;
+function toast(msg, actionLabel, fn){
+  toastEl.textContent = "";
+  toastEl.appendChild(document.createTextNode(msg));
+  if(actionLabel && fn){
+    var a = el("button","toast-act", actionLabel);
+    a.type = "button";
+    a.addEventListener("click", function(){
+      toastEl.classList.remove("on");
+      clearTimeout(toastT);
+      fn();
+    });
+    toastEl.appendChild(a);
+  }
+  toastEl.classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ toastEl.classList.remove("on"); }, actionLabel ? 8000 : 2600);
+}
+
+function fileStem(){
+  var t = (state.title || "pBench").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"-");
+  return (state.date || "") + (t ? "_" + t : "");
+}
+
+document.getElementById("btnCopy").addEventListener("click", function(){
+  var txt = toTSV();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste straight into a spreadsheet"); },
+      function(){ toast("Couldn’t reach the clipboard. Try Export Excel."); });
+  } else { toast("Clipboard unavailable here. Try Export Excel."); }
+});
+
+/** plain browser download — used when the page runs as a local file */
+function localDownload(bytes, name, mime){
+  try{
+    var blob = new Blob([bytes], {type:mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+    return true;
+  } catch(e){ return false; }
+}
+
+var XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+document.getElementById("btnCsv").addEventListener("click", function(){
+  var bytes, name = fileStem() + ".xlsx";
+  try { bytes = buildWorkbook(); }
+  catch(e){ toast("Couldn’t build the workbook — use Copy for Excel instead."); return; }
+
+  function fallback(msg){
+    if(localDownload(bytes, name, XLSX_MIME)){ toast("Saved to your downloads."); return; }
+    toast(msg || "Couldn’t save the workbook — use Copy for Excel instead.");
+  }
+
+  if(!window.claude || !window.claude.use){ fallback(); return; }
+  window.claude.use("downloads").then(function(dl){
+    if(!dl){ fallback(); return; }
+    return dl.save({ filename: name, data: bytes.buffer })
+      .then(function(){ toast("Workbook saved."); })
+      .catch(function(err){
+        var code = err && err.code;
+        if(code === "declined") return;
+        if(code === "rejected_extension" || code === "extension_not_enabled"){
+          return dl.save({ filename: fileStem() + ".csv", data: toCSV() })
+            .then(function(){ toast("Excel files aren’t allowed here — saved a CSV instead."); })
+            .catch(function(){ fallback("Downloads are blocked here — use Copy for Excel."); });
+        }
+        fallback();
+      });
+  }).catch(function(){ fallback(); });
+});
+
+/* ---------- section explainers: placed so they can never leave the screen ---------- */
+var openTip = null;
+
+function placeTip(btn){
+  var tip = btn.parentNode.querySelector(".tip");
+  if(!tip) return;
+  var b = btn.getBoundingClientRect();
+  var w = tip.offsetWidth, h = tip.offsetHeight, pad = 10;
+  var centre = b.left + b.width / 2;
+
+  var left = Math.min(Math.max(pad, centre - 30), Math.max(pad, window.innerWidth - w - pad));
+  var top  = b.bottom + 9;
+  if(top + h > window.innerHeight - pad && b.top - h - 9 > pad){
+    top = b.top - h - 9;                       // no room below — sit above instead
+    tip.classList.add("above");
+  } else {
+    tip.classList.remove("above");
+  }
+
+  tip.style.left = left + "px";
+  tip.style.top  = top + "px";
+  tip.style.setProperty("--arrow", Math.round(Math.max(10, Math.min(centre - left - 4, w - 18))) + "px");
+}
+
+Array.prototype.forEach.call(document.querySelectorAll(".tip-btn"), function(btn){
+  function open(){ openTip = btn; placeTip(btn); }
+  function close(){ if(openTip === btn) openTip = null; }
+  btn.addEventListener("mouseenter", open);
+  btn.addEventListener("focus", open);
+  btn.parentNode.addEventListener("mouseleave", close);
+  btn.addEventListener("blur", close);
+  btn.addEventListener("click", function(ev){ ev.preventDefault(); open(); });
+});
+window.addEventListener("scroll", function(){ if(openTip) placeTip(openTip); }, {passive:true});
+window.addEventListener("resize", function(){ if(openTip) placeTip(openTip); });
+
+/* ---------- theme ---------- */
+var btnTheme = document.getElementById("btnTheme");
+function applyTheme(t, remember){
+  var dark = (t === "dark");
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  btnTheme.setAttribute("aria-pressed", dark ? "true" : "false");
+  var lab = dark ? "Switch to light mode" : "Switch to dark mode";
+  btnTheme.setAttribute("aria-label", lab);
+  btnTheme.title = lab;
+  if(remember){ try { localStorage.setItem("od600-prep-bench-theme", dark ? "dark" : "light"); } catch(e){} }
+}
+btnTheme.addEventListener("click", function(){
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark", true);
+});
+applyTheme(document.documentElement.getAttribute("data-theme") || "light", false);
+
+/* ---------- wiring ---------- */
+var expTitle = document.getElementById("expTitle");
+var expDate  = document.getElementById("expDate");
+var dDil = document.getElementById("dDil");
+var dTarget = document.getElementById("dTarget");
+var dVol = document.getElementById("dVol");
+var dHave = document.getElementById("dHave");
+var dExcess = document.getElementById("dExcess");
+
+function syncHeader(){
+  expTitle.value = state.title || "";
+  expDate.value = state.date || "";
+  dDil.value = state.defaults.dil;
+  dTarget.value = state.defaults.target;
+  dVol.value = state.defaults.vol;
+  dHave.value = state.defaults.have;
+  dExcess.value = state.excess;
+}
+expTitle.addEventListener("input", function(){ state.title = expTitle.value; save(); });
+expDate.addEventListener("input", function(){ state.date = expDate.value; save(); });
+dDil.addEventListener("input", function(){ state.defaults.dil = num(dDil.value); save(); });
+dTarget.addEventListener("input", function(){ state.defaults.target = num(dTarget.value); save(); });
+dVol.addEventListener("input", function(){ state.defaults.vol = num(dVol.value); save(); });
+dHave.addEventListener("input", function(){ state.defaults.have = num(dHave.value); save(); });
+dExcess.addEventListener("input", function(){ state.excess = num(dExcess.value) || 0; renderSummary(); save(); });
+[dDil,dTarget,dVol,dHave,dExcess].forEach(function(i){
+  i.addEventListener("wheel", function(ev){ if(document.activeElement === i) ev.preventDefault(); }, {passive:false});
+});
+
+document.getElementById("btnApplyAll").addEventListener("click", function(){
+  state.strains.forEach(function(s){
+    s.dil = state.defaults.dil; s.target = state.defaults.target;
+    s.vol = state.defaults.vol; s.have = state.defaults.have;
+  });
+  state.mixes.forEach(function(m){ m.vol = state.defaults.vol; });
+  render(); save();
+  toast("Defaults applied to every row");
+});
+
+document.getElementById("btnAddRow").addEventListener("click", function(){
+  state.strains.push(blankStrain(state.defaults, ""));
+  render(); save();
+  var rows = strainBody.querySelectorAll("tr[data-sid] input[type=text]");
+  if(rows.length) rows[rows.length-1].focus();
+});
+
+document.getElementById("btnAddMix").addEventListener("click", function(){
+  state.mixes.push({ id:nid(), name:"", auto:true, vol:state.defaults.vol, parts:[] });
+  render(); save();
+  var names = mixBody.querySelectorAll(".mix input[type=text]");
+  if(names.length) names[names.length-1].focus();
+});
+
+/* ---------- remove-all, each one undoable ---------- */
+function clearSection(what){
+  var snapshot = JSON.stringify({ s:state.strains, m:state.mixes, l:state.library });
+  var n = 0, label = "";
+
+  if(what === "strains"){
+    n = state.strains.length;
+    if(!n) return toast("Nothing to remove.");
+    state.strains = [];
+    state.mixes.forEach(function(m){ m.parts = []; });
+    label = n + (n === 1 ? " culture removed" : " cultures removed");
+  } else if(what === "mixes"){
+    n = state.mixes.length;
+    if(!n) return toast("Nothing to remove.");
+    state.mixes = [];
+    label = n + (n === 1 ? " mix removed" : " mixes removed");
+  } else {
+    n = state.library.length;
+    if(!n) return toast("Nothing to remove.");
+    state.library = [];
+    state.strains.forEach(function(s){ s.cid = null; });
+    picked = {};
+    label = n + (n === 1 ? " construct removed from the library" : " constructs removed from the library");
+  }
+
+  render(); save();
+  toast(label, "Undo", function(){
+    var prev = JSON.parse(snapshot);
+    state.strains = prev.s; state.mixes = prev.m; state.library = prev.l;
+    render(); save();
+    toast("Put back");
+  });
+}
+document.getElementById("btnClearStrains").addEventListener("click", function(){ clearSection("strains"); });
+document.getElementById("btnClearMixes").addEventListener("click", function(){ clearSection("mixes"); });
+document.getElementById("btnClearLib").addEventListener("click", function(){ clearSection("library"); });
+
+document.getElementById("btnNew").addEventListener("click", function(){
+  var d = { dil:state.defaults.dil, target:state.defaults.target, vol:state.defaults.vol };
+  var before = JSON.stringify({ t:state.title, s:state.strains, m:state.mixes });
+  state = {
+    title:"", date:new Date().toISOString().slice(0,10),
+    defaults:d, excess:state.excess,
+    library:state.library,
+    strains:[blankStrain(d,""),blankStrain(d,""),blankStrain(d,"")],
+    mixes:[]
+  };
+  picked = {};
+  syncHeader(); render(); save();
+  expTitle.focus();
+  toast("Board cleared — your construct library is kept", "Undo", function(){
+    var prev = JSON.parse(before);
+    state.title = prev.t; state.strains = prev.s; state.mixes = prev.m;
+    syncHeader(); render(); save();
+    toast("Board restored");
+  });
+});
+
+function render(){
+  renderDatalist();
+  renderLibrary();
+  renderStrains();
+  renderMixes();
+  recompute();
+}
+
+syncHeader();
+render();
+})();
+</script>
+
+</body>
+</html>
