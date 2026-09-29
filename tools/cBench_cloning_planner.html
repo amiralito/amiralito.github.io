@@ -143,7 +143,9 @@ input[type=checkbox]{accent-color:var(--dna);width:15px;height:15px;cursor:point
 /* ---------- layout ---------- */
 main{max-width:1500px;margin:0 auto;padding:20px 20px 80px}
 .cols{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
-@media (min-width:1180px){.cols{grid-template-columns:minmax(0,1fr) 330px}}
+/* the rail only sits alongside once the parts table has room for full plasmid names */
+@media (min-width:1360px){.cols{grid-template-columns:minmax(0,1fr) 300px}}
+@media (min-width:1500px){.cols{grid-template-columns:minmax(0,1fr) 330px}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
 .card + .card{margin-top:20px}
 .card-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
@@ -212,10 +214,10 @@ input.mono{font-family:"IBM Plex Mono",monospace;text-transform:uppercase}
 .grid td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 .grid tr:last-child td{border-bottom:0}
 .grid tbody tr:hover{background:var(--surface-2)}
-.w-name{width:auto;min-width:160px}
-.w-type{width:132px}
-.w-num{width:104px}
-.w-out{width:120px;text-align:right}
+.w-name{width:auto;min-width:220px}
+.w-type{width:140px}
+.w-num{width:102px}
+.w-out{width:92px;text-align:right}
 .w-act{width:64px}
 .out{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;line-height:1.25}
 .out b{font-weight:600;font-size:16px;display:block;color:var(--dna)}
@@ -1061,12 +1063,14 @@ function parseSequenceFile(text, filename){
   if(/^LOCUS\s/m.test(text)){                                   /* GenBank */
     var locus = text.match(/^LOCUS\s+(\S+)\s+(\d+)\s*bp(.*)$/m);
     if(locus){
-      out.name = locus[1];
+      /* LOCUS names are unreliable: GenBank caps them at 16 characters and
+         SnapGene writes "Exported" for every file, so the file name wins */
+      if(!stem) out.name = locus[1];
       out.bp = parseInt(locus[2], 10);
       out.circular = /circular/i.test(locus[3] || "");
     }
     var def = text.match(/^DEFINITION\s+(.+)$/m);
-    if(def && !locus) out.name = def[1].trim();
+    if(def && !locus && !stem) out.name = def[1].trim();
     var org = text.indexOf("\nORIGIN");
     if(org !== -1){
       var body = text.slice(org + 7);
@@ -1077,7 +1081,7 @@ function parseSequenceFile(text, filename){
   } else if(/^\s*>/.test(text)){                                /* FASTA */
     var lines = text.replace(/\r/g,"").split("\n");
     var header = lines.shift().replace(/^\s*>\s*/, "").trim();
-    if(header) out.name = header.split(/[\s|]/)[0] || header;
+    if(header && !stem) out.name = header.split(/[\s|]/)[0] || header;
     out.seq = lines.join("").replace(/[^A-Za-z]/g, "").toUpperCase();
   } else {                                                      /* bare sequence */
     var bare = text.replace(/[^A-Za-z]/g, "").toUpperCase();
@@ -1086,7 +1090,7 @@ function parseSequenceFile(text, filename){
 
   if(out.seq){
     out.seq = out.seq.replace(/[^ACGTUNRYKMSWBDHV]/g, "");
-    if(!out.bp) out.bp = out.seq.length;
+    if(out.seq.length) out.bp = out.seq.length;   /* trust the sequence over the header */
   }
   if(!out.bp && !out.seq) return null;
   return out;
@@ -1382,17 +1386,25 @@ dosSite.addEventListener("input", function(){ P().customSite = dosSite.value.toU
 });
 
 /* ---------- loading sequence files ---------- */
-function ingestSequence(parsed){
+function ingestSequence(parsed, claimed){
   if(!parsed) return null;
-  var existing = null, key = (parsed.name || "").trim().toLowerCase();
+  var name = (parsed.name || "").trim() || "Untitled part";
+  var key = name.toLowerCase(), existing = null;
+  /* a file whose name matches a part already on the board fills that part in —
+     but never one another file in this same drop has already claimed */
   for(var i=0;i<state.parts.length;i++){
-    if((state.parts[i].name || "").trim().toLowerCase() === key && key) existing = state.parts[i];
+    var p = state.parts[i];
+    if((p.name || "").trim().toLowerCase() === key && claimed.indexOf(p) === -1){ existing = p; break; }
   }
   var target = existing;
   if(!target){
-    target = blankPart("module", parsed.name);
+    var taken = {}, k = 2, unique = name;
+    state.parts.forEach(function(q){ taken[(q.name || "").trim().toLowerCase()] = true; });
+    while(taken[unique.toLowerCase()]){ unique = name + " (" + k + ")"; k++; }
+    target = blankPart("module", unique);
     state.parts.push(target);
   }
+  claimed.push(target);
   if(parsed.bp) target.bp = parsed.bp;
   if(parsed.seq) target.seq = parsed.seq;
   return { part:target, isNew: !existing };
@@ -1417,9 +1429,10 @@ function loadFiles(fileList){
   });
 
   function done(){
+    var claimed = [];
     results.forEach(function(parsed){
       if(!parsed) return;
-      var res = ingestSequence(parsed);
+      var res = ingestSequence(parsed, claimed);
       if(res){ if(res.isNew) added++; else updated++; }
     });
     render(); save();
@@ -1489,7 +1502,8 @@ function renderParts(){
     var name = document.createElement("input");
     name.type = "text"; name.className = "cell"; name.value = p.name;
     name.placeholder = "Plasmid name"; name.setAttribute("aria-label","Part name");
-    name.addEventListener("input", function(){ p.name = name.value; refresh(); save(); });
+    name.title = p.name || "";                          /* full name on hover when the box is too narrow */
+    name.addEventListener("input", function(){ p.name = name.value; name.title = name.value; refresh(); save(); });
     tdN.appendChild(name);
     tdN.appendChild(el("div","seqmeta",""));
     tr.appendChild(tdN);
