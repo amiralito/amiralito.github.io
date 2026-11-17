@@ -23,15 +23,14 @@
       --bg: #ffffff;
       --text: #0b0b0b;
       --muted: #5e5e5e;
-      --border: #e6e6e6;
       --grid: 1280px;
       --gutter: clamp(16px, 4vw, 32px);
       --nav-gap-desktop: 10px;
       --nav-gap-mobile: 5px;
       --rail-width: 28%;
-      --sticky-top: 250px;
-      --main-top-gap: 60px;
-      --section-gap: 80px;
+      --sticky-top: 120px;
+      --content-top-gap: 48px;
+      --section-gap: 56px;
     }
 
     * { box-sizing: border-box; }
@@ -62,266 +61,201 @@
     .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
     .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
-    /* Body layout: left sticky list + content */
-    .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
-    .rail { grid-column: 1; position: sticky; top: var(--sticky-top); align-self: start; }
-    .rail ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--nav-gap-desktop); }
-    .rail a { color: inherit; text-decoration: none; font-size: clamp(15px,1.3vw,18px); }
-    .rail a:hover, .rail a:focus-visible { text-decoration: underline; }
-
-    .sub-rail {
+    /* Body layout: left sticky rail + content */
+    .content {
+      display: grid;
+      grid-template-columns: var(--rail-width) 1fr;
+      gap: clamp(30px, 8vw, 80px);
+      align-items: start;
+      margin-top: var(--content-top-gap);
+    }
+    .rail {
+      grid-column: 1;
+      position: sticky;
+      top: var(--sticky-top);
+      align-self: start;
+    }
+    .rail ul {
       list-style: none;
-      margin: 6px 0 14px !important;
-      padding: 0 0 0 14px !important;
+      padding: 0;
+      margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 6px !important;
-      border-left: 1px solid var(--border);
+      gap: var(--nav-gap-desktop);
     }
-    .sub-rail a {
-      font-size: clamp(13px, 1.1vw, 15px) !important;
-      color: var(--muted) !important;
+    .rail a {
+      display: inline-block;
+      padding: 4px 0;
+      font-weight: 400;
+      font-size: clamp(15px, 1.3vw, 18px);
       text-decoration: none;
+      color: inherit;
+      transform: translateX(0);
+      transition: transform .25s ease;
     }
-    .sub-rail a:hover, .sub-rail a:focus-visible {
-      color: var(--text) !important;
+    .rail a:hover,
+    .rail a:focus-visible {
+      transform: translateX(8px);
+      outline: none;
+    }
+    .rail a.active {
+      font-weight: 600;
       text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
-    .main { grid-column: 2; margin-top: var(--main-top-gap); }
-    .main h2 { font-size: clamp(22px, 2.4vw, 32px); margin: 0 0 12px; font-weight: 600; }
-    .lead { font-size: clamp(16px, 1.4vw, 19px); line-height: 1.55; color: var(--muted); margin: 0 0 44px; max-width: 65ch; }
+    /* Main column */
+    .main { grid-column: 2; }
+    .page-head { margin: 0 0 36px; }
+    .page-head h2 {
+      font-size: clamp(22px, 2.4vw, 32px);
+      font-weight: 600;
+      margin: 0 0 10px;
+    }
+    .page-head p {
+      font-size: clamp(15px, 1.3vw, 17px);
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0;
+      max-width: 62ch;
+    }
 
-    /* Tool Sections */
     .tool-section {
-      margin-bottom: 56px;
       scroll-margin-top: 90px;
     }
-    .tool-section:last-child {
-      margin-bottom: 0;
+    .tool-section + .tool-section {
+      margin-top: var(--section-gap);
     }
-    .section-title {
+    .tool-section h3 {
       font-size: clamp(19px, 2vw, 24px);
       font-weight: 600;
-      margin: 0 0 20px;
+      margin: 0 0 10px;
       color: var(--text);
     }
-    .subgroup-title {
-      font-size: clamp(15px, 1.3vw, 18px);
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin: 36px 0 20px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-      scroll-margin-top: 90px;
-    }
-    .tool-section > .subgroup-title:first-of-type {
-      margin-top: 16px;
-    }
-    .empty-state {
-      font-size: 15px;
-      color: var(--muted);
-      line-height: 1.5;
-      margin: 0 0 12px;
-    }
 
-    /* Tool Card */
-    .tool-card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: clamp(20px, 3vw, 32px);
-      margin-bottom: 32px;
-      background: #ffffff;
+    .tool-list {
+      display: grid;
+      gap: 0;
+    }
+    .tool {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      column-gap: 16px;
+      align-items: start;
+      padding: 16px 0 20px;
+      border-bottom: 1px solid rgba(0, 0, 0, .06);
       scroll-margin-top: 90px;
-      transition: border-color .2s ease, box-shadow .2s ease;
     }
-    .tool-card:last-child {
-      margin-bottom: 0;
-    }
-    .tool-card:hover {
-      border-color: rgba(0, 0, 0, 0.28);
-      box-shadow: 0 8px 24px -14px rgba(0, 0, 0, 0.08);
-    }
-    .tool-head {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .tool-icon {
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-      border-radius: 10px;
+    .tool:first-child { padding-top: 8px; }
+    .tool:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .tool-logo {
+      width: 36px;
+      height: 36px;
+      margin-top: 2px;
+      border-radius: 7px;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      background: #fafafa;
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      flex-shrink: 0;
     }
-    .tool-icon svg { width: 100%; height: 100%; display: block; }
-    .tool-icon img {
+    .tool-logo img,
+    .tool-logo svg {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      padding: 2px;
       display: block;
     }
-    .tool-title-wrap { flex: 1; }
-    .tool-name {
-      font-size: clamp(20px, 2vw, 24px);
-      font-weight: 700;
-      margin: 0;
-      line-height: 1.2;
+    .tool-body {
+      min-width: 0;
     }
-    .tool-tagline {
-      display: inline-block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 3px;
-      font-weight: 400;
+
+    .tool-name {
+      font-weight: 600;
+      font-size: clamp(16px, 1.6vw, 20px);
+      margin: 0 0 6px;
+      line-height: 1.3;
+      color: var(--text);
     }
     .tool-desc {
-      font-size: clamp(14px, 1.2vw, 16px);
+      font-size: 14.5px;
       line-height: 1.6;
-      color: #2b2b2b;
-      margin: 0 0 16px;
-    }
-    .tool-desc p { margin: 0 0 10px; }
-    .tool-desc p:last-child { margin-bottom: 0; }
-
-    /* Colab Callout */
-    .colab-callout {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 6px;
-      background: #fff8f0;
-      border: 1px solid #ffe1bf;
-      font-size: 13px;
-      line-height: 1.5;
-      color: #8a4800;
-      margin: 0 0 18px;
-    }
-    .colab-callout svg {
-      flex-shrink: 0;
-      margin-top: 2px;
-      color: #E37400;
+      color: var(--muted);
+      margin: 0;
+      max-width: 66ch;
     }
 
-    /* Badges */
-    .tool-badges {
+    .tool-meta {
+      margin-top: 10px;
       display: flex;
       flex-wrap: wrap;
-      gap: 7px;
-      margin-bottom: 20px;
-    }
-    .badge {
-      font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      padding: 3px 9px;
-      border-radius: 4px;
-      background: #f4f5f5;
-      color: #3b4446;
-      letter-spacing: .02em;
-    }
-
-    /* Tool Citation */
-    .tool-citation {
-      margin: 0 0 22px;
-      padding: 10px 14px;
-      border-radius: 6px;
-      background: #f8f9fa;
-      border-left: 3px solid #b0b8c0;
-      font-size: 12.5px;
-      line-height: 1.55;
-      color: #444a4d;
-    }
-    .tool-citation strong {
-      color: var(--text);
-      font-weight: 600;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: block;
-      margin-bottom: 4px;
-    }
-    .tool-citation a {
-      color: inherit;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .tool-citation a:hover {
-      color: var(--text);
-    }
-
-    /* Actions */
-    .tool-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .btn-launch {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 9px 18px;
-      border-radius: 6px;
-      color: #ffffff;
+      align-items: baseline;
+      gap: 6px 20px;
       font-size: 14px;
+    }
+    .tool-links {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      align-items: baseline;
+    }
+    .tool-links a {
+      color: var(--text);
       font-weight: 500;
       text-decoration: none;
-      transition: background .15s ease, transform .15s ease;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+      padding-bottom: 1px;
+      transition: border-color .2s ease;
     }
-    .btn-launch:hover {
-      transform: translateY(-1px);
+    .tool-links a:hover,
+    .tool-links a:focus-visible {
+      border-bottom-color: var(--text);
+      outline: none;
     }
-    .btn-launch.cb { background: #0E7C86; }
-    .btn-launch.cb:hover { background: #0b6870; }
-    .btn-launch.pb { background: #D9600F; }
-    .btn-launch.pb:hover { background: #b84f09; }
-    .btn-launch.colab { background: #E37400; }
-    .btn-launch.colab:hover { background: #c76500; }
-
-    .btn-repo {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      border-radius: 6px;
-      background: transparent;
-      border: 1px solid var(--border);
+    .tool-links .ext {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 1px;
+      display: inline-block;
+      transition: transform .2s ease, color .2s ease;
+    }
+    .tool-links a:hover .ext,
+    .tool-links a:focus-visible .ext {
       color: var(--text);
-      font-size: 14px;
-      font-weight: 400;
-      text-decoration: none;
-      transition: border-color .15s ease, background .15s ease;
+      transform: translate(1px, -1px);
     }
-    .btn-repo:hover {
-      border-color: #999;
-      background: #fafafa;
+
+    .tool-ref {
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+    .tool-ref a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .tool-ref a:hover,
+    .tool-ref a:focus-visible {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
     /* Back to top button */
     .to-top {
-      position: fixed; right: 24px; bottom: 24px;
-      width: 42px; height: 42px; border-radius: 50%;
-      background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.15);
-      color: var(--text); display: flex; align-items: center; justify-content: center;
+      position: fixed; right: 20px; bottom: 20px;
+      width: 42px; height: 42px; border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.12); background: #fff;
+      box-shadow: 0 8px 20px rgba(0,0,0,.12);
+      display: grid; place-items: center;
       cursor: pointer; opacity: 0; pointer-events: none;
       transition: opacity .25s ease, transform .25s ease;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06); z-index: 100;
     }
     .to-top.show { opacity: 1; pointer-events: auto; }
     .to-top:hover { transform: translateY(-2px); }
 
     /* Footer */
-    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 60px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
+    footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
     .social { display: flex; gap: clamp(16px, 4vw, 48px); flex-wrap: wrap; }
     .social a { color: inherit; text-decoration: none; font-weight: 200; }
     .social a:hover, .social a:focus-visible { text-decoration: underline; }
@@ -331,15 +265,11 @@
       .wrap { padding: 28px var(--gutter) 24px; }
       .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
       .nav-bracket { height: 114px; width: 40px; top: 0; }
-      .content { grid-template-columns: 1fr; gap: 18px; }
-      .rail { position: static; margin-bottom: 20px; }
-      .main { grid-column: 1; margin-top: 10px; }
-    }
-
-    @media (max-width: 768px) {
-      .intro { align-items: center; }
-      .nav-block { transform: none; }
-      .name br.mobile-br { display: block; }
+      .content { grid-template-columns: 1fr; gap: 22px; margin-top: 20px; }
+      .rail { position: static; }
+      .rail ul { gap: var(--nav-gap-mobile); }
+      .main { grid-column: 1; }
+      .to-top { right: 14px; bottom: 14px; }
     }
 
     @media (max-width: 600px) {
@@ -349,8 +279,8 @@
       .nav-bracket { height: 96px; width: 32px; }
       .nav-list { gap: 3px; }
       .nav-list a { font-size: 14px; padding: 2px 0; }
-      .tool-actions { flex-direction: column; align-items: stretch; }
-      .btn-launch, .btn-repo { justify-content: center; }
+      .tool { grid-template-columns: 32px 1fr; column-gap: 12px; }
+      .tool-logo { width: 32px; height: 32px; }
     }
 
     @media (max-width: 420px) {
@@ -365,6 +295,8 @@
     .name br.mobile-br { display: none; }
 
     @media (max-width: 768px) {
+      .intro { align-items: center; }
+      .nav-block { transform: none; }
       .name br.mobile-br { display: block; }
     }
 
@@ -396,507 +328,234 @@
 
     <div class="content">
       <!-- Left sticky rail -->
-      <aside class="rail" aria-label="On this page">
+      <aside class="rail" aria-label="Tool categories">
         <ul>
-          <li>
-            <a href="#bioinformatics">Bioinformatics Tools</a>
-            <ul class="sub-rail">
-              <li><a href="#structural-modeling">Structural Modeling</a></li>
-              <li><a href="#binder-design">Binder Design</a></li>
-              <li><a href="#genome-annotation">Genome Annotation and Assessment</a></li>
-            </ul>
-          </li>
-          <li>
-            <a href="#lab-workflows">Lab Workflows</a>
-            <ul class="sub-rail">
-              <li><a href="#clonebench">cloneBench</a></li>
-              <li><a href="#prepbench">prepBench</a></li>
-            </ul>
-          </li>
+          <li><a href="#structural-modeling">Structural Modeling</a></li>
+          <li><a href="#binder-design">Binder Design</a></li>
+          <li><a href="#genome-annotation">Genome Annotation and Assessment</a></li>
+          <li><a href="#lab-workflows">Lab Workflows</a></li>
         </ul>
       </aside>
 
-      <!-- Main Column: Tools Showcase -->
+      <!-- Main content -->
       <article class="main">
-        <h2>Tools</h2>
-        <p class="lead">Here you can find accessible computational and laboratory workflow tools designed to streamline day-to-day analysis and workflows.</p>
+        <header class="page-head">
+          <h2>Tools</h2>
+          <p>Computational pipelines in Google Colab and browser-based utilities for day-to-day laboratory work.</p>
+        </header>
 
-        <!-- Section 1: Bioinformatics Tools -->
-        <section id="bioinformatics" class="tool-section">
-          <h3 class="section-title">Bioinformatics Tools</h3>
-
-          <!-- Subcategory: Structural modeling -->
-          <h4 id="structural-modeling" class="subgroup-title">Structural Modeling</h4>
-
-          <!-- Tool 1: Protenix-v2 -->
-          <article id="protenix" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/protenix.png" alt="Protenix logo" />
+        <section id="structural-modeling" class="tool-section">
+          <h3>Structural Modeling</h3>
+          <div class="tool-list">
+            <article id="protenix" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/protenix.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">Protenix-v2</h3>
-                <span class="tool-tagline">Biomolecular Structure Prediction · Proteins, Nucleic Acids &amp; Small Molecules</span>
+              <div class="tool-body">
+                <h4 class="tool-name">Protenix-v2</h4>
+                <p class="tool-desc">All-atom structure prediction for proteins, DNA, RNA, and small-molecule ligand complexes, with separate notebooks for single inputs and batch runs.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/Protenix_Colab/blob/main/protenix_v2_single.ipynb" target="_blank" rel="noopener">Colab (Single) <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://colab.research.google.com/github/amiralito/Protenix_Colab/blob/main/protenix_v2_batch.ipynb" target="_blank" rel="noopener">Colab (Batch) <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/Protenix_Colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1101/2025.01.08.631967" target="_blank" rel="noopener">ByteDance AI4Science, 2025</a></span>
+                </div>
               </div>
-            </div>
+            </article>
 
-            <div class="tool-desc">
-              <p>Google Colab notebooks providing single-sequence and high-throughput batch structure prediction powered by ByteDance's Protenix-v2, an open-source all-atom biomolecular modeling system. Predicts structures of proteins, DNA, RNA, and small-molecule ligand complexes.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebooks:</strong> These are Google Colab notebooks providing easy, browser-based cloud GPU access to Protenix-v2 without requiring local installation or specialized hardware.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              ByteDance AML AI4Science Team. <em>Protenix-v2 Technical Report</em> (2026); bioRxiv (2025) <a href="https://doi.org/10.1101/2025.01.08.631967" target="_blank" rel="noopener">doi:10.1101/2025.01.08.631967</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/Protenix_Colab/blob/main/protenix_v2_single.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab (Single)</span>
-              </a>
-              <a href="https://colab.research.google.com/github/amiralito/Protenix_Colab/blob/main/protenix_v2_batch.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab (Batch)</span>
-              </a>
-              <a href="https://github.com/amiralito/Protenix_Colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 2: OpenDDE -->
-          <article id="opendde" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/opendde.png" alt="OpenDDE logo" />
+            <article id="opendde" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/opendde.png" alt="" loading="lazy" decoding="async" />
               </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">OpenDDE</h3>
-                <span class="tool-tagline">Drug Design Engine · Macromolecular Modeling &amp; Structure Generation</span>
+              <div class="tool-body">
+                <h4 class="tool-name">OpenDDE</h4>
+                <p class="tool-desc">Macromolecular complex modeling and binding interface prediction via Aureka Research's Open-Source Drug Design Engine, available for single runs and batch jobs.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/OpenDDE_Colab/blob/main/OpenDDE_single.ipynb" target="_blank" rel="noopener">Colab (Single) <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://colab.research.google.com/github/amiralito/OpenDDE_Colab/blob/main/OpenDDE_batch.ipynb" target="_blank" rel="noopener">Colab (Batch) <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/OpenDDE_Colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://github.com/Aureka-Research/OpenDDE" target="_blank" rel="noopener">Aureka Research, 2026</a></span>
+                </div>
               </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebooks providing single-run and batch modeling via OpenDDE (Open-Source Drug Design Engine) by Aureka Research, tailored for macromolecular complex modeling, binding interface prediction, and structure-based discovery workflows.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebooks:</strong> These are Google Colab notebooks providing easy, browser-based cloud GPU access to OpenDDE without requiring local installation or complex dependencies.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Aureka Research. <em>OpenDDE: Open-Source Drug Design Engine</em> (2026). Available on GitHub: <a href="https://github.com/Aureka-Research/OpenDDE" target="_blank" rel="noopener">github.com/Aureka-Research/OpenDDE</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/OpenDDE_Colab/blob/main/OpenDDE_single.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab (Single)</span>
-              </a>
-              <a href="https://colab.research.google.com/github/amiralito/OpenDDE_Colab/blob/main/OpenDDE_batch.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab (Batch)</span>
-              </a>
-              <a href="https://github.com/amiralito/OpenDDE_Colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Subcategory: Binder design -->
-          <h4 id="binder-design" class="subgroup-title">Binder Design</h4>
-
-          <!-- Tool 3: RFdiffusion3 -->
-          <article id="rfdiffusion" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/rfdiffusion.png" alt="RFdiffusion logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">RFdiffusion3</h3>
-                <span class="tool-tagline">De Novo Binder Design · All-Atom Biomolecular Interactions</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab pipeline implementing RFdiffusion3 for <em>de novo</em> design of high-affinity protein binders against specified molecular targets. Generates complementary binder backbones conditioned on target structures with full atom-level accuracy.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to RFdiffusion3 without requiring local installation or cluster setup.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Krishna R, et al. <em>De novo Design of All-atom Biomolecular Interactions with RFdiffusion3</em>. bioRxiv (2025) <a href="https://doi.org/10.1101/2025.09.18.676967" target="_blank" rel="noopener">doi:10.1101/2025.09.18.676967</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/RFdiffusion3_Colab/blob/main/RFdiffusion3_design_pipeline.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/RFdiffusion3_Colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 4: BindCraft 2 -->
-          <article id="bindcraft2" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/bindcraft2.png" alt="BindCraft 2 logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">BindCraft 2</h3>
-                <span class="tool-tagline">De Novo Protein Binder Design · AF2 Gradient Optimization &amp; MPNN Pipeline</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab pipeline for end-to-end <em>de novo</em> protein binder design powered by BindCraft&nbsp;2 (BC2). Drives AlphaFold&nbsp;2 gradient-based backbone design (hallucination), ProteinMPNN sequence redesign, held-out model re-prediction, automated multi-metric filtering, and ranking by interface confidence (i_pDAE) across diverse modalities and multi-target campaigns.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to BindCraft&nbsp;2 without requiring local installation or cluster configuration.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Pacesa M, et al. <em>One-shot design of functional protein binders with BindCraft</em>. Nature 646, 483–492 (2025) <a href="https://doi.org/10.1038/s41586-025-09429-6" target="_blank" rel="noopener">doi:10.1038/s41586-025-09429-6</a>; BindCraft&nbsp;2: <a href="https://github.com/PacesaLab/BindCraft2" target="_blank" rel="noopener">github.com/PacesaLab/BindCraft2</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/BindCraft2_colab/blob/main/BindCraft2_design_pipeline.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/BindCraft2_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 5: RFD4-Proteina -->
-          <article id="rfd4-proteina" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/rfd4_proteina.png" alt="RFD4-Proteina logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">RFD4-Proteina</h3>
-                <span class="tool-tagline">Sequence &amp; All-Atom Co-Design · Flow-Matching Foundation Model via Latent Reasoning</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab pipeline deploying RFD4-Proteina (Baker Lab / IPD &times; NVIDIA GenAIR), a flow-matching foundation model that co-designs sequence and all-atom structure in a shared chemical and conformational latent space across proteins, modified amino acids, sugars, DNA, and RNA. Supports <em>de novo</em> binder design, motif and enzyme active-site scaffolding, partial diffusion, and inverse folding with configurable recurrent refinement (&ldquo;thinking&rdquo; budgets), atom-level hotspot specification, and oracle-free geometric evaluation.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to RFD4-Proteina without requiring local installation, custom virtual environments, or cluster setup.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Corley N, Didi K, Kazman MW, Brent RI, et al. <em>Biomolecular design through latent reasoning with RFD4-Proteina</em>. Preprint (2026) <a href="https://rfd4-proteina.org/assets/paper/RFD4-Proteina.pdf" target="_blank" rel="noopener">rfd4-proteina.org</a>; RFD4-Proteina: <a href="https://github.com/RosettaCommons/RFD4-Proteina" target="_blank" rel="noopener">github.com/RosettaCommons/RFD4-Proteina</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/RFD4_Proteina_colab/blob/main/RFD4_Proteina_design_pipeline.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/RFD4_Proteina_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Subcategory: Genome annotation and assessment -->
-          <h4 id="genome-annotation" class="subgroup-title">Genome Annotation and Assessment</h4>
-
-          <!-- Tool 5: OrionGeno -->
-          <article id="oriongeno" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/oriongeno.png" alt="OrionGeno logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">OrionGeno</h3>
-                <span class="tool-tagline">Deep Learning Genome Annotation · Ab Initio Gene Model Prediction</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebook deploying OrionGeno for accurate <em>ab initio</em> eukaryotic gene prediction directly from genomic FASTA sequences. Utilizes modern deep learning to resolve exon-intron boundaries and complex genomic architecture.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to OrionGeno without requiring local installation or environment configuration.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Liu L, et al. <em>Advancing ab initio genome annotation with OrionGeno</em>. bioRxiv (2026) <a href="https://doi.org/10.64898/2026.04.26.720859" target="_blank" rel="noopener">doi:10.64898/2026.04.26.720859</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/OrionGeno_colab/blob/main/OrionGeno_gene_prediction.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/OrionGeno_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 6: Tiberius -->
-          <article id="tiberius" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/tiberius.png" alt="Tiberius logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">Tiberius</h3>
-                <span class="tool-tagline">End-to-End Deep Learning &amp; HMM · Eukaryotic Gene Finding</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebook running Tiberius, an end-to-end gene prediction framework that couples convolutional neural networks and transformer layers with a differentiable Hidden Markov Model (HMM) for rapid, accurate eukaryotic genome annotation.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to Tiberius without requiring local compilation or dependencies.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Gabriel L, Becker F, Hoff KJ, Stanke M. <em>Tiberius: end-to-end deep learning with an HMM for gene prediction</em>. <em>Bioinformatics</em> 40(12):btae685 (2024) <a href="https://doi.org/10.1093/bioinformatics/btae685" target="_blank" rel="noopener">doi:10.1093/bioinformatics/btae685</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/Tiberius_colab/blob/main/Tiberius_gene_prediction.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/Tiberius_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 7: Helixer -->
-          <article id="helixer" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/helixer.png" alt="Helixer logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">Helixer</h3>
-                <span class="tool-tagline">Deep Learning &amp; HMM Gene Prediction · Ab Initio Annotation &amp; BUSCO Assessment</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebook deploying Helixer for fast, high-accuracy <em>ab initio</em> eukaryotic gene prediction coupled with automated BUSCO completeness assessment. Integrates convolutional and bidirectional LSTM networks with HMM decoding (HelixerPost), multi-lineage model support, and gffread CDS/protein extraction across single or batch genomes.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to Helixer without requiring local installation, custom CUDA environments, or complex dependencies.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Holst F, et al. <em>Helixer: ab initio prediction of primary eukaryotic gene models combining deep learning and a hidden Markov model</em>. <em>Nature Methods</em> (2025) <a href="https://doi.org/10.1038/s41592-025-02939-1" target="_blank" rel="noopener">doi:10.1038/s41592-025-02939-1</a>; Helixer: <a href="https://github.com/usadellab/Helixer" target="_blank" rel="noopener">github.com/usadellab/Helixer</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/Helixer_colab/blob/main/Helixer_gene_prediction.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/Helixer_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 8: Carbon-A -->
-          <article id="carbona" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/carbona.png" alt="Carbon-A logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">Carbon-A</h3>
-                <span class="tool-tagline">1.2B DNA Foundation Model · Ab Initio Gene Prediction &amp; BUSCO Assessment</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebook deploying Carbon-A-1.2B (Hugging Face Biology), a 1.2-billion-parameter foundation DNA language model that predicts base-wise protein-coding probabilities across eukaryotic genomes. Combines a gene-grammar Viterbi decoder to resolve full gene models (GFF3, CDS, and protein sequences), per-strand bigWig coding-probability tracks, and automated BUSCO completeness assessment for single or batch genomes.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud GPU access to Carbon-A-1.2B without requiring local weight downloads or complex dependencies.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              HuggingFaceBio. <em>Carbon-A: A 1.2B Parameter DNA Foundation Model for Genome Annotation</em>. Technical Report (2026); Hugging Face: <a href="https://huggingface.co/HuggingFaceBio/Carbon-A-1.2B" target="_blank" rel="noopener">huggingface.co/HuggingFaceBio/Carbon-A-1.2B</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/CarbonA_colab/blob/main/CarbonA_gene_prediction.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/CarbonA_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 9: BUSCO -->
-          <article id="busco" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
-                <img src="data/logos/busco.png" alt="BUSCO logo" />
-              </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">BUSCO</h3>
-                <span class="tool-tagline">Completeness Assessment · Orthology-Based Assembly &amp; Annotation Evaluation</span>
-              </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>Google Colab notebook deploying BUSCO (Benchmarking Universal Single-Copy Orthologs) for automated completeness assessment of proteomes, genome assemblies, and transcriptomes against OrthoDB lineages. Supports single files, batches, and Google Drive folders across <code>proteins</code> (HMMER), <code>genome</code> (miniprot/MetaEuk), and <code>transcriptome</code> modes, generating consolidated summary tables (TSV), publication-ready stacked-bar plots, and sample status matrices.</p>
-            </div>
-
-            <div class="colab-callout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span><strong>Google Colab Notebook:</strong> This is a Google Colab notebook providing easy, browser-based cloud access to BUSCO without requiring local conda environments, compilation, or command-line installation.</span>
-            </div>
-
-            <div class="tool-citation">
-              <strong>Citation &amp; Reference</strong>
-              Manni M, et al. <em>BUSCO update: novel and streamlined workflows along with broader and deeper phylogenetic coverage for scoring of eukaryotic, prokaryotic, and viral genomes</em>. <em>Mol Biol Evol</em> 38(10):4647–4654 (2021) <a href="https://doi.org/10.1093/molbev/msab199" target="_blank" rel="noopener">doi:10.1093/molbev/msab199</a>; BUSCO: <a href="https://busco.ezlab.org" target="_blank" rel="noopener">busco.ezlab.org</a>.
-            </div>
-
-            <div class="tool-actions">
-              <a href="https://colab.research.google.com/github/amiralito/BUSCO_colab/blob/main/BUSCO_assessment.ipynb" target="_blank" rel="noopener" class="btn-launch colab">
-                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M10.8 11.2C8.15 11.2 6 13.35 6 16s2.15 4.8 4.8 4.8c2.05 0 3.82-1.29 4.5-3.13-.9-.63-1.63-1.47-2.12-2.45-.45.48-1.09.78-1.8.78-1.44 0-2.6-1.16-2.6-2.6s1.16-2.6 2.6-2.6c.71 0 1.35.3 1.8.78.49-.98 1.22-1.82 2.12-2.45-.68-1.84-2.45-3.13-4.5-3.13zm10.4 0c-2.05 0-3.82 1.29-4.5 3.13.9.63 1.63 1.47 2.12 2.45.45-.48 1.09-.78 1.8-.78 1.44 0 2.6 1.16 2.6 2.6s-1.16 2.6-2.6 2.6c-.71 0-1.35-.3-1.8-.78-.49.98-1.22 1.82-2.12 2.45.68 1.84 2.45 3.13 4.5 3.13C23.85 20.8 26 18.65 26 16s-2.15-4.8-4.8-4.8z" fill="#ffffff"/>
-                </svg>
-                <span>Open in Colab</span>
-              </a>
-              <a href="https://github.com/amiralito/BUSCO_colab" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
+            </article>
+          </div>
         </section>
 
-        <!-- Section 2: Lab Workflows -->
-        <section id="lab-workflows" class="tool-section">
-          <h3 class="section-title">Lab Workflows</h3>
+        <section id="binder-design" class="tool-section">
+          <h3>Binder Design</h3>
+          <div class="tool-list">
+            <article id="rfdiffusion" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/rfdiffusion.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">RFdiffusion3</h4>
+                <p class="tool-desc">All-atom <i>de novo</i> protein binder design conditioned on target structures.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/RFdiffusion3_Colab/blob/main/RFdiffusion3_design_pipeline.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/RFdiffusion3_Colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1101/2025.09.18.676967" target="_blank" rel="noopener">Krishna et al., 2025</a></span>
+                </div>
+              </div>
+            </article>
 
-          <!-- Tool 1: cloneBench -->
-          <article id="clonebench" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
+            <article id="bindcraft2" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/bindcraft2.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">BindCraft 2</h4>
+                <p class="tool-desc">End-to-end <i>de novo</i> protein binder design combining AlphaFold 2 gradient-based backbone generation, ProteinMPNN sequence design, and interface confidence filtering.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/BindCraft2_colab/blob/main/BindCraft2_design_pipeline.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/BindCraft2_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1038/s41586-025-09429-6" target="_blank" rel="noopener">Pacesa et al., 2025</a></span>
+                </div>
+              </div>
+            </article>
+
+            <article id="rfd4-proteina" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/rfd4_proteina.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">RFD4-Proteina</h4>
+                <p class="tool-desc">Joint sequence and all-atom structure co-design across proteins, nucleic acids, and modified residues for binder design, motif scaffolding, partial diffusion, and inverse folding.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/RFD4_Proteina_colab/blob/main/RFD4_Proteina_design_pipeline.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/RFD4_Proteina_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://rfd4-proteina.org/assets/paper/RFD4-Proteina.pdf" target="_blank" rel="noopener">Corley et al., 2026</a></span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="genome-annotation" class="tool-section">
+          <h3>Genome Annotation and Assessment</h3>
+          <div class="tool-list">
+            <article id="oriongeno" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/oriongeno.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">OrionGeno</h4>
+                <p class="tool-desc"><i>Ab initio</i> eukaryotic gene model prediction directly from genomic FASTA sequences.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/OrionGeno_colab/blob/main/OrionGeno_gene_prediction.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/OrionGeno_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.64898/2026.04.26.720859" target="_blank" rel="noopener">Liu et al., 2026</a></span>
+                </div>
+              </div>
+            </article>
+
+            <article id="tiberius" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/tiberius.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">Tiberius</h4>
+                <p class="tool-desc">End-to-end eukaryotic gene prediction combining convolutional and transformer layers with a differentiable hidden Markov model.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/Tiberius_colab/blob/main/Tiberius_gene_prediction.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/Tiberius_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1093/bioinformatics/btae685" target="_blank" rel="noopener">Gabriel et al., 2024</a></span>
+                </div>
+              </div>
+            </article>
+
+            <article id="helixer" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/helixer.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">Helixer</h4>
+                <p class="tool-desc"><i>Ab initio</i> eukaryotic gene prediction across multiple lineage models, paired with gffread sequence extraction and BUSCO completeness checks.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/Helixer_colab/blob/main/Helixer_gene_prediction.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/Helixer_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1038/s41592-025-02939-1" target="_blank" rel="noopener">Holst et al., 2025</a></span>
+                </div>
+              </div>
+            </article>
+
+            <article id="carbona" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/carbona.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">Carbon-A</h4>
+                <p class="tool-desc">Eukaryotic gene prediction using the 1.2B-parameter Carbon-A DNA language model and a Viterbi gene-grammar decoder, outputting GFF3 models, coding-probability tracks, and BUSCO summaries.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/CarbonA_colab/blob/main/CarbonA_gene_prediction.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/CarbonA_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://huggingface.co/HuggingFaceBio/Carbon-A-1.2B" target="_blank" rel="noopener">HuggingFaceBio, 2026</a></span>
+                </div>
+              </div>
+            </article>
+
+            <article id="busco" class="tool">
+              <div class="tool-logo" aria-hidden="true">
+                <img src="data/logos/busco.png" alt="" loading="lazy" decoding="async" />
+              </div>
+              <div class="tool-body">
+                <h4 class="tool-name">BUSCO</h4>
+                <p class="tool-desc">Completeness assessment for proteomes, genome assemblies, and transcriptomes against OrthoDB lineages across single files or batches, with summary tables and stacked-bar plots.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="https://colab.research.google.com/github/amiralito/BUSCO_colab/blob/main/BUSCO_assessment.ipynb" target="_blank" rel="noopener">Open in Colab <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito/BUSCO_colab" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                  <span class="tool-ref">Reference: <a href="https://doi.org/10.1093/molbev/msab199" target="_blank" rel="noopener">Manni et al., 2021</a></span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="lab-workflows" class="tool-section">
+          <h3>Lab Workflows</h3>
+          <div class="tool-list">
+            <article id="clonebench" class="tool">
+              <div class="tool-logo" aria-hidden="true">
                 <svg viewBox="0 0 32 32">
                   <rect width="32" height="32" rx="7" fill="#0E7C86"/>
                   <circle cx="16" cy="16" r="8.6" fill="none" stroke="#fff" stroke-width="2.4" opacity=".5"/>
                   <path d="M22.1 9.9a8.6 8.6 0 0 1 0 12.2" fill="none" stroke="#fff" stroke-width="4.6" stroke-linecap="round"/>
                 </svg>
               </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">cloneBench</h3>
-                <span class="tool-tagline">Assembly Planner · Golden Gate &amp; Restriction-Ligation</span>
+              <div class="tool-body">
+                <h4 class="tool-name">cloneBench</h4>
+                <p class="tool-desc">Interactive bench planner for Golden Gate and Type IIS restriction-ligation cloning. Computes pipetting volumes from plasmid concentrations and molar ratios, audits internal restriction sites, pools master mixes, and exports run sheets to Excel or CSV.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="tools/cBench_cloning_planner.html" target="_blank" rel="noopener">Open cloneBench <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                </div>
               </div>
-            </div>
+            </article>
 
-            <div class="tool-desc">
-              <p>An interactive planner for Golden Gate and Type IIS restriction-ligation cloning. Calculates exact pipetting volumes for plasmid preps based on measured concentrations and molar ratios relative to the destination vector.</p>
-              <p>Features automated Type IIS recognition site auditing across circular sequences, water make-up calculations, shared master mix pooling with configurable excess, part inventory tracking across multi-tube runs, and a quick dilution calculator (<em>C</em><sub>1</sub>·<em>V</em><sub>1</sub> = <em>C</em><sub>2</sub>·<em>V</em><sub>2</sub>).</p>
-            </div>
-
-            <div class="tool-badges">
-              <span class="badge">Molar Dosing</span>
-              <span class="badge">Type IIS Site Audit</span>
-              <span class="badge">Master Mix Optimizer</span>
-              <span class="badge">Part Usage Tracking</span>
-              <span class="badge">Excel (.xlsx) &amp; CSV Export</span>
-              <span class="badge">Offline Safe</span>
-            </div>
-
-            <div class="tool-actions">
-              <a href="tools/cBench_cloning_planner.html" target="_blank" rel="noopener" class="btn-launch cb">
-                <span>Launch cloneBench</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </a>
-              <a href="https://github.com/amiralito" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
-
-          <!-- Tool 2: prepBench -->
-          <article id="prepbench" class="tool-card">
-            <div class="tool-head">
-              <div class="tool-icon" aria-hidden="true">
+            <article id="prepbench" class="tool">
+              <div class="tool-logo" aria-hidden="true">
                 <svg viewBox="0 0 32 32">
                   <rect width="32" height="32" rx="7" fill="#D9600F"/>
                   <g transform="translate(16,16) scale(1.3) translate(-16,-16)">
@@ -906,38 +565,18 @@
                   </g>
                 </svg>
               </div>
-              <div class="tool-title-wrap">
-                <h3 class="tool-name">prepBench</h3>
-                <span class="tool-tagline">Dilution Planner · Bacterial Culture &amp; OD600 Normalization</span>
+              <div class="tool-body">
+                <h4 class="tool-name">prepBench</h4>
+                <p class="tool-desc">Interactive bench calculator for bacterial culture dilution and OD<sub>600</sub> normalization across single strains or multi-strain co-cultures, with construct tracking, dead-volume allowances, and exportable run sheets.</p>
+                <div class="tool-meta">
+                  <span class="tool-links">
+                    <a href="tools/pBench_dilution_planner.html" target="_blank" rel="noopener">Open prepBench <span class="ext" aria-hidden="true">&#8599;</span></a>
+                    <a href="https://github.com/amiralito" target="_blank" rel="noopener">GitHub <span class="ext" aria-hidden="true">&#8599;</span></a>
+                  </span>
+                </div>
               </div>
-            </div>
-
-            <div class="tool-desc">
-              <p>An interactive bench tool designed for bacterial dilution planning and OD<sub>600</sub> normalization. Calculates exact neat culture and buffer volumes needed to normalize bacterial suspensions to target densities.</p>
-              <p>Supports single-strain dilutions and multi-strain co-culture combinations, tracks construct metadata (strains, plasmids, tags, antibiotics, stock locations), accounts for pipetting dead volume, and exports formatted run sheets for the bench.</p>
-            </div>
-
-            <div class="tool-badges">
-              <span class="badge">OD600 Normalization</span>
-              <span class="badge">Bacterial Co-Cultures</span>
-              <span class="badge">Construct Library</span>
-              <span class="badge">Neat Culture Volume Tracking</span>
-              <span class="badge">Bench Run Sheets</span>
-              <span class="badge">Excel (.xlsx) &amp; CSV Export</span>
-              <span class="badge">Offline Safe</span>
-            </div>
-
-            <div class="tool-actions">
-              <a href="tools/pBench_dilution_planner.html" target="_blank" rel="noopener" class="btn-launch pb">
-                <span>Launch prepBench</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </a>
-              <a href="https://github.com/amiralito" target="_blank" rel="noopener" class="btn-repo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                <span>GitHub Repository</span>
-              </a>
-            </div>
-          </article>
+            </article>
+          </div>
         </section>
       </article>
     </div>
@@ -966,38 +605,55 @@
         e.preventDefault();
         const url = this.getAttribute('href');
         document.body.classList.add('fade-out');
-        setTimeout(() => { window.location.href = url; }, 300);
+        const go = () => window.location.href = url;
+        let fired = false;
+        document.body.addEventListener('transitionend', () => { if (!fired) { fired = true; go(); } }, { once: true });
+        setTimeout(() => { if (!fired) go(); }, 450);
       });
     });
 
-    // Remove preload class after document load for smooth fade-in
-    window.addEventListener('load', () => {
-      document.body.classList.remove('preload');
-    });
-
-    window.addEventListener('pageshow', (event) => {
-      if (event.persisted) {
-        document.body.classList.remove('fade-out', 'preload');
-      } else {
-        document.body.classList.remove('preload');
-      }
-    });
-
-    // Back to top button visibility
-    const toTopBtn = document.querySelector('.to-top');
-    if (toTopBtn) {
-      window.addEventListener('scroll', () => {
-        if (window.scrollY > 400) {
-          toTopBtn.classList.add('show');
-        } else {
-          toTopBtn.classList.remove('show');
-        }
-      }, { passive: true });
-
-      toTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+    // Scrollspy for left rail
+    const sections = document.querySelectorAll('.main section[id]');
+    const railLinks = document.querySelectorAll('.rail a');
+    if ('IntersectionObserver' in window && sections.length && railLinks.length) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('id');
+            railLinks.forEach(link => {
+              if (link.getAttribute('href') === `#${id}`) {
+                link.classList.add('active');
+              } else {
+                link.classList.remove('active');
+              }
+            });
+          }
+        });
+      }, { rootMargin: '-15% 0px -70% 0px' });
+      sections.forEach(sec => observer.observe(sec));
     }
+
+    // Show/Hide Back-to-top on scroll
+    const toTop = document.querySelector('.to-top');
+    const revealAt = 120; // px
+    const onScroll = () => {
+      if (window.scrollY > revealAt) toTop.classList.add('show');
+      else toTop.classList.remove('show');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Smooth scroll to top
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // Reveal (fade-in) on load & when coming back via bfcache
+    const reveal = () => document.body.classList.remove('fade-out', 'preload');
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(reveal));
+    } else {
+      requestAnimationFrame(reveal);
+    }
+    window.addEventListener('pageshow', () => reveal());
   </script>
 </body>
 </html>
