@@ -28,9 +28,8 @@
       --nav-gap-desktop: 10px;
       --nav-gap-mobile: 5px;
       --rail-width: 28%; /* controls where the main body starts (same behavior as publications) */
-      --about-top-gap: 100px;
-      --sticky-top: 250px; /* where the left list sticks */
-      --section-gap: 26px; /* space between sections in main */
+      --content-top-gap: 56px;
+      --section-gap: 44px;
     }
 
     * { box-sizing: border-box; }
@@ -61,26 +60,142 @@
     .nav-list a { display: inline-block; padding: 4px 0; font-weight: 400; font-size: clamp(15px,1.3vw,18px); text-decoration: none; color: inherit; transform: translateX(0); transition: transform .25s ease; }
     .nav-list a:hover, .nav-list a:focus-visible { transform: translateX(8px); outline: none; }
 
-    /* Body layout: left rail + about text */
-    .content { display: grid; grid-template-columns: var(--rail-width) 1fr; gap: clamp(30px, 8vw, 80px); align-items: start; }
+    /* Body layout: Row 1 = left portrait + centered bio; Row 2 = right timeline */
+    .content {
+      display: grid;
+      grid-template-columns: var(--rail-width) 1fr;
+      column-gap: clamp(30px, 8vw, 80px);
+      row-gap: var(--section-gap);
+      align-items: center;
+      margin-top: var(--content-top-gap);
+    }
 
+    /* Left column (Row 1): Portrait */
+    figure.portrait {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+      margin: 0;
+      width: 100%;
+      max-width: 280px;
+    }
+    .portrait img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .portrait figcaption {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
 
-    /* Main column */
-    .about { grid-column: 2; max-width: 68ch; margin-top: var(--about-top-gap); }
-    .about p { margin: 0 0 1.05em; line-height: 1.6; }
-    .about section + section { margin-top: var(--section-gap); }
+    /* Right column: Main bio (Row 1, centered with portrait) + Timeline (Row 2) */
+    .about-bio {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: center;
+      max-width: 68ch;
+    }
+    .about-timeline {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+      max-width: 68ch;
+    }
+    .about-bio h2 {
+      margin: 0 0 12px;
+      font-size: clamp(20px, 2.2vw, 28px);
+      font-weight: 600;
+    }
+    .about-timeline h3 {
+      margin: 0 0 18px;
+      font-size: clamp(18px, 1.9vw, 22px);
+      font-weight: 600;
+    }
+    .about-bio p { margin: 0 0 1.05em; line-height: 1.6; }
+    .about-bio p:last-child { margin-bottom: 0; }
 
-    .about a { color: inherit; text-decoration: none; }
-    .about a:visited { color: inherit; }
-    .about a:hover, .about a:focus-visible { text-decoration: underline; }
+    .about-bio a { color: inherit; text-decoration: none; }
+    .about-bio a:visited { color: inherit; }
+    .about-bio a:hover, .about-bio a:focus-visible { text-decoration: underline; }
 
-    /* Photo */
-    figure.portrait { margin: 18px 0 0; }
-    .portrait img { width: 100%; height: auto; display: block; }
-    .portrait figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); }
-
-    /* Lists inside CV */
-    .cv-list { margin: 8px 0 0 18px; }
+    /* Minimal Career Timeline */
+    .timeline {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .tl-item {
+      display: grid;
+      grid-template-columns: 118px 20px 1fr;
+      column-gap: 12px;
+      align-items: start;
+    }
+    .tl-year {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      padding-top: 1px;
+    }
+    .tl-axis {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-self: stretch;
+    }
+    .tl-axis::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      bottom: -9px;
+      left: 50%;
+      width: 1px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.14);
+    }
+    .tl-item:last-child .tl-axis::before {
+      display: none;
+    }
+    .tl-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-top: 6px;
+      background: var(--bg);
+      border: 1.25px solid var(--text);
+      position: relative;
+      z-index: 1;
+      flex-shrink: 0;
+    }
+    .tl-item.current .tl-dot {
+      background: var(--text);
+    }
+    .tl-item.current .tl-year {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .tl-body {
+      padding-bottom: 22px;
+    }
+    .tl-item:last-child .tl-body {
+      padding-bottom: 0;
+    }
+    .tl-role {
+      font-size: 15.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--text);
+      margin: 0;
+    }
+    .tl-place {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
 
     /* Footer */
     footer { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 40px; color: var(--muted); font-size: clamp(12px, 1.1vw, 14px); }
@@ -93,9 +208,9 @@
       .wrap { padding: 28px var(--gutter) 24px; }
       .intro { grid-template-columns: 1fr auto; column-gap: 16px; }
       .nav-bracket { height: 114px; width: 40px; top: 0; }
-      .content { grid-template-columns: 1fr; gap: 18px; }
-      .rail { position: static; }
-      .about { grid-column: 1; max-width: 70ch; margin-top: 20px; }
+      .content { grid-template-columns: 1fr; row-gap: 32px; margin-top: 24px; }
+      figure.portrait { grid-column: 1; grid-row: auto; max-width: 220px; justify-self: center; }
+      .about-bio, .about-timeline { grid-column: 1; grid-row: auto; max-width: 70ch; }
     }
 
     @media (max-width: 600px) {
@@ -105,6 +220,8 @@
       .nav-bracket { height: 96px; width: 32px; }
       .nav-list { gap: 3px; }
       .nav-list a { font-size: 14px; padding: 2px 0; }
+      .tl-item { grid-template-columns: 98px 16px 1fr; column-gap: 10px; }
+      .tl-year { font-size: 12.5px; }
     }
 
     @media (max-width: 420px) {
@@ -114,6 +231,7 @@
       .nav-block { gap: 8px; }
       .nav-bracket { height: 90px; width: 30px; }
       .nav-list a { font-size: 13.5px; }
+      figure.portrait { max-width: 190px; }
     }
 
     .name br.mobile-br { display: none; }
@@ -150,22 +268,57 @@
       </section>
     </main>
 
-    <div class="content">
+    <article class="content">
+      <figure class="portrait">
+        <img src="data/IMG_5851.webp" width="1097" height="1397" alt="AmirAli Toghani" decoding="async" />
+        <figcaption>Credit: Phil Robinson (JIC)</figcaption>
+      </figure>
 
-      <article class="about">
-        <section id="about">
-          <h2 style="margin:0 0 12px;font-size:clamp(20px,2.2vw,28px);font-weight:600">About</h2>
-          <p>I studied Horticultural Sciences and Engineering, with a minor in Biotechnology, at Isfahan University of Technology, where I first became fascinated by the world of plants and their interactions with microbes. My curiosity about plant immunity eventually led me to Norwich, where I joined the <a href="https://kamounlab.tumblr.com/" target="_blank" rel="noopener">Kamoun Lab</a> at <a href="https://www.tsl.ac.uk/" target="_blank" rel="noopener">The Sainsbury Laboratory (TSL)</a>, UK, in 2021 as a pre-doctoral researcher. After almost two wonderful years as a predoc, I began my PhD in the Kamoun Lab in 2023.</p>
-          <p>My research explores the molecular evolution and mechanisms of plant immune receptors. For more about my current projects, please check out the <a href="research.html" data-route>Research</a> tab.</p>
-          <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
+      <section id="about" class="about-bio">
+        <h2>About</h2>
+        <p>I studied Horticultural Sciences and Engineering, with a minor in Biotechnology, at Isfahan University of Technology, where I first became fascinated by the world of plants and their interactions with microbes. My curiosity about plant immunity eventually led me to Norwich, where I joined the <a href="https://kamounlab.tumblr.com/" target="_blank" rel="noopener">Kamoun Lab</a> at <a href="https://www.tsl.ac.uk/" target="_blank" rel="noopener">The Sainsbury Laboratory (TSL)</a>, UK, in 2021 as a pre-doctoral researcher. After almost two wonderful years as a predoc, I began my PhD in the Kamoun Lab in 2023. I finished my PhD in 2026 and am now a Postdoctoral Scientist at TSL.</p>
+        <p>My research explores the molecular evolution and mechanisms of plant immune receptors. For more about my current projects, please check out the <a href="research.html" data-route>Research</a> tab.</p>
+        <p>Outside of work, I enjoy arts, design, music, gaming, and ancient mythology.</p>
+      </section>
 
-          <figure class="portrait">
-            <img src="data/IMG_5851.webp" width="1600" height="1067" alt="AmirAli Toghani" loading="lazy" decoding="async" />
-            <figcaption>Credit: Phil Robinson (JIC)</figcaption>
-          </figure>
-        </section>
-      </article>
-    </div>
+      <section id="timeline" class="about-timeline" aria-label="Career timeline">
+        <h3>Timeline</h3>
+        <ol class="timeline">
+          <li class="tl-item current">
+            <div class="tl-year">2026 &ndash; Present</div>
+            <div class="tl-axis" aria-hidden="true"><span class="tl-dot"></span></div>
+            <div class="tl-body">
+              <div class="tl-role">Postdoctoral Scientist</div>
+              <div class="tl-place">Kamoun Lab, The Sainsbury Laboratory, Norwich, UK</div>
+            </div>
+          </li>
+          <li class="tl-item">
+            <div class="tl-year">2023 &ndash; 2026</div>
+            <div class="tl-axis" aria-hidden="true"><span class="tl-dot"></span></div>
+            <div class="tl-body">
+              <div class="tl-role">PhD</div>
+              <div class="tl-place">Kamoun Lab, The Sainsbury Laboratory &amp; University of East Anglia, UK</div>
+            </div>
+          </li>
+          <li class="tl-item">
+            <div class="tl-year">2021 &ndash; 2023</div>
+            <div class="tl-axis" aria-hidden="true"><span class="tl-dot"></span></div>
+            <div class="tl-body">
+              <div class="tl-role">Pre-doctoral Researcher</div>
+              <div class="tl-place">Kamoun Lab, The Sainsbury Laboratory, Norwich, UK</div>
+            </div>
+          </li>
+          <li class="tl-item">
+            <div class="tl-year">2017 &ndash; 2021</div>
+            <div class="tl-axis" aria-hidden="true"><span class="tl-dot"></span></div>
+            <div class="tl-body">
+              <div class="tl-role">BSc in Horticultural Sciences and Engineering</div>
+              <div class="tl-place">Isfahan University of Technology, Iran &middot; Minor in Biotechnology</div>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </article>
 
     <footer>
       <nav class="social" aria-label="Social links">

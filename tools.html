@@ -612,36 +612,55 @@
       });
     });
 
-    // Scrollspy for left rail
-    const sections = document.querySelectorAll('.main section[id]');
-    const railLinks = document.querySelectorAll('.rail a');
-    if ('IntersectionObserver' in window && sections.length && railLinks.length) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute('id');
-            railLinks.forEach(link => {
-              if (link.getAttribute('href') === `#${id}`) {
-                link.classList.add('active');
-              } else {
-                link.classList.remove('active');
-              }
-            });
-          }
-        });
-      }, { rootMargin: '-15% 0px -70% 0px' });
-      sections.forEach(sec => observer.observe(sec));
-    }
-
-    // Show/Hide Back-to-top on scroll
+    // Scrollspy for left rail & Back-to-top visibility
+    const sections = Array.from(document.querySelectorAll('.main section[id]'));
+    const railLinks = Array.from(document.querySelectorAll('.rail a'));
     const toTop = document.querySelector('.to-top');
     const revealAt = 120; // px
-    const onScroll = () => {
-      if (window.scrollY > revealAt) toTop.classList.add('show');
-      else toTop.classList.remove('show');
+
+    const updateOnScroll = () => {
+      if (toTop) {
+        if (window.scrollY > revealAt) toTop.classList.add('show');
+        else toTop.classList.remove('show');
+      }
+
+      if (!sections.length || !railLinks.length) return;
+
+      let activeId = sections[0].id;
+      const triggerLine = Math.max(140, window.innerHeight * 0.32);
+
+      for (const sec of sections) {
+        if (sec.getBoundingClientRect().top <= triggerLine) {
+          activeId = sec.id;
+        }
+      }
+
+      const atBottom =
+        window.scrollY > 0 &&
+        window.innerHeight + Math.ceil(window.scrollY) >= document.documentElement.scrollHeight - 12;
+      if (atBottom) {
+        activeId = sections[sections.length - 1].id;
+      }
+
+      for (const link of railLinks) {
+        link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`);
+      }
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+
+    let ticking = false;
+    const requestScrollUpdate = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          updateOnScroll();
+          ticking = false;
+        });
+      }
+    };
+
+    window.addEventListener('scroll', requestScrollUpdate, { passive: true });
+    window.addEventListener('resize', requestScrollUpdate, { passive: true });
+    updateOnScroll();
 
     // Smooth scroll to top
     toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
