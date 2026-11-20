@@ -137,6 +137,7 @@ class BifrostStore {
     this.setPromises = new Map(); // setIdx -> Promise
 
     // Lookups derived from meta
+    this.screenedIds = [];
     this.idByName = new Map();
     this.pathByName = new Map();
     this.datasetByName = new Map();
@@ -149,17 +150,23 @@ class BifrostStore {
   async loadMeta() {
     if (this.meta) return this.meta;
     if (!this.metaPromise) {
-      this.metaPromise = fetchGzJson('./data/meta.json.gz').then((meta) => {
-        this.meta = meta;
-        this._buildMetaIndexes();
-        return meta;
-      });
+      this.metaPromise = fetchGzJson('./data/meta.json.gz')
+        .then((meta) => {
+          this.meta = meta;
+          this._buildMetaIndexes();
+          return meta;
+        })
+        .catch((err) => {
+          this.metaPromise = null;
+          throw err;
+        });
     }
     return this.metaPromise;
   }
 
   _buildMetaIndexes() {
     const { ids, pathogens, datasets } = this.meta;
+    this.screenedIds = ids.filter((r) => r.scr);
     this.idByName.clear();
     this.pathByName.clear();
     this.datasetByName.clear();
@@ -205,10 +212,15 @@ class BifrostStore {
   async loadTopHits() {
     if (this.topHits) return this.topHits;
     if (!this.topHitsPromise) {
-      this.topHitsPromise = fetchGzJson('./data/top_hits.json.gz').then((data) => {
-        this.topHits = data;
-        return data;
-      });
+      this.topHitsPromise = fetchGzJson('./data/top_hits.json.gz')
+        .then((data) => {
+          this.topHits = data;
+          return data;
+        })
+        .catch((err) => {
+          this.topHitsPromise = null;
+          throw err;
+        });
     }
     return this.topHitsPromise;
   }
@@ -216,10 +228,15 @@ class BifrostStore {
   async loadParentNlrs() {
     if (this.parentNlrs) return this.parentNlrs;
     if (!this.parentNlrsPromise) {
-      this.parentNlrsPromise = fetchGzJson('./data/parent_nlrs.json.gz').then((arr) => {
-        this.parentNlrs = arr;
-        return arr;
-      });
+      this.parentNlrsPromise = fetchGzJson('./data/parent_nlrs.json.gz')
+        .then((arr) => {
+          this.parentNlrs = arr;
+          return arr;
+        })
+        .catch((err) => {
+          this.parentNlrsPromise = null;
+          throw err;
+        });
     }
     return this.parentNlrsPromise;
   }

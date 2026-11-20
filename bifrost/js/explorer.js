@@ -1,13 +1,13 @@
 /**
  * Bifrost Wiki — Full 757,597-Pair Score Explorer
  *
- * Calm 1-row primary toolbar (search + organism & threshold chips) with a
+ * Calm 1-row primary toolbar (search + organism chips + view toggles) with a
  * collapsible advanced-filters drawer so the score table sits immediately
  * above the fold.
  */
 
 import { store, SCORE_SCALE, STATUS } from './data.js';
-import { renderSimpleHistogramSvg, ORG_COLORS } from './charts.js';
+import { renderSimpleHistogramSvg, wireInteractiveCharts, ORG_COLORS } from './charts.js';
 import {
   esc,
   fmtInt,
@@ -34,7 +34,7 @@ const state = {
   protClass: '',
   status: 'scored',
   text: '',
-  minIpsae: 0.3,
+  minIpsae: 0,
   maxIpsae: 1.0,
   minIptm: 0.0,
   minPdockq: 0.0,
@@ -51,31 +51,38 @@ const state = {
 let activeGeneration = 0;
 
 function applyQueryParams(params) {
-  if (!params || ![...params.keys()].length) return;
-  state.set = params.get('set') || '';
-  state.idPanel = params.get('idPanel') || '';
-  state.pathPanel = params.get('pathPanel') || '';
-  state.org = params.get('org') || '';
-  state.category = params.get('category') || '';
-  state.interpro = params.get('ipr') || '';
-  state.plantOrder = params.get('order') || '';
-  state.nlrClass = params.get('nlrClass') || '';
-  state.pathSpecies = params.get('pathSpecies') || '';
-  state.protClass = params.get('protClass') || '';
-  state.status = params.get('status') || 'scored';
-  state.text = params.get('q') || '';
-  state.minIpsae = params.has('ipsae')
-    ? Number(params.get('ipsae'))
-    : (state.set || state.interpro || state.category ? 0 : 0.3);
-  state.maxIpsae = params.has('maxIpsae') ? Number(params.get('maxIpsae')) : 1.0;
-  state.minIptm = params.has('iptm') ? Number(params.get('iptm')) : 0;
-  state.minPdockq = params.has('pdockq') ? Number(params.get('pdockq')) : 0;
-  state.minLis = params.has('lis') ? Number(params.get('lis')) : 0;
-  state.minContacts = params.has('contacts') ? Number(params.get('contacts')) : 0;
+  const p = params || new URLSearchParams();
+  const numParam = (k, def, min, max) => {
+    if (!p.has(k) || p.get(k) === '') return def;
+    const v = Number(p.get(k));
+    return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : def;
+  };
+  state.set = p.get('set') || '';
+  state.idPanel = p.get('idPanel') || '';
+  state.pathPanel = p.get('pathPanel') || '';
+  state.org = p.get('org') || '';
+  state.category = p.get('category') || '';
+  state.interpro = p.get('ipr') || '';
+  state.plantOrder = p.get('order') || '';
+  state.nlrClass = p.get('nlrClass') || '';
+  state.pathSpecies = p.get('pathSpecies') || '';
+  state.protClass = p.get('protClass') || '';
+  const stParam = p.get('status');
+  state.status = ['scored', 'all', 'failed', 'missing'].includes(stParam) ? stParam : 'scored';
+  state.text = p.get('q') || '';
+  state.minIpsae = numParam('ipsae', 0, 0, 1);
+  state.maxIpsae = numParam('maxIpsae', 1.0, 0, 1);
+  state.minIptm = numParam('iptm', 0, 0, 1);
+  state.minPdockq = numParam('pdockq', 0, 0, 1);
+  state.minLis = numParam('lis', 0, 0, 1);
+  state.minContacts = numParam('contacts', 0, 0, 10000);
+  state.sortBy = 'ipsae_min';
+  state.sortDir = 'desc';
   // Auto-open advanced drawer only if an advanced filter was explicitly passed
   state.showAdvanced = Boolean(
     state.set || state.idPanel || state.pathPanel || state.category || state.interpro ||
     state.plantOrder || state.nlrClass || state.pathSpecies || state.protClass ||
+    state.minIpsae > 0 || state.maxIpsae < 1 ||
     state.minIptm > 0 || state.minPdockq > 0 || state.minLis > 0 || state.minContacts > 0 ||
     state.status !== 'scored'
   );
@@ -94,6 +101,7 @@ function countAdvancedFilters() {
   if (state.pathSpecies) c++;
   if (state.protClass) c++;
   if (state.status !== 'scored') c++;
+  if (state.minIpsae > 0) c++;
   if (state.minIptm > 0) c++;
   if (state.minPdockq > 0) c++;
   if (state.minLis > 0) c++;
@@ -151,6 +159,17 @@ function canServeFromTopHits(meta) {
   return state.status === 'scored' && state.minIpsae >= meta.top_hit_threshold && store.topHits !== null;
 }
 
+function canPreviewFromTopHits() {
+  return (
+    state.status === 'scored' &&
+    state.sortBy === 'ipsae_min' &&
+    state.sortDir === 'desc' &&
+    state.maxIpsae === 1 &&
+    state.page === 1 &&
+    store.topHits !== null
+  );
+}
+
 function executeQuery(meta) {
   const neededSets = getNeededSetIndices(meta);
   const loadedSets = neededSets.filter((idx) => store.sets.has(idx));
@@ -164,8 +183,12 @@ function executeQuery(meta) {
   const minLisU = Math.round(state.minLis * SCORE_SCALE);
   const minCont = Math.max(0, Math.round(state.minContacts));
   const statusMode = state.status;
+  const hasNumericFilter =
+    minIpsaeU > 0 || maxIpsaeU < SCORE_SCALE || minIptmU > 0 || minPdqU > 0 || minLisU > 0 || minCont > 0;
 
-  if (!allNeededLoaded && canServeFromTopHits(meta)) {
+  const exactTopHits = !allNeededLoaded && canServeFromTopHits(meta);
+  const previewTopHits = !allNeededLoaded && !exactTopHits && canPreviewFromTopHits();
+  if (exactTopHits || previewTopHits) {
     const allowedSet = new Set(neededSets);
     const rows = store.topHits.rows;
     const matched = [];
@@ -206,7 +229,7 @@ function executeQuery(meta) {
     }
 
     return {
-      source: 'top_hits',
+      source: exactTopHits ? 'top_hits' : 'preview',
       total: matched.length,
       scoredCount: matched.length,
       failedCount: 0,
@@ -259,8 +282,11 @@ function executeQuery(meta) {
         if (minCont > 0 && d1Arr[r] + d2Arr[r] < minCont) continue;
         scoredCount++;
         histVals.push(vIpsae / SCORE_SCALE);
-      } else if (st === STATUS.FAILED) failedCount++;
-      else missingCount++;
+      } else {
+        if (hasNumericFilter && statusMode === 'all') continue;
+        if (st === STATUS.FAILED) failedCount++;
+        else missingCount++;
+      }
 
       list.push(r);
     }
@@ -306,6 +332,7 @@ function executeQuery(meta) {
     }
   } else {
     const keys = new Float32Array(total);
+    const statuses = new Uint8Array(total);
     let pos = 0;
     const sb = state.sortBy;
     for (const { sIdx, sBin, list } of perSetMatches) {
@@ -314,7 +341,9 @@ function executeQuery(meta) {
       for (let i = 0; i < list.length; i++) {
         const r = list[i];
         encoded[pos] = prefix | r;
-        const ok = stArr[r] === STATUS.SCORED;
+        const st = stArr[r];
+        statuses[pos] = st;
+        const ok = st === STATUS.SCORED;
         let val = -1;
         if (sb === 'job_num') val = sBin.job_num[r];
         else if (ok) {
@@ -330,7 +359,12 @@ function executeQuery(meta) {
     const order = new Int32Array(total);
     for (let i = 0; i < total; i++) order[i] = i;
     const dir = state.sortDir === 'asc' ? 1 : -1;
-    order.sort((a, b) => (keys[a] - keys[b]) * dir);
+    order.sort((a, b) => {
+      if (sb !== 'job_num' && statuses[a] !== statuses[b]) {
+        return statuses[a] - statuses[b]; // NULLS LAST: always keep scored rows above failed/missing
+      }
+      return (keys[a] - keys[b]) * dir;
+    });
     const sorted = new Int32Array(total);
     for (let i = 0; i < total; i++) sorted[i] = encoded[order[i]];
     encoded.set(sorted);
@@ -399,11 +433,6 @@ export async function renderExplorerView(container, queryParams) {
             `<button type="button" class="chip${state.org === o ? ' on' : ''}" data-org="${o}"><span class="dot" style="background:${ORG_COLORS[o]}"></span>${o}</button>`
         )
         .join('')}
-
-      <button type="button" class="chip${state.minIpsae === 0.6 ? ' on-soft' : ''}" data-preset="0.6">≥ 0.6</button>
-      <button type="button" class="chip${state.minIpsae === 0.5 ? ' on-soft' : ''}" data-preset="0.5">≥ 0.5</button>
-      <button type="button" class="chip${state.minIpsae === 0.3 ? ' on-soft' : ''}" data-preset="0.3">≥ 0.3</button>
-      <button type="button" class="chip${state.minIpsae === 0 ? ' on-soft' : ''}" data-preset="0">All scores</button>
 
       <button type="button" class="chip${state.showAdvanced ? ' on-soft' : ''}" id="btn-adv">Filters <span id="adv-badge"></span></button>
       <button type="button" class="chip${state.showSubscores ? ' on-soft' : ''}" id="btn-sub">Subscores</button>
@@ -496,71 +525,109 @@ export async function renderExplorerView(container, queryParams) {
 
   // Cross-sync all Explorer dropdowns (Chain A facets, Chain B facets, and Screening Set)
   function syncExplorerFacets(changedKey = null) {
-    const dsRec = state.set ? meta.datasets.find((d) => d.id === state.set) : null;
+    let dsRec = state.set ? meta.datasets.find((d) => d.id === state.set) : null;
     if (changedKey === 'set' && dsRec) {
       if (state.idPanel && state.idPanel !== dsRec.id_panel) state.idPanel = '';
       if (state.pathPanel && state.pathPanel !== dsRec.path_panel) state.pathPanel = '';
       const orgsInSet = new Set(meta.pathogens.filter((r) => r.s === dsRec.path_panel).map((r) => r.org));
       if (state.org && !orgsInSet.has(state.org)) state.org = '';
+    } else if (changedKey && changedKey !== 'set' && dsRec) {
+      // Clear stale screening set FIRST if the newly changed facet conflicts with it
+      let setConflict = false;
+      if (changedKey === 'idPanel' && state.idPanel && dsRec.id_panel !== state.idPanel) setConflict = true;
+      else if (changedKey === 'pathPanel' && state.pathPanel && dsRec.path_panel !== state.pathPanel) setConflict = true;
+      else if (changedKey === 'org' && state.org && !meta.pathogens.some((r) => r.s === dsRec.path_panel && r.org === state.org)) setConflict = true;
+      else if (changedKey === 'pathSpecies' && state.pathSpecies && !meta.pathogens.some((r) => r.s === dsRec.path_panel && r.sp === state.pathSpecies)) setConflict = true;
+      else if (changedKey === 'protClass' && state.protClass && !meta.pathogens.some((r) => r.s === dsRec.path_panel && r.cls === state.protClass)) setConflict = true;
+      else if (changedKey === 'category' && state.category && !store.screenedIds.some((r) => r.s === dsRec.id_panel && r.cat === state.category)) setConflict = true;
+      else if (changedKey === 'plantOrder' && state.plantOrder && !store.screenedIds.some((r) => r.s === dsRec.id_panel && r.ord === state.plantOrder)) setConflict = true;
+      else if (changedKey === 'nlrClass' && state.nlrClass && !store.screenedIds.some((r) => r.s === dsRec.id_panel && r.cls === state.nlrClass)) setConflict = true;
+      if (setConflict) {
+        state.set = '';
+        dsRec = null;
+      }
     }
 
-    // Determine whether Chain B filters require E2 only (which was screened against ID1 only)
-    const activePathRecsPre = meta.pathogens.filter(
-      (r) =>
-        (!dsRec || r.s === dsRec.path_panel) &&
-        (!state.org || r.org === state.org) &&
-        (!state.pathPanel || r.s === state.pathPanel) &&
-        (!state.pathSpecies || r.sp === state.pathSpecies) &&
-        (!state.protClass || r.cls === state.protClass)
-    );
-    const activePathPanelsPre = new Set(activePathRecsPre.map((r) => r.s));
-    const requireId1Only = activePathPanelsPre.size === 1 && activePathPanelsPre.has('E2');
-
-    // Chain A pool (screened IDs matching set's id_panel, or ID1-only if E2/Insect is selected)
-    const idPool = meta.ids.filter(
-      (r) => r.scr && (!dsRec || r.s === dsRec.id_panel) && (!requireId1Only || r.s === 'ID1')
-    );
     const idSpecs = [
       { sel: '#f-idpanel', key: 'idPanel', getter: (r) => r.s, order: ['ID1', 'ID2', 'ID3'], allLabel: 'All ID1–ID3', formatOpt: (v, n) => `${v} · ${meta.panels[v].short} (${n})` },
       { sel: '#f-cat', key: 'category', getter: (r) => r.cat, allLabel: (k) => `All categories (${k})` },
       { sel: '#f-order', key: 'plantOrder', getter: (r) => r.ord, allLabel: (k) => `All orders (${k})` },
       { sel: '#f-nlrcls', key: 'nlrClass', getter: (r) => r.cls, allLabel: (k) => `All classes (${k})` },
     ];
-    syncFacetedSelects(idPool, idSpecs, state, container, changedKey);
-
-    // Check which ID panels remain valid after Chain A filters
-    const activeIdPanels = new Set(
-      idPool
-        .filter(
-          (r) =>
-            (!state.idPanel || r.s === state.idPanel) &&
-            (!state.category || r.cat === state.category) &&
-            (!state.plantOrder || r.ord === state.plantOrder) &&
-            (!state.nlrClass || r.cls === state.nlrClass)
-        )
-        .map((r) => r.s)
-    );
-    const disallowE2 = activeIdPanels.size > 0 && !activeIdPanels.has('ID1');
-    if (disallowE2 && state.org === 'Insect') state.org = '';
-
-    // Chain B pool (respecting set's path_panel, org chip, and E2=ID1-only constraint)
-    const pathPool = meta.pathogens.filter(
-      (r) => (!dsRec || r.s === dsRec.path_panel) && !(disallowE2 && r.s === 'E2')
-    );
-    const pathPoolWithOrg = state.org ? pathPool.filter((r) => r.org === state.org) : pathPool;
     const pathSpecs = [
       { sel: '#f-pathpanel', key: 'pathPanel', getter: (r) => r.s, order: ['E1', 'E2', 'E3', 'E4', 'V1'], allLabel: 'All E1–E4, V1', formatOpt: (v, n) => `${v} · ${meta.panels[v].short} (${n})` },
       { sel: '#f-pathsp', key: 'pathSpecies', getter: (r) => r.sp, allLabel: (k) => `All species (${k})` },
       { sel: '#f-protcls', key: 'protClass', getter: (r) => r.cls, allLabel: (k) => `All classes (${k})` },
     ];
-    syncFacetedSelects(pathPoolWithOrg, pathSpecs, state, container, changedKey);
+
+    const chainBChanged = ['org', 'pathPanel', 'pathSpecies', 'protClass'].includes(changedKey);
+
+    if (chainBChanged) {
+      // Prioritize the newly changed Chain B facet first, then enforce E2 -> ID1-only on Chain A
+      const pathPoolBase = meta.pathogens.filter((r) => !dsRec || r.s === dsRec.path_panel);
+      const pathPoolWithOrg = state.org ? pathPoolBase.filter((r) => r.org === state.org) : pathPoolBase;
+      syncFacetedSelects(pathPoolWithOrg, pathSpecs, state, container, changedKey);
+
+      const activePathPanels = new Set(
+        pathPoolWithOrg
+          .filter(
+            (r) =>
+              (!state.pathPanel || r.s === state.pathPanel) &&
+              (!state.pathSpecies || r.sp === state.pathSpecies) &&
+              (!state.protClass || r.cls === state.protClass)
+          )
+          .map((r) => r.s)
+      );
+      const requireId1Only = activePathPanels.size === 1 && activePathPanels.has('E2');
+      const idPool = store.screenedIds.filter(
+        (r) => (!dsRec || r.s === dsRec.id_panel) && (!requireId1Only || r.s === 'ID1')
+      );
+      syncFacetedSelects(idPool, idSpecs, state, container, requireId1Only ? '__pool__' : null);
+    } else {
+      // Determine whether existing Chain B filters require E2 only (when no Chain A facet changed)
+      const activePathRecsPre = meta.pathogens.filter(
+        (r) =>
+          (!dsRec || r.s === dsRec.path_panel) &&
+          (!state.org || r.org === state.org) &&
+          (!state.pathPanel || r.s === state.pathPanel) &&
+          (!state.pathSpecies || r.sp === state.pathSpecies) &&
+          (!state.protClass || r.cls === state.protClass)
+      );
+      const activePathPanelsPre = new Set(activePathRecsPre.map((r) => r.s));
+      const chainAChanged = ['idPanel', 'category', 'plantOrder', 'nlrClass'].includes(changedKey);
+      const requireId1Only = !chainAChanged && activePathPanelsPre.size === 1 && activePathPanelsPre.has('E2');
+
+      const idPool = store.screenedIds.filter(
+        (r) => (!dsRec || r.s === dsRec.id_panel) && (!requireId1Only || r.s === 'ID1')
+      );
+      syncFacetedSelects(idPool, idSpecs, state, container, changedKey);
+
+      const activeIdPanels = new Set(
+        idPool
+          .filter(
+            (r) =>
+              (!state.idPanel || r.s === state.idPanel) &&
+              (!state.category || r.cat === state.category) &&
+              (!state.plantOrder || r.ord === state.plantOrder) &&
+              (!state.nlrClass || r.cls === state.nlrClass)
+          )
+          .map((r) => r.s)
+      );
+      const disallowE2 = activeIdPanels.size > 0 && !activeIdPanels.has('ID1');
+      if (disallowE2 && state.org === 'Insect') state.org = '';
+
+      const pathPool = meta.pathogens.filter(
+        (r) => (!dsRec || r.s === dsRec.path_panel) && !(disallowE2 && r.s === 'E2')
+      );
+      const pathPoolWithOrg = state.org ? pathPool.filter((r) => r.org === state.org) : pathPool;
+      syncFacetedSelects(pathPoolWithOrg, pathSpecs, state, container, changedKey || (disallowE2 ? '__pool__' : null));
+    }
 
     // Sync Screening Set dropdown using all filters EXCEPT state.set itself (so users can switch sets smoothly)
     const validIdPanelsForSet = new Set(
-      meta.ids
+      store.screenedIds
         .filter(
           (r) =>
-            r.scr &&
             (!state.idPanel || r.s === state.idPanel) &&
             (!state.category || r.cat === state.category) &&
             (!state.plantOrder || r.ord === state.plantOrder) &&
@@ -594,7 +661,6 @@ export async function renderExplorerView(container, queryParams) {
 
   function syncChipStates() {
     container.querySelectorAll('[data-org]').forEach((b) => b.classList.toggle('on', b.dataset.org === state.org));
-    container.querySelectorAll('[data-preset]').forEach((b) => b.classList.toggle('on-soft', Number(b.dataset.preset) === state.minIpsae && state.maxIpsae === 1));
     const nAdv = countAdvancedFilters();
     const badge = container.querySelector('#adv-badge');
     if (badge) badge.textContent = nAdv ? `(${nAdv})` : '';
@@ -620,23 +686,28 @@ export async function renderExplorerView(container, queryParams) {
       cb.innerHTML = res.histVals.length
         ? renderSimpleHistogramSvg(res.histVals, { metricLabel: 'Filtered ipSAE (min)', height: 150 })
         : '<div class="muted" style="text-align:center;padding:18px 0">No scored pairs in this filter slice.</div>';
+      wireInteractiveCharts(cb);
     } else {
       container.querySelector('#exp-chart-box').hidden = true;
     }
 
     const sIdx = res.total === 0 ? 0 : (state.page - 1) * PAGE_SIZE + 1;
     const eIdx = Math.min(res.total, state.page * PAGE_SIZE);
-    const ge05 = res.histVals.reduce((a, v) => a + (v >= 0.5 ? 1 : 0), 0);
 
     container.querySelector('#exp-meta').innerHTML = `
-      <div>Showing <b>${fmtInt(sIdx)}–${fmtInt(eIdx)}</b> of <b>${fmtInt(res.total)}</b> pairs${ge05 ? ` · <b>${fmtInt(ge05)}</b> ≥ 0.50` : ''}</div>
+      <div>${
+        res.source === 'preview'
+          ? `Showing top <b>${fmtInt(sIdx)}–${fmtInt(eIdx)}</b> predictions while full score tables load…`
+          : `Showing <b>${fmtInt(sIdx)}–${fmtInt(eIdx)}</b> of <b>${fmtInt(res.total)}</b> pairs`
+      }</div>
       <div>Click any row for subscores &amp; Dataverse model command</div>
     `;
 
     const th = (key, label, title, isNum = true) => {
       const act = state.sortBy === key;
       const arr = act ? (state.sortDir === 'desc' ? ' ↓' : ' ↑') : '';
-      return `<th class="sortable${act ? ' sorted' : ''}${isNum ? ' num' : ''}" data-sort="${key}" title="${esc(title)}">${esc(label)}${arr}</th>`;
+      const ariaSort = act ? (state.sortDir === 'desc' ? 'descending' : 'ascending') : 'none';
+      return `<th class="sortable${act ? ' sorted' : ''}${isNum ? ' num' : ''}" data-sort="${key}" title="${esc(title)}" tabindex="0" role="columnheader" aria-sort="${ariaSort}">${esc(label)}${arr}</th>`;
     };
 
     const subHead = state.showSubscores
@@ -670,7 +741,7 @@ export async function renderExplorerView(container, queryParams) {
                  <td class="num">${ok ? `${p.nres1}/${p.nres2}` : '—'}</td>`
               : '';
             return `
-              <tr class="clickable" data-row-idx="${idx}">
+              <tr class="clickable" data-row-idx="${idx}" tabindex="0">
                 <td class="mono" style="font-size:12px">${esc(ds.id)}</td>
                 <td>
                   <div style="display:flex;align-items:center;gap:6px">
@@ -715,20 +786,31 @@ export async function renderExplorerView(container, queryParams) {
     `;
 
     container.querySelectorAll('#exp-table th.sortable').forEach((el) => {
-      el.addEventListener('click', () => {
+      const triggerSort = () => {
         const key = el.dataset.sort;
         if (state.sortBy === key) state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
         else { state.sortBy = key; state.sortDir = key === 'job_num' ? 'asc' : 'desc'; }
         state.page = 1;
         renderTable();
+      };
+      el.addEventListener('click', triggerSort);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerSort(); }
       });
     });
 
     container.querySelectorAll('#exp-table tbody tr[data-row-idx]').forEach((tr) => {
-      tr.addEventListener('click', (e) => {
-        if (e.target.closest('[data-stop-row]')) return;
+      const openRow = () => {
         const p = pageRows[Number(tr.dataset.rowIdx)];
         if (p) navigateToPair(p);
+      };
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('[data-stop-row]')) return;
+        openRow();
+      });
+      tr.addEventListener('keydown', (e) => {
+        if (e.target !== tr) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(); }
       });
     });
 
@@ -766,8 +848,9 @@ export async function renderExplorerView(container, queryParams) {
     if (!missing.length) { updateLoadBar(needed.length, needed.length); return; }
     updateLoadBar(needed.length - missing.length, needed.length);
     await store.loadSets(missing, (d, t, ds) => {
+      if (gen !== activeGeneration) return;
       updateLoadBar(needed.length - missing.length + d, needed.length, ds);
-      if (!canServeFromTopHits(meta) || d === t) renderTable();
+      if ((!canServeFromTopHits(meta) && !canPreviewFromTopHits()) || d === t) renderTable();
     });
     if (gen === activeGeneration) {
       updateLoadBar(needed.length, needed.length);
@@ -781,18 +864,6 @@ export async function renderExplorerView(container, queryParams) {
       state.org = btn.dataset.org;
       state.page = 1;
       syncExplorerFacets('org');
-      renderTable();
-      ensureNeededSetsLoaded();
-    });
-  });
-
-  container.querySelectorAll('[data-preset]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.minIpsae = Number(btn.dataset.preset);
-      state.maxIpsae = 1.0;
-      state.page = 1;
-      const inp = container.querySelector('#f-ipsae');
-      if (inp) inp.value = state.minIpsae;
       renderTable();
       ensureNeededSetsLoaded();
     });
@@ -850,16 +921,25 @@ export async function renderExplorerView(container, queryParams) {
   bindVal('#f-contacts', 'minContacts', (v) => (v === '' ? 0 : Math.max(0, Number(v))), true);
 
   container.querySelector('#exp-reset')?.addEventListener('click', () => {
-    Object.assign(state, {
-      set: '', idPanel: '', pathPanel: '', org: '', category: '', interpro: '',
-      plantOrder: '', nlrClass: '', pathSpecies: '', protClass: '', status: 'scored',
-      text: '', minIpsae: 0.3, maxIpsae: 1.0, minIptm: 0, minPdockq: 0, minLis: 0,
-      minContacts: 0, sortBy: 'ipsae_min', sortDir: 'desc', page: 1,
-    });
-    renderExplorerView(container, null);
+    if (window.location.hash.includes('?')) {
+      window.location.hash = '#/explorer';
+    } else {
+      renderExplorerView(container, null);
+    }
   });
 
-  const doExport = (sep) => {
+  const doExport = async (sep, btn) => {
+    if (!lastResult) return;
+    if (lastResult.source !== 'full' && lastResult.source !== 'top_hits') {
+      const prev = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+      try {
+        await ensureNeededSetsLoaded();
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = prev; }
+      }
+      if (gen !== activeGeneration) return;
+    }
     if (!lastResult || !lastResult.total) return;
     if (lastResult.total > MAX_EXPORT_ROWS) {
       if (!window.confirm(`Export top ${MAX_EXPORT_ROWS.toLocaleString()} of ${lastResult.total.toLocaleString()} matching pairs?`)) return;
@@ -867,8 +947,8 @@ export async function renderExplorerView(container, queryParams) {
     const rows = lastResult.getSlice(Math.min(lastResult.total, MAX_EXPORT_ROWS));
     exportPairsTable(`bifrost_scores.${sep === ',' ? 'csv' : 'tsv'}`, rows, meta, sep);
   };
-  container.querySelector('#exp-export-tsv')?.addEventListener('click', () => doExport('\t'));
-  container.querySelector('#exp-export-csv')?.addEventListener('click', () => doExport(','));
+  container.querySelector('#exp-export-tsv')?.addEventListener('click', (e) => doExport('\t', e.currentTarget));
+  container.querySelector('#exp-export-csv')?.addEventListener('click', (e) => doExport(',', e.currentTarget));
 
   syncExplorerFacets();
   renderTable();

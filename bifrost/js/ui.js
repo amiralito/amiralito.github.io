@@ -3,7 +3,7 @@
  */
 
 import { store, STATUS, STATUS_LABELS } from './data.js';
-import { scoreTier, scoreColor, ORG_COLORS } from './charts.js';
+import { scoreColor, ORG_COLORS } from './charts.js';
 import {
   copyToClipboard,
   buildExtractCommand,
@@ -44,19 +44,21 @@ export function statusBadge(status) {
 
 export function scoreCellHtml(v, status = STATUS.SCORED, showBar = true) {
   if (status !== STATUS.SCORED) return statusBadge(status);
-  const tier = scoreTier(v);
   const color = scoreColor(v);
+  const isZero = !(v > 0);
   const pct = Math.min(100, Math.max(0, v * 100));
   return `<span class="score-cell">
-    <span class="score-pill ${tier}">${v.toFixed(3)}</span>
+    <span class="score-pill${isZero ? ' score-zero' : ''}"${isZero ? '' : ` style="--sc:${color}"`}>${v.toFixed(3)}</span>
     ${showBar ? `<span class="score-bar-track" aria-hidden="true"><span class="score-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></span></span>` : ''}
   </span>`;
 }
 
 export function accessionLinkHtml(acc, panel) {
   if (!acc) return '<span class="muted">—</span>';
-  if (panel === 'ID1' || panel === 'V1' || /^[XN]P_\d+/.test(acc)) {
-    const url = `https://www.ncbi.nlm.nih.gov/protein/${encodeURIComponent(acc)}`;
+  if (panel === 'ID1' || panel === 'V1' || /^[XNKY]P_\d+/.test(acc)) {
+    const pepMatch = acc.match(/^([XNKY]P_\d+(?:\.\d+)?)(?:_.+)$/);
+    const queryAcc = pepMatch ? pepMatch[1] : acc;
+    const url = `https://www.ncbi.nlm.nih.gov/protein/${encodeURIComponent(queryAcc)}`;
     return `<a class="ext-link mono" href="${url}" target="_blank" rel="noopener">${esc(acc)} &#8599;</a>`;
   }
   return `<span class="mono">${esc(acc)}</span>`;
@@ -83,11 +85,18 @@ export function doiLinksHtml(doiStr, label = null) {
   const parts = doiStr
     .split(';')
     .map((x) => x.trim())
-    .filter(Boolean);
+    .filter((x) => x && x !== '-');
+  if (!parts.length) return '<span class="muted">—</span>';
   return parts
     .map((raw) => {
       const href = raw.startsWith('http') ? raw : `https://doi.org/${raw}`;
-      const text = label && parts.length === 1 ? label : raw.replace(/^https?:\/\/doi\.org\//, 'doi:');
+      let text;
+      if (label && parts.length === 1) {
+        text = label;
+      } else {
+        const ncbiAsm = raw.match(/\/datasets\/genome\/(GC[AF]_[\d.]+)\/?$/i);
+        text = ncbiAsm ? `NCBI Datasets · ${ncbiAsm[1]}` : raw.replace(/^https?:\/\/doi\.org\//, 'doi:');
+      }
       return `<a class="ext-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(text)} &#8599;</a>`;
     })
     .join(' · ');
@@ -257,7 +266,7 @@ export function renderPairPage(container, pair) {
         </div>
         <div class="fact">
           <div class="k">ipTM (AF3)</div>
-          <div class="v big-num">${pair.iptm.toFixed(4)}<small>d0chn: ${pair.iptm_d0chn.toFixed(3)}</small></div>
+          <div class="v big-num">${pair.iptm.toFixed(4)}<small>d0chn (min): ${pair.iptm_d0chn.toFixed(3)}</small></div>
         </div>
         <div class="fact">
           <div class="k">pDockQ</div>
@@ -293,7 +302,7 @@ export function renderPairPage(container, pair) {
             <div class="subscore-list">
               <span class="subscore-item"><span class="sk">ipSAE d0dom</span><span class="sv">${pair.d0dom_min.toFixed(4)}</span><span class="sk">(max ${pair.d0dom_max.toFixed(4)})</span></span>
               <span class="subscore-item"><span class="sk">ipSAE d0chn</span><span class="sv">${pair.d0chn_min.toFixed(4)}</span><span class="sk">(max ${pair.d0chn_max.toFixed(4)})</span></span>
-              <span class="subscore-item"><span class="sk">ipTM d0chn</span><span class="sv">${pair.iptm_d0chn.toFixed(4)}</span></span>
+              <span class="subscore-item"><span class="sk">ipTM d0chn (min)</span><span class="sv">${pair.iptm_d0chn.toFixed(4)}</span></span>
             </div>
           </td>
         </tr>
@@ -343,6 +352,7 @@ export function renderPairPage(container, pair) {
       <div class="btn-group">
         <button type="button" class="btn btn-sm" id="pair-copy-link">Copy link</button>
         <button type="button" class="btn btn-sm" id="pair-dl-fasta">Pair FASTA</button>
+        <button type="button" class="btn btn-sm" id="pair-gen-json">Generate AF3 JSON</button>
         <a class="btn btn-sm btn-primary" href="${esc(info.doi)}" target="_blank" rel="noopener">Open on Dataverse &#8599;</a>
       </div>
     </div>
@@ -372,7 +382,7 @@ export function renderPairPage(container, pair) {
         <div class="p-meta">
           <span class="italic">${esc(paR.sp)}</span> · ${esc(paR.org)}<br/>
           Class: ${esc(paR.cls || '—')} · Length: ${paR.len} aa<br/>
-          Source: ${esc(paR.src)}
+          ${paR.asm ? `Genome assembly: ${doiLinksHtml(paR.doi, `NCBI Datasets (${paR.asm})`)}` : `Source: ${paR.doi ? doiLinksHtml(paR.doi, paR.src) : esc(paR.src)}`}
         </div>
         <div class="btn-group" style="margin-top:auto;padding-top:10px">
           <button type="button" class="btn btn-sm" id="pair-copy-seq-b" title="Copy Chain B pathogen sequence (${paR.len} aa)">Copy sequence</button>
@@ -412,7 +422,7 @@ export function renderPairPage(container, pair) {
   }
 
   container.querySelector('#pair-back-btn')?.addEventListener('click', () => {
-    if (window.history.length > 1) window.history.back();
+    if ((window.__bifrostNavCount || 0) > 0 && window.history.length > 1) window.history.back();
     else window.location.hash = '#/explorer';
   });
   container.querySelector('#pair-copy-link')?.addEventListener('click', (e) => copyToClipboard(pairPermalink, e.currentTarget));
@@ -424,12 +434,38 @@ export function renderPairPage(container, pair) {
       copyToClipboard(parentSeqA, btn);
       return;
     }
-    const parents = await store.loadParentNlrs();
-    parentSeqA = parents[idR.i] || '';
-    if (parentSeqA) copyToClipboard(parentSeqA, btn);
+    const prev = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      const parents = await store.loadParentNlrs();
+      parentSeqA = parents[idR.i] || '';
+      btn.textContent = prev;
+      if (parentSeqA) copyToClipboard(parentSeqA, btn);
+    } catch {
+      btn.textContent = 'Load failed';
+      setTimeout(() => { btn.textContent = prev; }, 1800);
+    } finally {
+      btn.disabled = false;
+    }
   });
   container.querySelector('#pair-dl-fasta')?.addEventListener('click', () => {
     triggerDownload(`${ds.id}_job${pair.job_num}_pair.fasta`, formatFasta(idR.id, idR.seq) + formatFasta(paR.id, paR.seq));
+  });
+  container.querySelector('#pair-gen-json')?.addEventListener('click', () => {
+    openAf3JsonDialog({
+      pair,
+      ds,
+      idR,
+      paR,
+      info,
+      getParentSeq: async () => {
+        if (parentSeqA) return parentSeqA;
+        const parents = await store.loadParentNlrs();
+        parentSeqA = parents[idR.i] || '';
+        return parentSeqA;
+      },
+    });
   });
   container.querySelectorAll('#pair-cmd-tabs button').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -439,6 +475,276 @@ export function renderPairPage(container, pair) {
     });
   });
   container.querySelector('#pair-copy-cmd')?.addEventListener('click', (e) => copyToClipboard(activeCmd, e.currentTarget));
+}
+
+/* --------------------------------------------------------------------------
+   AlphaFold 3 Input JSON Generator Popup (<dialog>)
+   -------------------------------------------------------------------------- */
+let af3DialogWired = false;
+
+function parseSeedsInput(raw) {
+  const parts = String(raw || '')
+    .split(/[\s,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (!parts.length) return { error: 'Enter at least one positive integer seed.' };
+  const seen = new Set();
+  const seeds = [];
+  for (const p of parts) {
+    if (!/^\d+$/.test(p)) return { error: `Invalid seed "${p}" — seeds must be positive integers.` };
+    const n = Number(p);
+    if (!Number.isSafeInteger(n) || n < 1 || n > 2147483647) {
+      return { error: `Seed "${p}" must be between 1 and 2,147,483,647.` };
+    }
+    if (!seen.has(n)) {
+      seen.add(n);
+      seeds.push(n);
+    }
+  }
+  return { seeds };
+}
+
+export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
+  const dlg = document.getElementById('af3-json-dialog');
+  const box = document.getElementById('af3-json-content');
+  if (!dlg || !box) return;
+
+  if (!af3DialogWired) {
+    af3DialogWired = true;
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+  }
+
+  let dialect = 'alphafold3'; // 'alphafold3' | 'alphafoldserver'
+  let chainAMode = 'id'; // 'id' | 'parent'
+  let cachedParent = null;
+  let loadingParent = false;
+  let parentErr = '';
+  const baseJobName = info.outputName || `job_${pair.job_num}_${info.chainA}_${info.chainB}`;
+
+  box.innerHTML = `
+    <div class="af3-dialog-bar">
+      <div>
+        <div class="eyebrow" style="margin-bottom:2px">${esc(ds.id)} · job #${pair.job_num}</div>
+        <div style="font-weight:600;font-size:16px">Generate AlphaFold 3 input JSON</div>
+      </div>
+      <button type="button" class="btn btn-sm" id="af3-close">Close</button>
+    </div>
+
+    <div class="af3-dialog-body">
+      <div class="af3-form-row">
+        <div class="field">
+          <label>Target format</label>
+          <div class="seg" id="af3-dialect-seg">
+            <button type="button" data-d="alphafold3" class="on">AF3 v3 (local CLI)</button>
+            <button type="button" data-d="alphafoldserver">AlphaFold Server</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Chain A sequence</label>
+          <div class="seg" id="af3-chaina-seg">
+            <button type="button" data-ca="id" class="on">Excised ID (${idR.len} aa)</button>
+            <button type="button" data-ca="parent">Parent NLR (${idR.plen} aa)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="af3-seeds-in">Model seeds (comma- or space-separated integers)</label>
+        <input type="text" id="af3-seeds-in" value="1, 2, 3, 4, 5" autocomplete="off" spellcheck="false" />
+        <div class="btn-group" style="margin-top:6px">
+          <button type="button" class="chip" data-spreset="1">1 seed [1]</button>
+          <button type="button" class="chip" data-spreset="1, 2, 3">3 seeds [1–3]</button>
+          <button type="button" class="chip on-soft" data-spreset="1, 2, 3, 4, 5">5 seeds [1–5]</button>
+          <button type="button" class="chip" id="af3-rand-seeds">Random 5 seeds</button>
+        </div>
+        <div id="af3-seed-err" class="af3-err" hidden></div>
+      </div>
+
+      <div class="field">
+        <label for="af3-name-in">Job name</label>
+        <input type="text" id="af3-name-in" value="${esc(baseJobName)}" autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:500;color:var(--ink3);text-transform:uppercase;letter-spacing:0.4px">JSON preview</span>
+          <span class="muted mono" style="font-size:11.5px" id="af3-meta-line"></span>
+        </div>
+        <pre class="code-block af3-preview" id="af3-json-pre"></pre>
+      </div>
+
+      <p class="muted" style="font-size:12px;margin:0;line-height:1.55">
+        Generates a standalone sequence-only AlphaFold 3 input JSON (AF3 will compute MSAs and templates automatically).
+        To skip the data pipeline and reuse Bifrost's cached per-chain MSAs/templates, use <code>make_af3_inputs.py</code> with
+        <a class="ext-link" href="${esc(info.inferenceDoi)}" target="_blank" rel="noopener">doi:10.7910/DVN/2FUARO &#8599;</a>.
+      </p>
+    </div>
+
+    <div class="af3-dialog-foot">
+      <button type="button" class="btn" id="af3-copy-json">Copy JSON</button>
+      <button type="button" class="btn btn-primary" id="af3-dl-json">Download .json</button>
+    </div>
+  `;
+
+  const seedsInput = box.querySelector('#af3-seeds-in');
+  const nameInput = box.querySelector('#af3-name-in');
+  const errEl = box.querySelector('#af3-seed-err');
+  const preEl = box.querySelector('#af3-json-pre');
+  const metaEl = box.querySelector('#af3-meta-line');
+  const copyBtn = box.querySelector('#af3-copy-json');
+  const dlBtn = box.querySelector('#af3-dl-json');
+
+  let currentJsonStr = '';
+  let currentFileName = `${baseJobName}.json`;
+
+  const buildPayload = () => {
+    if (chainAMode === 'parent' && loadingParent) {
+      errEl.hidden = true;
+      copyBtn.disabled = true;
+      dlBtn.disabled = true;
+      currentJsonStr = '';
+      preEl.textContent = 'Loading full-length parent NLR sequence…';
+      metaEl.textContent = 'Loading parent NLR sequence…';
+      return;
+    }
+    if (chainAMode === 'parent' && !cachedParent) {
+      errEl.textContent = parentErr || 'Full-length parent NLR sequence is unavailable.';
+      errEl.hidden = false;
+      copyBtn.disabled = true;
+      dlBtn.disabled = true;
+      currentJsonStr = '';
+      preEl.textContent = '';
+      metaEl.textContent = 'Parent NLR sequence unavailable';
+      return;
+    }
+
+    const parsed = parseSeedsInput(seedsInput.value);
+    if (parsed.error) {
+      errEl.textContent = parsed.error;
+      errEl.hidden = false;
+      copyBtn.disabled = true;
+      dlBtn.disabled = true;
+      return;
+    }
+    errEl.hidden = true;
+    copyBtn.disabled = false;
+    dlBtn.disabled = false;
+
+    const seqA = chainAMode === 'parent' ? cachedParent : idR.seq;
+    const seqB = paR.seq;
+    const jobName = (nameInput.value || baseJobName).trim() || baseJobName;
+    const seeds = parsed.seeds;
+
+    let obj;
+    if (dialect === 'alphafoldserver') {
+      obj = [
+        {
+          name: jobName,
+          modelSeeds: seeds.map(String),
+          sequences: [
+            { proteinChain: { sequence: seqA, count: 1 } },
+            { proteinChain: { sequence: seqB, count: 1 } },
+          ],
+          dialect: 'alphafoldserver',
+          version: 1,
+        },
+      ];
+    } else {
+      obj = {
+        name: jobName,
+        dialect: 'alphafold3',
+        version: 1,
+        modelSeeds: seeds,
+        sequences: [
+          { protein: { id: 'A', sequence: seqA } },
+          { protein: { id: 'B', sequence: seqB } },
+        ],
+      };
+    }
+
+    currentJsonStr = JSON.stringify(obj, null, 2) + '\n';
+    const safeFile = jobName.replace(/[^A-Za-z0-9._-]+/g, '_');
+    currentFileName = `${safeFile}${dialect === 'alphafoldserver' ? '_afserver' : ''}.json`;
+    preEl.textContent = currentJsonStr;
+    metaEl.textContent = `Chain A ${seqA.length} aa · Chain B ${seqB.length} aa · ${seeds.length} seed${seeds.length > 1 ? 's' : ''}`;
+  };
+
+  box.querySelector('#af3-close')?.addEventListener('click', () => dlg.close());
+
+  box.querySelectorAll('#af3-dialect-seg button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      dialect = btn.dataset.d;
+      box.querySelectorAll('#af3-dialect-seg button').forEach((b) => b.classList.toggle('on', b === btn));
+      buildPayload();
+    });
+  });
+
+  box.querySelectorAll('#af3-chaina-seg button').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      chainAMode = btn.dataset.ca;
+      box.querySelectorAll('#af3-chaina-seg button').forEach((b) => b.classList.toggle('on', b === btn));
+      const curName = nameInput.value.trim();
+      if (chainAMode === 'parent' && curName === baseJobName) nameInput.value = `${baseJobName}_parentNLR`;
+      else if (chainAMode === 'id' && curName === `${baseJobName}_parentNLR`) nameInput.value = baseJobName;
+
+      if (chainAMode === 'parent' && !cachedParent) {
+        if (!loadingParent) {
+          loadingParent = true;
+          parentErr = '';
+          buildPayload();
+          try {
+            cachedParent = await getParentSeq();
+            if (!cachedParent) parentErr = 'Full-length parent NLR sequence is empty.';
+          } catch (err) {
+            parentErr = `Failed to load parent NLR sequence: ${err?.message || 'network error'}`;
+          } finally {
+            loadingParent = false;
+          }
+        }
+      }
+      buildPayload();
+    });
+  });
+
+  const syncPresetChips = () => {
+    const val = seedsInput.value.replace(/\s+/g, '');
+    box.querySelectorAll('[data-spreset]').forEach((b) => {
+      b.classList.toggle('on-soft', b.dataset.spreset.replace(/\s+/g, '') === val);
+    });
+  };
+
+  box.querySelectorAll('[data-spreset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      seedsInput.value = btn.dataset.spreset;
+      syncPresetChips();
+      buildPayload();
+    });
+  });
+
+  box.querySelector('#af3-rand-seeds')?.addEventListener('click', () => {
+    const s = new Set();
+    while (s.size < 5) s.add(Math.floor(1 + Math.random() * 999999));
+    seedsInput.value = [...s].join(', ');
+    syncPresetChips();
+    buildPayload();
+  });
+
+  seedsInput.addEventListener('input', () => { syncPresetChips(); buildPayload(); });
+  nameInput.addEventListener('input', buildPayload);
+
+  copyBtn.addEventListener('click', (e) => {
+    if (currentJsonStr) copyToClipboard(currentJsonStr, e.currentTarget);
+  });
+  dlBtn.addEventListener('click', () => {
+    if (currentJsonStr) triggerDownload(currentFileName, currentJsonStr, 'application/json;charset=utf-8');
+  });
+
+  buildPayload();
+  if (!dlg.open) dlg.showModal();
+  seedsInput.focus();
+  seedsInput.select();
 }
 
 /* --------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
   renderSimpleHistogramSvg,
   renderNlrSchematicSvg,
   renderHorizontalBarsHtml,
+  wireInteractiveCharts,
 } from './charts.js';
 import {
   esc,
@@ -39,7 +40,8 @@ import {
   exportPairsTable,
 } from './export.js';
 import { renderExplorerView } from './explorer.js';
-import { runHomologySearch, runMotifSearch } from './seqsearch.js';
+import { renderHeatmapView } from './heatmap.js';
+import { runHomologySearch, runMotifSearch, findNearestSequences } from './seqsearch.js';
 
 const pageEl = document.getElementById('page');
 const mainEl = document.getElementById('main');
@@ -50,11 +52,27 @@ const backdropEl = document.getElementById('side-backdrop');
 
 let routeGen = 0;
 let sidebarBuilt = false;
+window.__bifrostNavCount = 0;
+
+function bestScoreCell(r, isId, showBar = true) {
+  if (isId && !r.scr) return '<span class="muted">—</span>';
+  if (r.n_ok === 0) {
+    return `<span class="badge badge-bad" title="All ${fmtInt(r.n_fail)} AF3 predictions failed ipSAE scoring">All failed</span>`;
+  }
+  return scoreCellHtml(r.max_ipsae, STATUS.SCORED, showBar);
+}
 
 /* --------------------------------------------------------------------------
    Chrome: Theme, Mobile Drawer, Sidebar Quick Search (`/` shortcut)
    -------------------------------------------------------------------------- */
 function setupChrome() {
+  // Intercept Skip to content link so it moves focus to #page without triggering hash routing
+  document.querySelector('.skip-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    pageEl?.focus();
+    mainEl?.scrollTo({ top: 0 });
+  });
+
   const btnTheme = document.getElementById('btn-theme');
   const icoMoon = document.getElementById('ico-moon');
   const icoSun = document.getElementById('ico-sun');
@@ -125,10 +143,11 @@ function setupChrome() {
       const shortN = info?.s || f.ipr_s || '';
       const fullN = info?.n || f.ipr_n || '';
       if (`${ipr} ${shortN} ${fullN}`.toLowerCase().includes(q)) {
+        const nScr = list.filter((x) => x.scr).length;
         items.push({
           href: `#/domain/${encodeURIComponent(ipr)}`,
           name: `${ipr} · ${shortN || fullN}`,
-          sub: `InterPro · ${list.length} IDs`,
+          sub: `InterPro · ${nScr || list.length} IDs`,
           dot: '#83899a',
         });
         if (++iprN >= 4) break;
@@ -161,7 +180,7 @@ function setupChrome() {
             )
             .join('')
         : `<div class="sr-item"><span class="muted">No direct protein match</span></div>`) +
-      `<a class="sr-item" href="#/explorer?q=${encodeURIComponent(qInput.value.trim())}&ipsae=0" style="background:var(--bg2)">
+      `<a class="sr-item" href="#/explorer?q=${encodeURIComponent(qInput.value.trim())}" style="background:var(--bg2)">
         <span style="font-weight:500">Search all 757k scores for "${esc(qInput.value.trim())}" &rarr;</span>
       </a>`;
     qRes.hidden = false;
@@ -210,14 +229,17 @@ function buildSidebar(meta) {
     <a class="nav-a" href="#/panels" data-nav="panels">Input Panels <span class="cnt">8</span></a>
     <a class="nav-a" href="#/domains" data-nav="domains-all">InterPro Domains <span class="cnt">${fmtInt(s.n_interpro_all || s.n_interpro_entries)}</span></a>
     <a class="nav-a" href="#/explorer" data-nav="explorer">Score Explorer <span class="cnt">757k</span></a>
-    <a class="nav-a" href="#/search" data-nav="search">Sequence Search</a>
     <a class="nav-a" href="#/datasets" data-nav="datasets">Dataverse DOIs <span class="cnt">14</span></a>
     <a class="nav-a" href="#/glossary" data-nav="glossary">Score Glossary</a>
     <a class="nav-a" href="#/methods" data-nav="methods">Methods &amp; Terms</a>
     <a class="nav-a" href="#/acknowledgements" data-nav="acknowledgements">Acknowledgements</a>
 
+    <div class="nav-sec">Tools</div>
+    <a class="nav-a" href="#/heatmap" data-nav="heatmap">Custom Heatmap</a>
+    <a class="nav-a" href="#/search" data-nav="search">Sequence Search</a>
+
     <div class="nav-sec">Panels</div>
-    <div class="nav-a open" data-toggle="nl-ids">${caret}<span>NLR IDs</span><span class="cnt">${fmtInt(s.n_ids_screened)}</span></div>
+    <div class="nav-a open" data-toggle="nl-ids" role="button" tabindex="0" aria-expanded="true" aria-controls="nl-ids">${caret}<span>NLR IDs</span><span class="cnt">${fmtInt(s.n_ids_screened)}</span></div>
     <div class="nav-list open" id="nl-ids">
       <a class="nav-c" href="#/ids" data-nav="ids-all"><span class="ne">All NLR IDs</span><span class="nd">${fmtInt(s.n_ids_screened)}</span></a>
       <a class="nav-c" href="#/ids?panel=ID1" data-nav="ids-ID1"><span class="dot" style="background:var(--cyan)"></span><span class="ne">ID1 · RefSeq</span><span class="nd">${fmtInt(idCounts.ID1)}</span></a>
@@ -225,7 +247,7 @@ function buildSidebar(meta) {
       <a class="nav-c" href="#/ids?panel=ID3" data-nav="ids-ID3"><span class="dot" style="background:var(--pink)"></span><span class="ne">ID3 · Solanaceae</span><span class="nd">${fmtInt(idCounts.ID3)}</span></a>
     </div>
 
-    <div class="nav-a open" data-toggle="nl-path">${caret}<span>Pathogens</span><span class="cnt">${fmtInt(s.n_pathogens)}</span></div>
+    <div class="nav-a open" data-toggle="nl-path" role="button" tabindex="0" aria-expanded="true" aria-controls="nl-path">${caret}<span>Pathogens</span><span class="cnt">${fmtInt(s.n_pathogens)}</span></div>
     <div class="nav-list open" id="nl-path">
       <a class="nav-c" href="#/pathogens" data-nav="path-all"><span class="ne">All Pathogens</span><span class="nd">${fmtInt(s.n_pathogens)}</span></a>
       <a class="nav-c" href="#/pathogens?org=Oomycete" data-nav="path-Oomycete"><span class="dot" style="background:${ORG_COLORS.Oomycete}"></span><span class="ne">Oomycete</span><span class="nd">${orgCounts.Oomycete}</span></a>
@@ -234,7 +256,7 @@ function buildSidebar(meta) {
       <a class="nav-c" href="#/pathogens?org=Virus" data-nav="path-Virus"><span class="dot" style="background:${ORG_COLORS.Virus}"></span><span class="ne">Virus</span><span class="nd">${orgCounts.Virus}</span></a>
     </div>
 
-    <div class="nav-a" data-toggle="nl-dom">${caret}<span>Top Domains</span><span class="cnt">${fmtInt(s.n_interpro_all || s.n_interpro_entries)}</span></div>
+    <div class="nav-a" data-toggle="nl-dom" role="button" tabindex="0" aria-expanded="false" aria-controls="nl-dom">${caret}<span>Top Domains</span><span class="cnt">${fmtInt(s.n_interpro_all || s.n_interpro_entries)}</span></div>
     <div class="nav-list" id="nl-dom">
       <a class="nav-c" href="#/domains" data-nav="domains-all"><span class="ne">All InterPro (${fmtInt(s.n_interpro_all || s.n_interpro_entries)})</span></a>
       ${topIprs
@@ -247,18 +269,28 @@ function buildSidebar(meta) {
   `;
 
   navEl.querySelectorAll('[data-toggle]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    const toggle = () => {
       const target = document.getElementById(btn.dataset.toggle);
       if (!target) return;
       const open = !target.classList.contains('open');
       target.classList.toggle('open', open);
       btn.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+    };
+    btn.addEventListener('click', toggle);
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggle();
+      }
     });
   });
 }
 
 function setNavAndCrumbs(navKey, crumbs, isWide = false) {
   pageEl.classList.toggle('wide', isWide);
+  const lastLabel = crumbs.length ? crumbs[crumbs.length - 1].label : '';
+  document.title = navKey === 'home' || !lastLabel ? 'Bifrost · Data & Score Wiki' : `${lastLabel} · Bifrost`;
   navEl.querySelectorAll('[data-nav]').forEach((el) => {
     el.classList.toggle('active', el.dataset.nav === navKey);
   });
@@ -284,7 +316,7 @@ function renderHome() {
   pageEl.innerHTML = `
     <div class="landing-hero">
       <div>
-        <div class="eyebrow">Open-science resource · First dataset release</div>
+        <div class="eyebrow">Open-science resource · Early dataset release</div>
         <h1>The Bifrost dataset of AlphaFold 3 predictions for plant immune receptor discovery</h1>
         <p class="lede" style="margin-bottom:18px">
           Identifying candidate plant disease resistance genes from genome sequences by modelling pairwise complexes between NLR integrated domains and pathogen or pest proteins.
@@ -400,7 +432,7 @@ function renderInputPanels() {
     { key: 'E2', chain: 'B', prots: '154 proteins', orgs: 'Myzus persicae (screened vs ID1 only)', src: 'Candidate effectors & saliva', doi: `${meta.panels.E2.doi}; ${meta.panels.E2.secondary_doi}`, doiLbl: null, href: '#/pathogens?panel=E2' },
     { key: 'E3', chain: 'B', prots: '15 effectors', orgs: 'Heterodera schachtii', src: 'SPRYSEC effectors', doi: meta.panels.E3.doi, doiLbl: 'Molloy et al. (2024)', href: '#/pathogens?panel=E3' },
     { key: 'E4', chain: 'B', prots: '38 effectors', orgs: 'Bremia lactucae', src: 'RXLR-WY & WY effectors', doi: meta.panels.E4.doi, doiLbl: 'Wood et al. (2020)', href: '#/pathogens?panel=E4' },
-    { key: 'V1', chain: 'B', prots: '93 proteins', orgs: '14 plant viruses across 10 families', src: 'Full viral proteomes (NCBI)', doi: meta.panels.V1.doi, doiLbl: 'NCBI Protein', href: '#/pathogens?panel=V1' },
+    { key: 'V1', chain: 'B', prots: '93 proteins', orgs: '14 plant viruses across 10 families', src: 'Full viral proteomes (NCBI Datasets)', doi: meta.panels.V1.doi, doiLbl: 'NCBI Datasets', href: '#/pathogens?panel=V1' },
   ];
 
   pageEl.innerHTML = `
@@ -408,7 +440,7 @@ function renderInputPanels() {
     <h1>Curated input panels</h1>
     <p class="lede">
       Bifrost pairs three plant NLR integrated domain panels (<b>2,811 non-redundant IDs</b> from 2,409 parent NLRs across 343 plant species)
-      against five pathogen and pest protein panels (<b>373 effector, salivary and viral proteins</b> across 20 species and 14 plant viruses).
+      against five pathogen and pest protein panels (<b>373 effector, salivary and viral proteins</b> across 20 pathogen and pest species, including 14 plant viruses).
     </p>
 
     <h2>Panel summary <small>Table 1 · click any panel to browse its proteins</small></h2>
@@ -467,9 +499,9 @@ function renderInputPanels() {
 
     <h2>Score landscape across the 745,832 scored pairs</h2>
     <p>
-      Across all 745,832 scored predictions, <code>ipSAE (min)</code>, <code>ipTM</code>, and <code>pDockQ</code> show distinct distributions:
-      96.4% of pairs fall in the lowest <code>ipSAE (min)</code> bin (0–0.1) and 79.2% score exactly zero, whereas 54,567 models exceed <code>ipTM &gt; 0.5</code>
-      compared with 2,235 for <code>ipSAE (min) &gt; 0.5</code> and 1,025 for <code>pDockQ &gt; 0.5</code> (Spearman ρ = 0.64 between ipTM and minimum ipSAE).
+      Across all 745,832 scored predictions, <code>ipSAE (min)</code>, <code>ipTM</code>, and <code>pDockQ</code> show markedly different distributions
+      (Spearman ρ = 0.64 between <code>ipTM</code> and <code>ipSAE (min)</code>): 96.4% of pairs fall in the lowest <code>ipSAE (min)</code> bin (0–0.1)
+      and 79.2% score exactly zero, illustrating why score scales are not directly interchangeable across metrics and any cutoff is context-dependent.
     </p>
 
     ${renderFigureHtml({
@@ -507,6 +539,7 @@ function renderInputPanels() {
   const mount = pageEl.querySelector('#pan-hist-mount');
   const drawHist = () => {
     mount.innerHTML = renderOrgHistogramSvg(meta.histograms[metric], { metricLabel: labels[metric], logScale });
+    wireInteractiveCharts(mount.closest('.chart-box') || mount);
   };
   pageEl.querySelectorAll('#pan-metric-seg button').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -726,7 +759,8 @@ function renderIdsDirectory(params) {
 
     const th = (k, lbl, num = false) => {
       const act = st.sortBy === k;
-      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
+      const ariaSort = act ? (st.sortDir === 'desc' ? 'descending' : 'ascending') : 'none';
+      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}" tabindex="0" role="columnheader" aria-sort="${ariaSort}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
     };
 
     pageEl.querySelector('#ids-tbl').innerHTML = `
@@ -740,7 +774,6 @@ function renderIdsDirectory(params) {
             ${th('arch', 'NLR')}
             ${th('len', 'Length', true)}
             ${th('max_ipsae', 'Best ipSAE', true)}
-            ${th('n05', '≥ 0.5', true)}
             <th>Top Partner</th>
           </tr>
         </thead>
@@ -758,26 +791,29 @@ function renderIdsDirectory(params) {
                         <td>${interproLinksHtml(r.ipr, true)}<div class="muted" style="font-size:11.5px">${esc(r.ipr_s || '')}</div></td>
                         <td style="white-space:nowrap"><span class="mono" style="font-size:12px">${esc(r.arch)}</span></td>
                         <td class="num">${r.len} <span class="muted">/ ${r.plen}</span></td>
-                        <td class="num">${r.scr ? scoreCellHtml(r.max_ipsae) : '<span class="muted">—</span>'}</td>
-                        <td class="num">${r.scr ? fmtInt(r.n05) : '—'}</td>
+                        <td class="num">${bestScoreCell(r, true)}</td>
                         <td>${topP ? `<a class="prot-link" style="white-space:nowrap" href="#/pathogen/${encodeURIComponent(topP.id)}">${esc(topP.id)}</a>` : '<span class="muted">—</span>'}</td>
                       </tr>
                     `;
                   })
                   .join('')
-              : '<tr><td colspan="9" style="text-align:center;padding:36px" class="muted">No NLR IDs match these filters.</td></tr>'
+              : '<tr><td colspan="8" style="text-align:center;padding:36px" class="muted">No NLR IDs match these filters.</td></tr>'
           }
         </tbody>
       </table>
     `;
 
     pageEl.querySelectorAll('#ids-tbl th.sortable').forEach((el) => {
-      el.addEventListener('click', () => {
+      const triggerSort = () => {
         const k = el.dataset.sort;
         if (st.sortBy === k) st.sortDir = st.sortDir === 'desc' ? 'asc' : 'desc';
-        else { st.sortBy = k; st.sortDir = (k === 'max_ipsae' || k === 'n05' || k === 'len') ? 'desc' : 'asc'; }
+        else { st.sortBy = k; st.sortDir = (k === 'max_ipsae' || k === 'len') ? 'desc' : 'asc'; }
         st.page = 1;
         draw();
+      };
+      el.addEventListener('click', triggerSort);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerSort(); }
       });
     });
 
@@ -812,8 +848,8 @@ function renderIdsDirectory(params) {
   });
 
   pageEl.querySelector('#ids-dl-tsv')?.addEventListener('click', () => {
-    const hdr = ['panel', 'id_name', 'screened', 'species', 'family', 'order', 'source', 'accession', 'architecture', 'nlr_class', 'id_start', 'id_end', 'id_length', 'parent_length', 'first_interpro', 'interpro_category', 'max_ipsae_min', 'n_ge_05', 'id_sequence'];
-    exportDelimited('bifrost_nlr_ids.tsv', hdr, currentRows.map((r) => [r.s, r.id, r.scr, r.sp, r.fam, r.ord, r.src, r.acc, r.arch, r.cls, r.st, r.en, r.len, r.plen, r.ipr, r.cat, r.max_ipsae, r.n05, r.seq]), '\t');
+    const hdr = ['panel', 'id_name', 'screened', 'species', 'family', 'order', 'source', 'accession', 'architecture', 'nlr_class', 'id_start', 'id_end', 'id_length', 'parent_length', 'first_interpro', 'interpro_category', 'max_ipsae_min', 'max_iptm', 'id_sequence'];
+    exportDelimited('bifrost_nlr_ids.tsv', hdr, currentRows.map((r) => [r.s, r.id, r.scr, r.sp, r.fam, r.ord, r.src, r.acc, r.arch, r.cls, r.st, r.en, r.len, r.plen, r.ipr, r.cat, r.max_ipsae, r.max_iptm, r.seq]), '\t');
   });
   pageEl.querySelector('#ids-dl-fasta')?.addEventListener('click', () => {
     triggerDownload('bifrost_nlr_ids.fasta', currentRows.map((r) => formatFasta(`${r.id} | ${r.s} | ${r.sp} | ${r.ipr} | ${r.st}-${r.en}/${r.plen}`, r.seq)).join(''));
@@ -857,6 +893,7 @@ async function renderIdDetail(idName, gen) {
     false
   );
   const panelMeta = meta.panels[r.s];
+  const siblings = meta.ids.filter((x) => x.s === r.s && x.pnlr === r.pnlr && x.id !== r.id);
 
   pageEl.innerHTML = `
     <div class="eyebrow">
@@ -881,7 +918,7 @@ async function renderIdDetail(idName, gen) {
     ${!r.scr ? `<div class="callout warn"><b>Excluded from AF3 runs.</b> Present in <code>Bifrost_IDs_metadata.tsv</code>, but not included in the 695 screened ID3 constructs.</div>` : ''}
 
     <div class="facts">
-      <div class="fact"><div class="k">Best ipSAE (min)</div><div class="v big-num">${r.scr ? r.max_ipsae.toFixed(3) : '—'}<small>${r.scr ? `${fmtInt(r.n05)} pairs ≥ 0.50` : 'Unscreened'}</small></div></div>
+      <div class="fact"><div class="k">Best ipSAE (min)</div><div class="v big-num">${!r.scr || r.n_ok === 0 ? '—' : r.max_ipsae.toFixed(3)}<small>${!r.scr ? 'Unscreened' : r.n_ok === 0 ? `All ${fmtInt(r.n_fail)} failed` : `${fmtInt(r.n_ok)} scored${r.n_fail ? ` · ${fmtInt(r.n_fail)} failed` : ''}${r.n_miss ? ` · ${fmtInt(r.n_miss)} missing` : ''} · ipTM ${r.max_iptm.toFixed(3)}`}</small></div></div>
       <div class="fact"><div class="k">ID coordinates</div><div class="v mono">${r.st}–${r.en}<small>${r.len} aa of ${r.plen} aa parent</small></div></div>
       <div class="fact"><div class="k">InterPro</div><div class="v">${interproLinksHtml(r.iprs || r.ipr)}<small>${esc(r.ipr_s || '')}</small></div></div>
       <div class="fact"><div class="k">Accession</div><div class="v">${accessionLinkHtml(r.acc, r.s)}<small>${r.asm ? esc(r.asm) : esc(r.src)}</small></div></div>
@@ -891,10 +928,12 @@ async function renderIdDetail(idName, gen) {
       <div class="fact"><div class="k">AF3 Chain A</div><div class="v mono" style="font-size:11.5px">${esc(r.af3 || '—')}</div></div>
     </div>
 
-    <h2>Parent NLR architecture <small>NLRtracker domain boundaries · excised ID (${r.st}–${r.en} aa) highlighted within ${r.plen} aa parent</small></h2>
+    <h2>Parent NLR architecture <small>NLRtracker domain boundaries · excised ID (${r.st}–${r.en} aa) highlighted within ${r.plen} aa parent${siblings.length ? ` · +${siblings.length} sibling ID${siblings.length > 1 ? 's' : ''}` : ''}</small></h2>
     <div class="chart-box" style="padding:16px 18px">
-      ${renderNlrSchematicSvg(r)}
+      ${renderNlrSchematicSvg(r, { siblings })}
     </div>
+
+    <div id="id-nearest-mount"></div>
 
     <h2>
       <span>Sequences</span>
@@ -931,9 +970,13 @@ async function renderIdDetail(idName, gen) {
     }
   `;
 
+  wireInteractiveCharts(pageEl);
+  renderNearestSeqCard(pageEl.querySelector('#id-nearest-mount'), r, 'id', meta);
+
   // Tabbed sequence viewer (ID vs full-length Parent NLR)
   let currentTab = 'id';
-  let parentSeq = null;
+  let parentSeq = store.parentNlrs ? (store.parentNlrs[r.i] || '') : null;
+  let parentErr = null;
   const idFasta = formatFasta(`${r.id} | ${r.s} | ${r.sp} | ${r.ipr} | ${r.st}-${r.en}/${r.plen}`, r.seq);
 
   const renderSeqTab = () => {
@@ -944,9 +987,13 @@ async function renderIdDetail(idName, gen) {
       body.innerHTML = renderFormattedSequence(r.seq);
     } else {
       cap.innerHTML = `<b>Full-length parent NLR</b> <span class="muted mono" style="font-size:12px">· ${r.plen} aa · </span><span class="seq-hl-id" style="padding:1px 6px;font-size:11.5px">ID ${r.st}–${r.en}</span>`;
-      body.innerHTML = parentSeq !== null
-        ? renderFormattedSequence(parentSeq, [{ start: r.st, end: r.en, cls: 'seq-hl-id' }])
-        : '<span class="muted">Loading full-length parent NLR sequence…</span>';
+      if (parentSeq !== null) {
+        body.innerHTML = renderFormattedSequence(parentSeq, [{ start: r.st, end: r.en, cls: 'seq-hl-id' }]);
+      } else if (parentErr) {
+        body.innerHTML = `<span class="muted">Failed to load parent NLR sequence (${esc(parentErr)}).</span>`;
+      } else {
+        body.innerHTML = '<span class="muted">Loading full-length parent NLR sequence…</span>';
+      }
     }
   };
 
@@ -967,29 +1014,65 @@ async function renderIdDetail(idName, gen) {
     else if (parentSeq) triggerDownload(`${r.pnlr}_parent.fasta`, formatFasta(`${r.pnlr} | parent_NLR | ${r.s} | ${r.sp} | ID=${r.st}-${r.en}`, parentSeq));
   });
 
-  store.loadParentNlrs().then((parents) => {
-    if (gen !== routeGen) return;
-    parentSeq = parents[r.i] || '';
-    if (currentTab === 'parent') renderSeqTab();
-    pageEl.querySelector('#id-dl-both')?.addEventListener('click', () => {
-      const pFasta = formatFasta(`${r.pnlr} | parent_NLR | ${r.s} | ${r.sp} | ID=${r.st}-${r.en}`, parentSeq);
-      triggerDownload(`${r.id}_ID_and_parent.fasta`, idFasta + '\n' + pFasta);
-    });
+  pageEl.querySelector('#id-dl-both')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (parentSeq === null) {
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      try {
+        const parents = await store.loadParentNlrs();
+        parentSeq = parents[r.i] || '';
+        parentErr = null;
+      } catch (err) {
+        parentErr = err?.message || 'network error';
+        btn.textContent = 'Load failed';
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1800);
+        return;
+      }
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+    const pFasta = parentSeq ? formatFasta(`${r.pnlr} | parent_NLR | ${r.s} | ${r.sp} | ID=${r.st}-${r.en}`, parentSeq) : '';
+    triggerDownload(`${r.id}_ID_and_parent.fasta`, idFasta + pFasta);
   });
 
+  if (parentSeq === null) {
+    store
+      .loadParentNlrs()
+      .then((parents) => {
+        if (gen !== routeGen) return;
+        parentSeq = parents[r.i] || '';
+        parentErr = null;
+        if (currentTab === 'parent') renderSeqTab();
+      })
+      .catch((err) => {
+        if (gen !== routeGen) return;
+        parentErr = err?.message || 'network error';
+        if (currentTab === 'parent') renderSeqTab();
+      });
+  }
+
   if (!r.scr) return;
-  store.getPairsForId(r).then((pairs) => {
-    if (gen !== routeGen) return;
-    renderPartnerTable({
-      mount: pageEl.querySelector('#id-pairs-mount'),
-      pairs,
-      mode: 'id',
-      entityName: r.id,
-      meta,
-      exportTsvBtn: pageEl.querySelector('#id-exp-tsv'),
-      exportCsvBtn: pageEl.querySelector('#id-exp-csv'),
+  store
+    .getPairsForId(r)
+    .then((pairs) => {
+      if (gen !== routeGen) return;
+      renderPartnerTable({
+        mount: pageEl.querySelector('#id-pairs-mount'),
+        pairs,
+        mode: 'id',
+        entityName: r.id,
+        meta,
+        exportTsvBtn: pageEl.querySelector('#id-exp-tsv'),
+        exportCsvBtn: pageEl.querySelector('#id-exp-csv'),
+      });
+    })
+    .catch((err) => {
+      if (gen !== routeGen) return;
+      const mount = pageEl.querySelector('#id-pairs-mount');
+      if (mount) mount.innerHTML = `<div class="callout warn"><b>Failed to load ${esc(r.s)} scores:</b> ${esc(err?.message || 'network error')}</div>`;
     });
-  });
 }
 
 /* --------------------------------------------------------------------------
@@ -1155,7 +1238,8 @@ function renderPathogensDirectory(params) {
 
     const th = (k, lbl, num = false) => {
       const act = st.sortBy === k;
-      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
+      const ariaSort = act ? (st.sortDir === 'desc' ? 'descending' : 'ascending') : 'none';
+      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}" tabindex="0" role="columnheader" aria-sort="${ariaSort}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
     };
 
     pageEl.querySelector('#pa-tbl').innerHTML = `
@@ -1169,7 +1253,6 @@ function renderPathogensDirectory(params) {
             ${th('cls', 'Class')}
             ${th('len', 'Length', true)}
             ${th('max_ipsae', 'Best ipSAE', true)}
-            ${th('n05', '≥ 0.5', true)}
             <th>Top NLR ID</th>
           </tr>
         </thead>
@@ -1187,26 +1270,29 @@ function renderPathogensDirectory(params) {
                         <td class="italic">${esc(r.sp)}</td>
                         <td>${esc(r.cls || '—')}${r.nwy ? ` <span class="muted">(${r.nwy} WY)</span>` : ''}</td>
                         <td class="num">${r.len} aa</td>
-                        <td class="num">${scoreCellHtml(r.max_ipsae)}</td>
-                        <td class="num">${fmtInt(r.n05)}</td>
+                        <td class="num">${bestScoreCell(r, false)}</td>
                         <td>${topId ? `<a class="prot-link cell-trunc" style="max-width:205px" href="#/id/${encodeURIComponent(topId.id)}">${esc(topId.ipr_s || topId.ipr)} · ${esc(topId.sp)}</a>` : '—'}</td>
                       </tr>
                     `;
                   })
                   .join('')
-              : '<tr><td colspan="9" style="text-align:center;padding:36px" class="muted">No pathogen proteins match these filters.</td></tr>'
+              : '<tr><td colspan="8" style="text-align:center;padding:36px" class="muted">No pathogen proteins match these filters.</td></tr>'
           }
         </tbody>
       </table>
     `;
 
     pageEl.querySelectorAll('#pa-tbl th.sortable').forEach((el) => {
-      el.addEventListener('click', () => {
+      const triggerSort = () => {
         const k = el.dataset.sort;
         if (st.sortBy === k) st.sortDir = st.sortDir === 'desc' ? 'asc' : 'desc';
-        else { st.sortBy = k; st.sortDir = (k === 'max_ipsae' || k === 'n05' || k === 'len') ? 'desc' : 'asc'; }
+        else { st.sortBy = k; st.sortDir = (k === 'max_ipsae' || k === 'len') ? 'desc' : 'asc'; }
         st.page = 1;
         draw();
+      };
+      el.addEventListener('click', triggerSort);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerSort(); }
       });
     });
 
@@ -1236,8 +1322,8 @@ function renderPathogensDirectory(params) {
   pageEl.querySelector('#pa-reset')?.addEventListener('click', () => renderPathogensDirectory(new URLSearchParams()));
 
   pageEl.querySelector('#pa-dl-tsv')?.addEventListener('click', () => {
-    const hdr = ['panel', 'protein', 'organism_type', 'species', 'kingdom', 'order', 'family', 'protein_class', 'n_WY', 'ncbi_accession', 'source', 'doi', 'length', 'n_screened', 'max_ipsae_min', 'n_ge_05', 'sequence'];
-    exportDelimited('bifrost_pathogens.tsv', hdr, currentRows.map((r) => [r.s, r.id, r.org, r.sp, r.kng, r.ord, r.fam, r.cls, r.nwy ?? '', r.acc, r.src, r.doi, r.len, r.n_scr, r.max_ipsae, r.n05, r.seq]), '\t');
+    const hdr = ['panel', 'protein', 'organism_type', 'species', 'kingdom', 'order', 'family', 'protein_class', 'n_WY', 'ncbi_accession', 'genome_assembly', 'source', 'source_url', 'length', 'n_screened', 'max_ipsae_min', 'max_iptm', 'sequence'];
+    exportDelimited('bifrost_pathogens.tsv', hdr, currentRows.map((r) => [r.s, r.id, r.org, r.sp, r.kng, r.ord, r.fam, r.cls, r.nwy ?? '', r.acc, r.asm || '', r.src, r.doi, r.len, r.n_scr, r.max_ipsae, r.max_iptm, r.seq]), '\t');
   });
   pageEl.querySelector('#pa-dl-fasta')?.addEventListener('click', () => {
     triggerDownload('bifrost_pathogens.fasta', currentRows.map((r) => formatFasta(`${r.id} | ${r.s} | ${r.org} | ${r.sp} | ${r.cls}`, r.seq)).join(''));
@@ -1284,15 +1370,21 @@ async function renderPathogenDetail(protName, gen) {
     </div>
 
     <div class="facts">
-      <div class="fact"><div class="k">Best ipSAE (min)</div><div class="v big-num">${r.max_ipsae.toFixed(3)}<small>${fmtInt(r.n05)} pairs ≥ 0.50</small></div></div>
-      <div class="fact"><div class="k">Screened IDs</div><div class="v big-num">${fmtInt(r.n_scr)}<small>${fmtInt(r.n_ok)} scored · ${fmtInt(r.n_fail)} failed</small></div></div>
+      <div class="fact"><div class="k">Best ipSAE (min)</div><div class="v big-num">${r.n_ok === 0 ? '—' : r.max_ipsae.toFixed(3)}<small>${r.n_ok === 0 ? `All ${fmtInt(r.n_fail)} failed` : `Best ipTM ${r.max_iptm.toFixed(3)}`}</small></div></div>
+      <div class="fact"><div class="k">Screened IDs</div><div class="v big-num">${fmtInt(r.n_scr)}<small>${fmtInt(r.n_ok)} scored · ${fmtInt(r.n_fail)} failed${r.n_miss ? ` · ${fmtInt(r.n_miss)} missing` : ''}</small></div></div>
       <div class="fact"><div class="k">Length</div><div class="v mono">${r.len} aa<small>${r.nwy ? `${r.nwy} WY domains` : esc(r.cls || '—')}</small></div></div>
       <div class="fact"><div class="k">NCBI accession</div><div class="v">${accessionLinkHtml(r.acc, r.s)}<small>${esc(r.af3)}</small></div></div>
     </div>
 
     <div style="font-size:13px;color:var(--ink3);margin:8px 0 6px">
-      Source: <b style="color:var(--ink)">${esc(r.src)}</b> ${r.doi ? `· ${doiLinksHtml(r.doi)}` : ''}
+      ${
+        r.asm
+          ? `Genome assembly: ${doiLinksHtml(r.doi, `NCBI Datasets · ${r.asm}`)}`
+          : `Source: <b style="color:var(--ink)">${esc(r.src)}</b> ${r.doi ? `· ${doiLinksHtml(r.doi)}` : ''}`
+      }
     </div>
+
+    <div id="pa-nearest-mount"></div>
 
     <h2>Sequence <small>AF3 Chain B · ${r.len} aa</small></h2>
     <div class="seq-box">
@@ -1317,26 +1409,184 @@ async function renderPathogenDetail(protName, gen) {
   const fasta = formatFasta(`${r.id} | ${r.s} | ${r.org} | ${r.sp} | ${r.cls}`, r.seq);
   pageEl.querySelector('#pa-copy-seq')?.addEventListener('click', (e) => copyToClipboard(r.seq, e.currentTarget));
   pageEl.querySelector('#pa-dl-fasta')?.addEventListener('click', () => triggerDownload(`${r.id}.fasta`, fasta));
+  renderNearestSeqCard(pageEl.querySelector('#pa-nearest-mount'), r, 'pathogen', meta);
 
-  store.getPairsForPathogen(r).then((pairs) => {
-    if (gen !== routeGen) return;
-    renderPartnerTable({
-      mount: pageEl.querySelector('#pa-pairs-mount'),
-      pairs,
-      mode: 'pathogen',
-      entityName: r.id,
-      meta,
-      exportTsvBtn: pageEl.querySelector('#pa-exp-tsv'),
-      exportCsvBtn: pageEl.querySelector('#pa-exp-csv'),
+  store
+    .getPairsForPathogen(r)
+    .then((pairs) => {
+      if (gen !== routeGen) return;
+      renderPartnerTable({
+        mount: pageEl.querySelector('#pa-pairs-mount'),
+        pairs,
+        mode: 'pathogen',
+        entityName: r.id,
+        meta,
+        exportTsvBtn: pageEl.querySelector('#pa-exp-tsv'),
+        exportCsvBtn: pageEl.querySelector('#pa-exp-csv'),
+      });
+    })
+    .catch((err) => {
+      if (gen !== routeGen) return;
+      const mount = pageEl.querySelector('#pa-pairs-mount');
+      if (mount) mount.innerHTML = `<div class="callout warn"><b>Failed to load ${esc(r.s)} scores:</b> ${esc(err?.message || 'network error')}</div>`;
     });
+}
+
+/* Shared "Most similar sequence in Bifrost" box for NLR IDs & Pathogens (paralogs/orthologs) */
+function formatPairwiseAlignment(hit) {
+  const width = 60;
+  const lines = [];
+  let qPos = hit.qStart;
+  let tPos = hit.tStart;
+  for (let i = 0; i < hit.alignLen; i += width) {
+    const qs = hit.qAln.slice(i, i + width);
+    const ms = hit.mid.slice(i, i + width);
+    const ts = hit.tAln.slice(i, i + width);
+    const qAdv = qs.replace(/-/g, '').length;
+    const tAdv = ts.replace(/-/g, '').length;
+    const qEnd = qAdv ? qPos + qAdv - 1 : qPos;
+    const tEnd = tAdv ? tPos + tAdv - 1 : tPos;
+    lines.push(
+      `Query  ${String(qPos).padStart(4)}  ${qs}  ${qEnd}\n` +
+      `             ${ms}\n` +
+      `Match  ${String(tPos).padStart(4)}  ${ts}  ${tEnd}`
+    );
+    qPos += qAdv;
+    tPos += tAdv;
+  }
+  return lines.join('\n\n');
+}
+
+function renderNearestSeqCard(mount, targetRec, kind, meta) {
+  if (!mount || !targetRec || !targetRec.seq) return;
+  const pool = kind === 'id' ? store.screenedIds : meta.pathogens;
+  const { top, others } = findNearestSequences(targetRec, pool, kind, { topK: 5 });
+
+  if (!top) {
+    mount.innerHTML = '';
+    return;
+  }
+
+  const m = top.rec;
+  const isId = kind === 'id';
+  const href = isId ? `#/id/${encodeURIComponent(m.id)}` : `#/pathogen/${encodeURIComponent(m.id)}`;
+  const heatmapHref = isId
+    ? `#/heatmap?focusId=${encodeURIComponent(targetRec.id)}`
+    : `#/heatmap?focusPath=${encodeURIComponent(targetRec.id)}`;
+  const badgeHtml = isId ? panelBadge(m.s) : `<span class="badge">${esc(m.s)}</span> ${orgBadge(m.org)}`;
+  const subInfo = isId
+    ? `<span class="italic">${esc(m.sp)}</span> · ${esc(m.ipr_s || m.ipr)} (${esc(m.arch)})`
+    : `<span class="italic">${esc(m.sp)}</span>${m.cls ? ` · ${esc(m.cls)}` : ''}`;
+
+  const relBadge = top.isWeak
+    ? `<span class="badge badge-warn">Low local similarity · no close homolog in set</span>`
+    : `<span class="badge">${esc(top.relation)}</span>`;
+
+  mount.innerHTML = `
+    <section class="nn-card" aria-label="Most similar sequence in Bifrost">
+      <div class="nn-head">
+        <div class="nn-head-left">
+          <span class="nn-eyebrow">Most similar sequence in Bifrost</span>
+          ${relBadge}
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm" id="nn-aln-btn">Show alignment</button>
+          ${others.length ? `<button type="button" class="btn btn-sm" id="nn-more-btn">Next closest (${others.length})</button>` : ''}
+          <a class="btn btn-sm" href="${heatmapHref}" title="Compare this sequence and its closest homologs in a custom heatmap">Compare in Heatmap &rarr;</a>
+        </div>
+      </div>
+
+      <div class="nn-main">
+        <div class="nn-target">
+          <div class="nn-title-row">
+            ${badgeHtml}
+            <a class="prot-link nn-name" href="${href}">${esc(m.id)}</a>
+          </div>
+          <div class="nn-sub">${subInfo}</div>
+        </div>
+
+        <div class="nn-stats">
+          <div class="nn-stat"><span class="k">Identity</span><span class="v">${top.identityPct.toFixed(1)}%</span></div>
+          <div class="nn-stat"><span class="k">Positives</span><span class="v">${top.positivesPct.toFixed(1)}%</span></div>
+          <div class="nn-stat"><span class="k">Query cov</span><span class="v">${top.queryCovPct.toFixed(0)}%</span></div>
+          <div class="nn-stat"><span class="k">Aligned</span><span class="v">${top.alignLen} aa</span></div>
+          <div class="nn-stat"><span class="k">BLOSUM62</span><span class="v">${top.score}</span></div>
+          <div class="nn-stat"><span class="k">Best ipSAE</span><span class="v">${m.n_ok === 0 ? 'All failed' : m.max_ipsae.toFixed(3)}</span></div>
+        </div>
+      </div>
+
+      <div class="nn-drawer" id="nn-aln-box" hidden>
+        <div class="muted" style="font-size:12px;margin-bottom:6px">
+          Local BLOSUM62 alignment · Query ${top.qStart}–${top.qEnd} (${targetRec.len} aa) vs. Match ${top.tStart}–${top.tEnd} (${m.len} aa)
+        </div>
+        <pre class="aln-pre" style="margin:0">${esc(formatPairwiseAlignment(top))}</pre>
+      </div>
+
+      ${
+        others.length
+          ? `
+        <div class="nn-drawer" id="nn-more-box" hidden>
+          <div class="muted" style="font-size:12px;margin-bottom:8px">Additional similar sequences in this Bifrost set (putative paralogs / orthologs)</div>
+          <div class="tblwrap">
+            <table class="dt">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>${isId ? 'NLR Integrated Domain' : 'Pathogen / Pest Protein'}</th>
+                  <th>Species</th>
+                  <th>Relation</th>
+                  <th class="num">Identity</th>
+                  <th class="num">Query cov</th>
+                  <th class="num">Best ipSAE</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${others
+                  .map((h, idx) => {
+                    const hr = h.rec;
+                    const hHref = isId ? `#/id/${encodeURIComponent(hr.id)}` : `#/pathogen/${encodeURIComponent(hr.id)}`;
+                    return `<tr>
+                      <td class="mono muted">${idx + 2}</td>
+                      <td>
+                        <div style="display:flex;align-items:center;gap:6px">
+                          ${isId ? panelBadge(hr.s) : `<span class="badge">${esc(hr.s)}</span>`}
+                          <a class="prot-link cell-trunc" style="max-width:220px" href="${hHref}" title="${esc(hr.id)}">${esc(hr.id)}</a>
+                        </div>
+                      </td>
+                      <td class="italic">${esc(hr.sp)}</td>
+                      <td style="font-size:12px">${h.isWeak ? '<span class="muted">Low local match</span>' : esc(h.relation)}</td>
+                      <td class="num mono">${h.identityPct.toFixed(1)}%</td>
+                      <td class="num mono">${h.queryCovPct.toFixed(0)}%</td>
+                      <td class="num">${bestScoreCell(hr, isId, false)}</td>
+                    </tr>`;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `
+          : ''
+      }
+    </section>
+  `;
+
+  mount.querySelector('#nn-aln-btn')?.addEventListener('click', (e) => {
+    const box = mount.querySelector('#nn-aln-box');
+    box.hidden = !box.hidden;
+    e.currentTarget.textContent = box.hidden ? 'Show alignment' : 'Hide alignment';
+  });
+  mount.querySelector('#nn-more-btn')?.addEventListener('click', (e) => {
+    const box = mount.querySelector('#nn-more-box');
+    box.hidden = !box.hidden;
+    e.currentTarget.textContent = box.hidden ? `Next closest (${others.length})` : 'Hide list';
   });
 }
 
 /* Shared clean partner table inside ID and Pathogen detail pages */
 function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn, exportCsvBtn }) {
-  const pst = { q: '', f1: '', minIpsae: 0, showSub: false, showChart: false, sortBy: 'ipsae_min', sortDir: 'desc', page: 1 };
+  const pst = { q: '', f1: '', showSub: false, showChart: false, sortBy: 'ipsae_min', sortDir: 'desc', page: 1 };
   const PAGE = 50;
-  const scoredVals = pairs.filter((p) => p.status === STATUS.SCORED).map((p) => p.ipsae_min);
 
   const groupChips = mode === 'id' ? ['Oomycete', 'Nematode', 'Insect', 'Virus'] : ['ID1', 'ID2', 'ID3'];
 
@@ -1350,9 +1600,6 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
           return `<button type="button" class="chip" data-pf1="${v}"><span class="dot" style="background:${c}"></span>${v}</button>`;
         })
         .join('')}
-      <button type="button" class="chip" data-pthr="0.5">≥ 0.5</button>
-      <button type="button" class="chip" data-pthr="0.3">≥ 0.3</button>
-      <button type="button" class="chip on-soft" data-pthr="0">All scores</button>
       <button type="button" class="chip" id="ps-sub-btn">Subscores</button>
       <button type="button" class="chip" id="ps-chart-btn">Histogram</button>
     </div>
@@ -1367,7 +1614,6 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
   function draw() {
     const q = pst.q.trim().toLowerCase();
     filtered = pairs.filter((p) => {
-      if (pst.minIpsae > 0 && (p.status !== STATUS.SCORED || p.ipsae_min < pst.minIpsae)) return false;
       if (mode === 'id') {
         const pa = meta.pathogens[p.path_idx];
         if (pst.f1 && pa.org !== pst.f1) return false;
@@ -1393,14 +1639,17 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
     const eIdx = Math.min(filtered.length, pst.page * PAGE);
 
     mount.querySelectorAll('[data-pf1]').forEach((b) => b.classList.toggle('on', b.dataset.pf1 === pst.f1));
-    mount.querySelectorAll('[data-pthr]').forEach((b) => b.classList.toggle('on-soft', Number(b.dataset.pthr) === pst.minIpsae));
     mount.querySelector('#ps-sub-btn')?.classList.toggle('on-soft', pst.showSub);
     mount.querySelector('#ps-chart-btn')?.classList.toggle('on-soft', pst.showChart);
 
     const chartEl = mount.querySelector('#ps-chart');
     if (pst.showChart) {
       chartEl.hidden = false;
-      chartEl.innerHTML = renderSimpleHistogramSvg(scoredVals, { metricLabel: 'Partner ipSAE (min)', height: 145 });
+      const filteredScored = filtered.filter((p) => p.status === STATUS.SCORED).map((p) => p.ipsae_min);
+      chartEl.innerHTML = filteredScored.length
+        ? renderSimpleHistogramSvg(filteredScored, { metricLabel: 'Partner ipSAE (min)', height: 145 })
+        : '<div class="muted" style="text-align:center;padding:18px 0">No scored pairs in this filter slice.</div>';
+      wireInteractiveCharts(chartEl);
     } else chartEl.hidden = true;
 
     mount.querySelector('#ps-meta').innerHTML = `
@@ -1410,7 +1659,8 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
 
     const th = (k, lbl) => {
       const act = pst.sortBy === k;
-      return `<th class="sortable num${act ? ' sorted' : ''}" data-sort="${k}">${esc(lbl)}${act ? (pst.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
+      const ariaSort = act ? (pst.sortDir === 'desc' ? 'descending' : 'ascending') : 'none';
+      return `<th class="sortable num${act ? ' sorted' : ''}" data-sort="${k}" tabindex="0" role="columnheader" aria-sort="${ariaSort}">${esc(lbl)}${act ? (pst.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
     };
     const subHead = pst.showSub
       ? `${th('ipsae_max', 'ipSAE max')}${th('ipsae_a', 'A→B')}${th('ipsae_b', 'B→A')}${th('d0dom_min', 'd0dom')}${th('pdockq2_min', 'pDockQ2')}<th class="num">dist1/2</th>`
@@ -1451,7 +1701,7 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
                       ? `<td class="num">${ok ? p.ipsae_max.toFixed(3) : '—'}</td><td class="num">${ok ? p.ipsae_a.toFixed(3) : '—'}</td><td class="num">${ok ? p.ipsae_b.toFixed(3) : '—'}</td><td class="num">${ok ? p.d0dom_min.toFixed(3) : '—'}</td><td class="num">${ok ? p.pdockq2_min.toFixed(3) : '—'}</td><td class="num">${ok ? `${p.dist1}/${p.dist2}` : '—'}</td>`
                       : '';
                     return `
-                      <tr class="clickable" data-p-idx="${idx}">
+                      <tr class="clickable" data-p-idx="${idx}" tabindex="0">
                         <td class="mono" style="font-size:12px">${esc(ds.id)}</td>
                         <td>${cell}</td>
                         <td class="num">${scoreCellHtml(p.ipsae_min, p.status)}</td>
@@ -1471,18 +1721,27 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
     `;
 
     mount.querySelectorAll('#ps-tbl th.sortable').forEach((el) => {
-      el.addEventListener('click', () => {
+      const triggerSort = () => {
         const k = el.dataset.sort;
         if (pst.sortBy === k) pst.sortDir = pst.sortDir === 'desc' ? 'asc' : 'desc';
         else { pst.sortBy = k; pst.sortDir = 'desc'; }
         pst.page = 1;
         draw();
+      };
+      el.addEventListener('click', triggerSort);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerSort(); }
       });
     });
     mount.querySelectorAll('#ps-tbl tbody tr[data-p-idx]').forEach((tr) => {
+      const openRow = () => navigateToPair(slice[Number(tr.dataset.pIdx)]);
       tr.addEventListener('click', (e) => {
         if (e.target.closest('[data-stop-row]')) return;
-        navigateToPair(slice[Number(tr.dataset.pIdx)]);
+        openRow();
+      });
+      tr.addEventListener('keydown', (e) => {
+        if (e.target !== tr) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(); }
       });
     });
 
@@ -1499,7 +1758,6 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
 
   mount.querySelector('#ps-q')?.addEventListener('input', (e) => { pst.q = e.target.value; pst.page = 1; draw(); });
   mount.querySelectorAll('[data-pf1]').forEach((b) => b.addEventListener('click', () => { pst.f1 = b.dataset.pf1; pst.page = 1; draw(); }));
-  mount.querySelectorAll('[data-pthr]').forEach((b) => b.addEventListener('click', () => { pst.minIpsae = Number(b.dataset.pthr); pst.page = 1; draw(); }));
   mount.querySelector('#ps-sub-btn')?.addEventListener('click', () => { pst.showSub = !pst.showSub; draw(); });
   mount.querySelector('#ps-chart-btn')?.addEventListener('click', () => { pst.showChart = !pst.showChart; draw(); });
 
@@ -1538,7 +1796,7 @@ function getInterproCatalog(meta) {
     }
     const topCat = [...catCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'Uncategorized';
 
-    let nID1 = 0, nID2 = 0, nID3 = 0, maxIpsae = 0, n05 = 0;
+    let nID1 = 0, nID2 = 0, nID3 = 0, nScoredIds = 0, maxIpsae = 0;
     const spSet = new Set();
     const ordSet = new Set();
     for (const r of screened) {
@@ -1547,8 +1805,10 @@ function getInterproCatalog(meta) {
       else if (r.s === 'ID3') nID3++;
       spSet.add(r.sp);
       if (r.ord) ordSet.add(r.ord);
-      if (r.max_ipsae > maxIpsae) maxIpsae = r.max_ipsae;
-      n05 += r.n05 || 0;
+      if (r.n_ok > 0) {
+        nScoredIds++;
+        if (r.max_ipsae > maxIpsae) maxIpsae = r.max_ipsae;
+      }
     }
 
     const shortName = info?.s || rep.ipr_s || '';
@@ -1566,6 +1826,7 @@ function getInterproCatalog(meta) {
       isPrimary: primList.length > 0,
       nPrimary: primList.length,
       nAll: screened.length,
+      nScoredIds,
       nCatalog: allList.length,
       nID1,
       nID2,
@@ -1573,7 +1834,6 @@ function getInterproCatalog(meta) {
       nSpecies: spSet.size,
       nOrders: ordSet.size,
       maxIpsae,
-      n05,
       _q: `${ipr} ${shortName} ${fullName} ${topCat} ${typeLabel}`.toLowerCase(),
     });
   }
@@ -1596,7 +1856,6 @@ function renderDomainsDirectory(params) {
     panel: params.get('panel') || '',
     cat: params.get('category') || '',
     type: params.get('type') || '',
-    minIpsae: params.get('ipsae') || '',
     showCats: false,
     sortBy: 'nAll',
     sortDir: 'desc',
@@ -1642,15 +1901,6 @@ function renderDomainsDirectory(params) {
         <label for="dom-type">InterPro type</label>
         <select id="dom-type"></select>
       </div>
-      <div class="field">
-        <label for="dom-ipsae">Best ipSAE (min)</label>
-        <select id="dom-ipsae">
-          <option value=""${st.minIpsae === '' ? ' selected' : ''}>Any score</option>
-          <option value="0.3"${st.minIpsae === '0.3' ? ' selected' : ''}>≥ 0.30</option>
-          <option value="0.5"${st.minIpsae === '0.5' ? ' selected' : ''}>≥ 0.50</option>
-          <option value="0.6"${st.minIpsae === '0.6' ? ' selected' : ''}>≥ 0.60</option>
-        </select>
-      </div>
     </div>
 
     <div class="chart-box" id="dom-cat-chart" hidden></div>
@@ -1669,7 +1919,6 @@ function renderDomainsDirectory(params) {
 
   function draw(changedKey = null) {
     const q = st.q.trim().toLowerCase();
-    const minScore = st.minIpsae ? Number(st.minIpsae) : 0;
 
     const basePool = catalog.filter((r) => {
       if (st.scope === 'primary' && !r.isPrimary) return false;
@@ -1677,7 +1926,6 @@ function renderDomainsDirectory(params) {
       if (st.panel === 'ID1' && !r.nID1) return false;
       if (st.panel === 'ID2' && !r.nID2) return false;
       if (st.panel === 'ID3' && !r.nID3) return false;
-      if (minScore > 0 && r.maxIpsae < minScore) return false;
       if (q && !r._q.includes(q)) return false;
       return true;
     });
@@ -1737,7 +1985,8 @@ function renderDomainsDirectory(params) {
 
     const th = (k, lbl, num = false) => {
       const act = st.sortBy === k;
-      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
+      const ariaSort = act ? (st.sortDir === 'desc' ? 'descending' : 'ascending') : 'none';
+      return `<th class="sortable${act ? ' sorted' : ''}${num ? ' num' : ''}" data-sort="${k}" tabindex="0" role="columnheader" aria-sort="${ariaSort}">${esc(lbl)}${act ? (st.sortDir === 'desc' ? ' ↓' : ' ↑') : ''}</th>`;
     };
 
     pageEl.querySelector('#dom-tbl').innerHTML = `
@@ -1751,7 +2000,6 @@ function renderDomainsDirectory(params) {
             ${th('nPrimary', 'Primary', true)}
             ${th('nSpecies', 'Species', true)}
             ${th('maxIpsae', 'Best ipSAE', true)}
-            ${th('n05', '≥ 0.5', true)}
             <th class="num">Scores</th>
           </tr>
         </thead>
@@ -1788,26 +2036,29 @@ function renderDomainsDirectory(params) {
                         </td>
                         <td class="num">${r.nPrimary ? fmtInt(r.nPrimary) : '<span class="badge" style="font-size:10.5px">Overlap</span>'}</td>
                         <td class="num">${fmtInt(r.nSpecies)}</td>
-                        <td class="num">${r.nAll ? scoreCellHtml(r.maxIpsae) : '<span class="muted">—</span>'}</td>
-                        <td class="num">${r.nAll ? fmtInt(r.n05) : '—'}</td>
-                        <td class="num"><a class="prot-link" style="font-size:12px;white-space:nowrap" href="#/explorer?ipr=${encodeURIComponent(r.ipr)}&ipsae=0">Explore &rarr;</a></td>
+                        <td class="num">${!r.nAll ? '<span class="muted">—</span>' : r.nScoredIds === 0 ? '<span class="badge badge-bad">All failed</span>' : scoreCellHtml(r.maxIpsae)}</td>
+                        <td class="num"><a class="prot-link" style="font-size:12px;white-space:nowrap" href="#/explorer?ipr=${encodeURIComponent(r.ipr)}">Explore &rarr;</a></td>
                       </tr>
                     `;
                   })
                   .join('')
-              : '<tr><td colspan="9" style="text-align:center;padding:36px" class="muted">No InterPro domains match these filters.</td></tr>'
+              : '<tr><td colspan="8" style="text-align:center;padding:36px" class="muted">No InterPro domains match these filters.</td></tr>'
           }
         </tbody>
       </table>
     `;
 
     pageEl.querySelectorAll('#dom-tbl th.sortable').forEach((el) => {
-      el.addEventListener('click', () => {
+      const triggerSort = () => {
         const k = el.dataset.sort;
         if (st.sortBy === k) st.sortDir = st.sortDir === 'desc' ? 'asc' : 'desc';
         else { st.sortBy = k; st.sortDir = (k === 'ipr' || k === 'short' || k === 'cat') ? 'asc' : 'desc'; }
         st.page = 1;
         draw();
+      };
+      el.addEventListener('click', triggerSort);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerSort(); }
       });
     });
 
@@ -1835,16 +2086,15 @@ function renderDomainsDirectory(params) {
   });
   pageEl.querySelector('#dom-cat')?.addEventListener('change', (e) => { st.cat = e.target.value; st.page = 1; draw('cat'); });
   pageEl.querySelector('#dom-type')?.addEventListener('change', (e) => { st.type = e.target.value; st.page = 1; draw('type'); });
-  pageEl.querySelector('#dom-ipsae')?.addEventListener('change', (e) => { st.minIpsae = e.target.value; st.page = 1; draw('ipsae'); });
   pageEl.querySelector('#dom-cats-btn')?.addEventListener('click', () => { st.showCats = !st.showCats; draw(); });
   pageEl.querySelector('#dom-reset')?.addEventListener('click', () => renderDomainsDirectory(new URLSearchParams()));
 
   pageEl.querySelector('#dom-dl-tsv')?.addEventListener('click', () => {
-    const hdr = ['interpro', 'short_name', 'full_name', 'interpro_type', 'category', 'primary_entry', 'screened_ids', 'primary_ids', 'ID1', 'ID2', 'ID3', 'plant_species', 'plant_orders', 'max_ipsae_min', 'pairs_ge_05'];
+    const hdr = ['interpro', 'short_name', 'full_name', 'interpro_type', 'category', 'primary_entry', 'screened_ids', 'primary_ids', 'ID1', 'ID2', 'ID3', 'plant_species', 'plant_orders', 'max_ipsae_min'];
     exportDelimited(
       'bifrost_interpro_domains.tsv',
       hdr,
-      currentRows.map((r) => [r.ipr, r.short, r.name, r.typeRaw, r.cat, r.isPrimary, r.nAll, r.nPrimary, r.nID1, r.nID2, r.nID3, r.nSpecies, r.nOrders, r.maxIpsae, r.n05]),
+      currentRows.map((r) => [r.ipr, r.short, r.name, r.typeRaw, r.cat, r.isPrimary, r.nAll, r.nPrimary, r.nID1, r.nID2, r.nID3, r.nSpecies, r.nOrders, r.maxIpsae]),
       '\t'
     );
   });
@@ -1857,23 +2107,30 @@ function renderDomainsDirectory(params) {
    -------------------------------------------------------------------------- */
 function renderDomainDetail(ipr) {
   const meta = store.meta;
-  const list = (store.idsByInterpro.get(ipr) || []).slice().sort((a, b) => b.max_ipsae - a.max_ipsae);
+  const list = (store.idsByInterpro.get(ipr) || [])
+    .slice()
+    .sort((a, b) => (b.scr ? 1 : 0) - (a.scr ? 1 : 0) || b.max_ipsae - a.max_ipsae || a.id.localeCompare(b.id));
   setNavAndCrumbs(`dom-${ipr}`, [{ label: 'Bifrost', href: '#/' }, { label: 'InterPro Domains', href: '#/domains' }, { label: ipr }], false);
 
   if (!list.length) {
     pageEl.innerHTML = `<div class="callout warn">InterPro entry <code>${esc(ipr)}</code> was not found in Bifrost. <a class="prot-link" href="#/domains">Browse all InterPro domains &rarr;</a></div>`;
     return;
   }
+  const screened = list.filter((x) => x.scr);
+  const nExcluded = list.length - screened.length;
+  const statList = screened.length ? screened : list;
   const iprInfo = meta.interpro?.[ipr];
-  const rep = list.find((x) => x.ipr === ipr) || list[0];
+  const rep = statList.find((x) => x.ipr === ipr) || statList[0];
   const shortName = iprInfo?.s || rep.ipr_s || ipr;
   const fullName = iprInfo?.n || rep.ipr_n || '';
   const typeLabel = fmtInterproType(iprInfo?.t || rep.ipr_t || '');
-  const nPrim = list.filter((x) => x.ipr === ipr).length;
+  const nPrim = statList.filter((x) => x.ipr === ipr).length;
+  const scoredIds = screened.filter((x) => x.n_ok > 0);
+  const peakIpsae = scoredIds.reduce((m, x) => (x.max_ipsae > m ? x.max_ipsae : m), 0);
   const ebiUrl = `https://www.ebi.ac.uk/interpro/entry/InterPro/${encodeURIComponent(ipr)}/`;
 
   const ordMap = new Map();
-  for (const r of list) ordMap.set(r.ord || 'Other', (ordMap.get(r.ord || 'Other') || 0) + 1);
+  for (const r of statList) ordMap.set(r.ord || 'Other', (ordMap.get(r.ord || 'Other') || 0) + 1);
   const topOrds = [...ordMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([o, c]) => ({ label: o, value: c, sub: 'IDs', color: '#4361ee' }));
 
   pageEl.innerHTML = `
@@ -1885,18 +2142,18 @@ function renderDomainDetail(ipr) {
       </div>
       <div class="btn-group">
         <a class="btn btn-sm" href="${ebiUrl}" target="_blank" rel="noopener">InterPro &#8599;</a>
-        <a class="btn btn-sm btn-primary" href="#/explorer?ipr=${encodeURIComponent(ipr)}&ipsae=0">Explore scores &rarr;</a>
+        <a class="btn btn-sm btn-primary" href="#/explorer?ipr=${encodeURIComponent(ipr)}">Explore scores &rarr;</a>
       </div>
     </div>
 
     <div class="facts">
-      <div class="fact"><div class="k">Bifrost IDs</div><div class="v big-num">${fmtInt(list.length)}<small>${nPrim ? `${fmtInt(nPrim)} primary` : 'Overlapping only'}</small></div></div>
-      <div class="fact"><div class="k">Plant species</div><div class="v big-num">${new Set(list.map((x) => x.sp)).size}<small>${new Set(list.map((x) => x.ord).filter(Boolean)).size} plant orders</small></div></div>
-      <div class="fact"><div class="k">Peak ipSAE (min)</div><div class="v big-num">${list[0].max_ipsae.toFixed(3)}<small>${fmtInt(list.reduce((a, r) => a + (r.n05 || 0), 0))} pairs ≥ 0.50</small></div></div>
-      <div class="fact"><div class="k">Panels</div><div class="v" style="display:flex;gap:5px;flex-wrap:wrap">${[...new Set(list.map((x) => x.s))].sort().map(panelBadge).join('')}</div></div>
+      <div class="fact"><div class="k">Bifrost IDs</div><div class="v big-num">${fmtInt(screened.length)}<small>${nPrim ? `${fmtInt(nPrim)} primary` : 'Overlapping only'}${nExcluded ? ` · +${nExcluded} excluded` : ''}</small></div></div>
+      <div class="fact"><div class="k">Plant species</div><div class="v big-num">${new Set(statList.map((x) => x.sp)).size}<small>${new Set(statList.map((x) => x.ord).filter(Boolean)).size} plant orders</small></div></div>
+      <div class="fact"><div class="k">Peak ipSAE (min)</div><div class="v big-num">${scoredIds.length ? peakIpsae.toFixed(3) : '—'}<small>${scoredIds.length ? `across ${fmtInt(screened.length)} screened IDs` : screened.length ? 'All screened IDs failed ipSAE' : 'Not screened'}</small></div></div>
+      <div class="fact"><div class="k">Panels</div><div class="v" style="display:flex;gap:5px;flex-wrap:wrap">${[...new Set(statList.map((x) => x.s))].sort().map(panelBadge).join('')}</div></div>
     </div>
 
-    <h2>Taxonomic distribution</h2>
+    <h2>Taxonomic distribution${nExcluded ? ' <small>Screened IDs</small>' : ''}</h2>
     <div class="chart-box">${renderHorizontalBarsHtml(topOrds)}</div>
 
     <h2>Integrated domains carrying ${esc(ipr)}</h2>
@@ -1910,12 +2167,12 @@ function renderDomainDetail(ipr) {
             .map((r) => {
               const topP = r.top_p >= 0 ? meta.pathogens[r.top_p] : null;
               return `<tr>
-                <td>${panelBadge(r.s)}</td>
+                <td>${panelBadge(r.s)}${!r.scr ? ' <span class="badge badge-warn">Excl.</span>' : ''}</td>
                 <td><a class="prot-link cell-trunc" href="#/id/${encodeURIComponent(r.id)}">${esc(r.id)}</a></td>
                 <td><span class="italic">${esc(r.sp)}</span></td>
                 <td class="mono" style="font-size:12px;white-space:nowrap">${esc(r.arch)}</td>
                 <td class="num">${r.len} aa</td>
-                <td class="num">${r.scr ? scoreCellHtml(r.max_ipsae) : '—'}</td>
+                <td class="num">${bestScoreCell(r, true)}</td>
                 <td>${topP ? `<a class="prot-link" href="#/pathogen/${encodeURIComponent(topP.id)}">${esc(topP.id)}</a>` : '—'}</td>
               </tr>`;
             })
@@ -1930,11 +2187,11 @@ function renderDomainDetail(ipr) {
    VIEW 7: Sequence Search (#/search)
    -------------------------------------------------------------------------- */
 function renderSequenceSearch(params) {
-  setNavAndCrumbs('search', [{ label: 'Bifrost', href: '#/' }, { label: 'Sequence Search' }], true);
+  setNavAndCrumbs('search', [{ label: 'Bifrost', href: '#/' }, { label: 'Tools' }, { label: 'Sequence Search' }], true);
   const meta = store.meta;
-  const exHma = meta.ids.find((r) => r.ipr === 'IPR006121' && r.max_ipsae >= 0.5) || meta.ids[0];
-  const exEff = meta.pathogens.find((r) => r.org === 'Oomycete' && r.max_ipsae >= 0.5) || meta.pathogens[0];
-  const exVir = meta.pathogens.find((r) => r.org === 'Virus' && r.max_ipsae >= 0.5) || meta.pathogens[meta.pathogens.length - 1];
+  const exHma = meta.ids.find((r) => r.scr && r.ipr === 'IPR006121') || meta.ids[0];
+  const exEff = meta.pathogens.find((r) => r.org === 'Oomycete') || meta.pathogens[0];
+  const exVir = meta.pathogens.find((r) => r.org === 'Virus') || meta.pathogens[meta.pathogens.length - 1];
 
   let initialQuery = '';
   const pType = params.get('prefill');
@@ -1943,7 +2200,7 @@ function renderSequenceSearch(params) {
   else if (pType === 'pathogen' && pName && store.pathByName.has(pName)) initialQuery = `>${pName}\n${store.pathByName.get(pName).seq}`;
 
   pageEl.innerHTML = `
-    <div class="eyebrow">Client-side search · BLOSUM62 &amp; motifs</div>
+    <div class="eyebrow">Tools · Client-side BLOSUM62 &amp; motif search</div>
     <h1>Sequence search</h1>
     <p class="lede">Paste an amino acid sequence (FASTA or raw) or motif pattern to search all Bifrost NLR integrated domains, pathogen/pest proteins, and full-length parent NLRs locally in your browser.</p>
 
@@ -2032,12 +2289,37 @@ function renderSequenceSearch(params) {
     await new Promise((r) => setTimeout(r, 20));
 
     let parents = null;
-    if (useParents) parents = await store.loadParentNlrs();
+    if (useParents) {
+      try {
+        parents = await store.loadParentNlrs();
+      } catch (err) {
+        outEl.innerHTML = `<div class="callout warn"><b>Failed to load parent NLR sequences:</b> ${esc(err?.message || 'network error')}</div>`;
+        return;
+      }
+    }
 
     const entries = [];
     if (useIds) for (const r of meta.ids) entries.push({ kind: 'ID', rec: r, seq: r.seq });
     if (usePath) for (const r of meta.pathogens) entries.push({ kind: 'Pathogen', rec: r, seq: r.seq });
-    if (useParents && parents) for (const r of meta.ids) entries.push({ kind: 'Parent NLR', rec: r, seq: parents[r.i] || '' });
+    if (useParents && parents) {
+      // Deduplicate multi-ID parent NLRs by (panel, parent_nlr), keeping highest-scoring screened child as representative
+      const byParent = new Map();
+      for (const r of meta.ids) {
+        const key = `${r.s}\0${r.pnlr}`;
+        const prev = byParent.get(key);
+        if (!prev) {
+          byParent.set(key, { kind: 'Parent NLR', rec: r, seq: parents[r.i] || '', nIds: 1 });
+        } else {
+          prev.nIds++;
+          const prevRank = (prev.rec.scr ? 2 : 0) + (prev.rec.n_ok > 0 ? 1 : 0);
+          const curRank = (r.scr ? 2 : 0) + (r.n_ok > 0 ? 1 : 0);
+          if (curRank > prevRank || (curRank === prevRank && r.max_ipsae > prev.rec.max_ipsae)) {
+            prev.rec = r;
+          }
+        }
+      }
+      for (const e of byParent.values()) entries.push(e);
+    }
 
     const t0 = performance.now();
     if (mode === 'homology') {
@@ -2063,12 +2345,12 @@ function renderSequenceSearch(params) {
                       <a class="prot-link cell-trunc" href="${href}">${esc(h.entry.kind === 'Parent NLR' ? rec.pnlr : rec.id)}</a>
                       <details style="margin-top:4px"><summary class="muted" style="cursor:pointer;font-size:12px">Alignment (Q ${h.qStart}–${h.qEnd} / T ${h.tStart}–${h.tEnd})</summary><pre class="aln-pre">${formatAln(h)}</pre></details>
                     </td>
-                    <td style="font-size:12.5px"><span class="italic">${esc(rec.sp)}</span> · ${esc(isP ? rec.cls || rec.s : rec.ipr_s || rec.ipr)}</td>
+                    <td style="font-size:12.5px"><span class="italic">${esc(rec.sp)}</span> · ${esc(isP ? rec.cls || rec.s : rec.ipr_s || rec.ipr)}${h.entry.nIds > 1 ? ` <span class="muted">(${h.entry.nIds} IDs)</span>` : ''}</td>
                     <td class="num"><b>${h.score}</b></td>
                     <td class="num">${h.identityPct.toFixed(1)}%</td>
                     <td class="num">${h.alignLen}</td>
                     <td class="num">${h.queryCovPct.toFixed(0)}%</td>
-                    <td class="num">${isP || rec.scr ? scoreCellHtml(rec.max_ipsae, STATUS.SCORED, false) : '—'}</td>
+                    <td class="num">${bestScoreCell(rec, !isP, false)}</td>
                   </tr>`;
                 })
                 .join('')}
@@ -2097,11 +2379,11 @@ function renderSequenceSearch(params) {
                   const cs = Math.max(0, m0.start - 10);
                   const ce = Math.min(h.entry.seq.length, m0.end + 9);
                   return `<tr>
-                    <td>${isP ? orgBadge(rec.org) : panelBadge(rec.s)}</td>
+                    <td>${isP ? orgBadge(rec.org) : `${panelBadge(rec.s)}${h.entry.kind === 'Parent NLR' ? ' <span class="badge">Parent</span>' : ''}`}</td>
                     <td><a class="prot-link cell-trunc" href="${href}">${esc(h.entry.kind === 'Parent NLR' ? rec.pnlr : rec.id)}</a></td>
-                    <td style="font-size:12.5px"><span class="italic">${esc(rec.sp)}</span></td>
+                    <td style="font-size:12.5px"><span class="italic">${esc(rec.sp)}</span>${h.entry.nIds > 1 ? ` <span class="muted">(${h.entry.nIds} IDs)</span>` : ''}</td>
                     <td class="mono" style="font-size:12px"><span class="muted">${cs > 0 ? '…' : ''}${esc(h.entry.seq.slice(cs, m0.start - 1))}</span><span class="seq-hl-match">${esc(h.entry.seq.slice(m0.start - 1, m0.end))}</span><span class="muted">${esc(h.entry.seq.slice(m0.end, ce))}${ce < h.entry.seq.length ? '…' : ''}</span></td>
-                    <td class="num">${isP || rec.scr ? scoreCellHtml(rec.max_ipsae, STATUS.SCORED, false) : '—'}</td>
+                    <td class="num">${bestScoreCell(rec, !isP, false)}</td>
                   </tr>`;
                 })
                 .join('')}
@@ -2134,7 +2416,7 @@ function renderDatasets() {
   const meta = store.meta;
 
   const extractSnippet = `# Stream a single job archive from split zstd parts (requires zstd + GNU tar; macOS: gtar)
-cat ID1_E1.tar.zst.* | zstd -dc | tar -xvf - --occurrence 'ID1_E1/job_1912_..._seed1.tar.gz'
+cat ID1_E1.tar.zst.* | zstd -dc --long=31 | tar -xvf - --occurrence 'ID1_E1/job_1912_..._seed1.tar.gz'
 tar -xzf ID1_E1/job_1912_..._seed1.tar.gz -C ID1_E1/`;
 
   const reproSnippet = `# Rebuild exact AF3 inputs for multiple seeds using inference_input (doi:10.7910/DVN/2FUARO)
@@ -2158,7 +2440,6 @@ python3 make_af3_inputs.py \\
             <th class="num">Scored</th>
             <th class="num">Failed</th>
             <th class="num">Missing</th>
-            <th class="num">≥ 0.50</th>
             <th class="num">Max ipSAE</th>
             <th>Dataverse DOI</th>
             <th></th>
@@ -2176,16 +2457,15 @@ python3 make_af3_inputs.py \\
                 <td class="num">${fmtInt(d.n_scored)}</td>
                 <td class="num">${fmtInt(d.n_failed)}</td>
                 <td class="num">${d.n_missing ? `<span class="badge badge-warn">${fmtInt(d.n_missing)}</span>` : '0'}</td>
-                <td class="num">${fmtInt(d.n_ge_05)}</td>
                 <td class="num">${scoreCellHtml(d.max_ipsae, STATUS.SCORED, false)}</td>
                 <td>${doiLinksHtml(d.doi)}</td>
-                <td><a class="btn btn-sm" href="#/explorer?set=${encodeURIComponent(d.id)}&ipsae=0">Explore</a></td>
+                <td><a class="btn btn-sm" href="#/explorer?set=${encodeURIComponent(d.id)}">Explore</a></td>
               </tr>`
             )
             .join('')}
           <tr style="background:var(--bg2)">
             <td class="mono" style="font-weight:600;color:var(--ink)">inference_input</td>
-            <td colspan="8">Per-chain AF3 data-pipeline outputs (MSAs &amp; templates for ID1–ID3, E1–E4, V1) + <code>make_af3_inputs.py</code></td>
+            <td colspan="7">Per-chain AF3 data-pipeline outputs (MSAs &amp; templates for ID1–ID3, E1–E4, V1) + <code>make_af3_inputs.py</code></td>
             <td>${doiLinksHtml(meta.inference_input.doi)}</td>
             <td></td>
           </tr>
@@ -2238,8 +2518,8 @@ function renderGlossary() {
     <h2>Complementary interface &amp; contact metrics</h2>
     <table class="ev">
       <tr>
-        <td><code>ipTM (AF3)</code> &amp; <code>ipTM d0chn</code></td>
-        <td>AlphaFold 3's native interface predicted TM-score (<code>ipTM_af</code>) and the chain-length recomputed score (<code>ipTM_d0chn</code>).</td>
+        <td><code>ipTM (AF3)</code> &amp; <code>ipTM d0chn (min)</code></td>
+        <td>AlphaFold 3's native interface predicted TM-score (<code>ipTM_af</code>) and the conservative directional minimum of the chain-length recomputed score (<code>ipTM_d0chn</code>).</td>
       </tr>
       <tr>
         <td><code>pDockQ</code> &amp; <code>pDockQ2</code></td>
@@ -2251,11 +2531,11 @@ function renderGlossary() {
       </tr>
       <tr>
         <td><code>Contacts (dist1, dist2)</code></td>
-        <td>Unique residues in Chain A (<code>dist1</code>, ID) and Chain B (<code>dist2</code>, pathogen) within <b>10 Å</b> spatial distance <em>and</em> <b>PAE &lt; 10 Å</b>. Shown as total <code>dist1 + dist2</code> in tables and split per chain in subscores and Pair Inspector.</td>
+        <td>Chain-aligned conservative minimum unique residues in Chain A (<code>dist1</code>, ID) and Chain B (<code>dist2</code>, pathogen) within <b>10 Å</b> spatial distance <em>and</em> <b>PAE &lt; 10 Å</b> across both directional alignments (<code>asym_A</code>, <code>asym_B</code>). Shown as total <code>dist1 + dist2</code> in tables and split per chain on Pair Detail pages.</td>
       </tr>
       <tr>
         <td><code>nres1, nres2</code></td>
-        <td>Unique residues in Chain A (<code>nres1</code>) and Chain B (<code>nres2</code>) participating in any inter-chain pair with <b>PAE &lt; 10 Å</b> (without the 10 Å distance cutoff).</td>
+        <td>Chain-aligned conservative minimum unique residues in Chain A (<code>nres1</code>) and Chain B (<code>nres2</code>) participating in any inter-chain pair with <b>PAE &lt; 10 Å</b> (without the 10 Å distance cutoff).</td>
       </tr>
     </table>
 
@@ -2414,7 +2694,7 @@ function renderMethods() {
     })}
     <ul>
       <li><b>Data pipeline:</b> AlphaFold 3 v3.0.1 MSAs and structural templates were computed once per unique chain (2,811 IDs and 373 pathogen/pest proteins) and reused across all pairwise jobs.</li>
-      <li><b>Inference:</b> AlphaFold 3 v3.0.1, dialect <code>alphafold3</code> v4, 1 model seed × 5 diffusion samples, default settings, no ligands.</li>
+      <li><b>Inference:</b> AlphaFold 3 v3.0.1, dialect <code>alphafold3</code> (v1 input / v4 output), 1 model seed × 5 diffusion samples, default settings, no ligands.</li>
       <li><b>Scoring:</b> The top-ranked model of each pair was scored with <code>ipsae.py</code> using 10 Å PAE and 10 Å distance cutoffs.</li>
       <li><b>Deposited files:</b> Top-ranked <code>model.cif</code>, full confidences (pLDDT, PAE, contacts), summary confidences, ranking scores of all 5 samples, and compiled score tables.</li>
     </ul>
@@ -2481,6 +2761,8 @@ function renderMethods() {
 function renderAcknowledgements() {
   setNavAndCrumbs('acknowledgements', [{ label: 'Bifrost', href: '#/' }, { label: 'Acknowledgements' }], false);
 
+  const aicProjectUrl = 'https://www.aicfoodsecurity.org/projects/accelerating-the-breeding-of-disease-resistant-crops-';
+
   const funders = [
     {
       name: 'Google.org',
@@ -2490,13 +2772,13 @@ function renderAcknowledgements() {
     },
     {
       name: 'AI Collaborative for Food Security',
-      role: 'Participating initiative',
+      role: 'Accelerating the Breeding of Disease-Resistant Crops',
       logo: './assets/logos/aicfs.png',
-      url: 'https://www.aicfoodsecurity.org/',
+      url: aicProjectUrl,
     },
     {
       name: 'Gatsby Charitable Foundation',
-      role: 'Kamoun Lab core support',
+      role: 'Kamoun & Hogenhout labs',
       logo: './assets/logos/gatsby.png',
       url: 'https://www.gatsby.org.uk/',
     },
@@ -2524,9 +2806,9 @@ function renderAcknowledgements() {
     ['Conceptualization', 'A.T., A.P., Y.S., S.K.'],
     ['Methodology', 'A.T., M.G., Y.X., A.B., S.G., D.M.'],
     ['Data curation', 'A.T., M.G., A.B., D.L., S.M.'],
-    ['Formal analysis', 'A.T., M.G., Y.X., A.P., S.M., S.K.'],
+    ['Formal analysis', 'A.T., M.G., Y.X., A.P., S.M., S.H., S.K.'],
     ['Investigation', 'A.T., M.G., M.S., Y.X., A.P., A.H., S.M.'],
-    ['Resources', 'A.T., S.G., D.M.'],
+    ['Resources', 'A.T., S.G., D.M., S.H.'],
     ['Writing — original draft', 'A.T., A.P., S.K.'],
     ['Writing — review and editing', 'A.T., S.K.'],
     ['Visualization', 'A.T., A.P.'],
@@ -2536,11 +2818,23 @@ function renderAcknowledgements() {
   ];
 
   pageEl.innerHTML = `
-    <div class="eyebrow">Team, funding &amp; acknowledgements</div>
+    <div class="eyebrow">Team, host institution &amp; funders</div>
     <h1>Acknowledgements</h1>
     <p class="lede">
-      Authors, funding bodies, and acknowledgements for <em>The Bifrost dataset of AlphaFold 3 predictions for plant immune receptor discovery</em>.
+      Host institution, funding bodies, authors, and acknowledgements for <em>The Bifrost dataset of AlphaFold 3 predictions for plant immune receptor discovery</em>.
     </p>
+
+    <h2>Host institution</h2>
+    <a class="host-card" href="https://www.tsl.ac.uk/" target="_blank" rel="noopener" title="The Sainsbury Laboratory">
+      <div class="host-logo-stage">
+        <img src="./assets/logos/tsl.svg" alt="The Sainsbury Laboratory logo" />
+      </div>
+      <div class="host-meta">
+        <div class="funder-name">The Sainsbury Laboratory (TSL)</div>
+        <div class="funder-role">Kamoun Lab · University of East Anglia, Norwich Research Park, Norwich, UK</div>
+      </div>
+      <span class="host-ext" aria-hidden="true">tsl.ac.uk &#8599;</span>
+    </a>
 
     <h2>Funders &amp; supporting initiatives</h2>
     <div class="funder-grid">
@@ -2563,12 +2857,13 @@ function renderAcknowledgements() {
     <h2>Funding</h2>
     <p class="abstract-text">
       Bifrost is supported by Google.org through the AI for Science Fund and participates in the
-      <a class="ext-link" href="https://www.aicfoodsecurity.org/" target="_blank" rel="noopener">AI Collaborative for Food Security</a>.
-      Work in the Kamoun Lab is also supported by the Gatsby Charitable Foundation, Biotechnology and Biological Sciences
-      Research Council (BBSRC) BB/P012574 (Plant Health ISP), BBSRC BBS/E/J/000PR9795 (Plant Health ISP - Recognition),
-      BBSRC BBS/E/J/000PR9796 (Plant Health ISP - Response), BBSRC BBS/E/J/000PR9797 (Plant Health ISP – Susceptibility),
-      BBSRC BBS/E/J/000PR9798 (Plant Health ISP – Evolution), European Research Council (ERC) 743165, Engineering and
-      Physical Sciences Research Council EP/Y032187/1.
+      <a class="ext-link" href="${esc(aicProjectUrl)}" target="_blank" rel="noopener">AI Collaborative for Food Security</a>.
+      Work in the Kamoun and Hogenhout labs are also supported by the Gatsby Charitable Foundation, the UK Research and Innovation (UKRI)
+      Biotechnology and Biological Sciences Research Council (BBSRC) BB/P012574 (Plant Health ISP), BBSRC BBS/E/J/000PR9795
+      (Plant Health ISP - Recognition), BBSRC BBS/E/J/000PR9796 (Plant Health ISP - Response), BBSRC BBS/E/J/000PR9797
+      (Plant Health ISP – Susceptibility) and BBSRC BBS/E/J/000PR9798 (Plant Health ISP – Evolution). The Kamoun Lab received
+      additional support from the European Research Council (ERC) 743165 and Engineering and Physical Sciences Research Council
+      EP/Y032187/1. The John Innes Centre (JIC) is grant aided by the John Innes Foundation.
     </p>
 
     <h2>Acknowledgements</h2>
@@ -2581,7 +2876,7 @@ function renderAcknowledgements() {
       AmirAli Toghani<sup>1</sup>, Matteo Gravino<sup>1</sup>, Maryam Sargolzaei<sup>1</sup>, Yuxuan Xi<sup>1</sup>,
       Amal Boukteb<sup>1</sup>, Sam Gallop<sup>2</sup>, Andrés Posbeyikian<sup>1</sup>, Yu Sugihara<sup>1</sup>,
       Daniel Lüdke<sup>1</sup>, Adeline Harant<sup>1</sup>, Sam T. Mugford<sup>3</sup>, Dan MacLean<sup>1</sup>,
-      Saskia Hogenhout<sup>3</sup>, Sophien Kamoun<sup>1*</sup>
+      Saskia A. Hogenhout<sup>3</sup>, Sophien Kamoun<sup>1*</sup>
     </p>
     <ul class="affil-list">
       <li><sup>1</sup>The Sainsbury Laboratory, University of East Anglia, Norwich, UK.</li>
@@ -2608,16 +2903,31 @@ function animatePageTransition() {
   pageEl.classList.add('page-enter');
 }
 
+function safeDecode(s) {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Hash Router
    -------------------------------------------------------------------------- */
 async function handleRoute() {
-  const gen = ++routeGen;
   const rawHash = window.location.hash || '#/';
   const cleaned = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
-  const [pathPart, queryPart] = cleaned.split('?');
+  if (cleaned === 'page') {
+    pageEl?.focus();
+    return;
+  }
+
+  const gen = ++routeGen;
+  const qIdx = cleaned.indexOf('?');
+  const pathPart = qIdx === -1 ? cleaned : cleaned.slice(0, qIdx);
+  const queryPart = qIdx === -1 ? '' : cleaned.slice(qIdx + 1);
   const segs = (pathPart || '/').replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
-  const params = new URLSearchParams(queryPart || '');
+  const params = new URLSearchParams(queryPart);
 
   try {
     await store.loadMeta();
@@ -2634,15 +2944,18 @@ async function handleRoute() {
     } else if (segs[0] === 'ids') {
       renderIdsDirectory(params);
     } else if (segs[0] === 'id' && segs[1]) {
-      await renderIdDetail(decodeURIComponent(segs.slice(1).join('/')), gen);
+      await renderIdDetail(safeDecode(segs.slice(1).join('/')), gen);
     } else if (segs[0] === 'pathogens') {
       renderPathogensDirectory(params);
     } else if (segs[0] === 'pathogen' && segs[1]) {
-      await renderPathogenDetail(decodeURIComponent(segs.slice(1).join('/')), gen);
+      await renderPathogenDetail(safeDecode(segs.slice(1).join('/')), gen);
     } else if (segs[0] === 'domains') {
       renderDomainsDirectory(params);
     } else if (segs[0] === 'domain' && segs[1]) {
-      renderDomainDetail(decodeURIComponent(segs[1]));
+      renderDomainDetail(safeDecode(segs[1]));
+    } else if (segs[0] === 'heatmap') {
+      setNavAndCrumbs('heatmap', [{ label: 'Bifrost', href: '#/' }, { label: 'Tools' }, { label: 'Custom Heatmap' }], true);
+      await renderHeatmapView(pageEl, params);
     } else if (segs[0] === 'search') {
       renderSequenceSearch(params);
     } else if (segs[0] === 'datasets') {
@@ -2654,19 +2967,20 @@ async function handleRoute() {
     } else if (segs[0] === 'acknowledgements') {
       renderAcknowledgements();
     } else if (segs[0] === 'pair' && segs[1] && segs[2]) {
-      const dsName = decodeURIComponent(segs[1]);
-      const jobNum = Number(segs[2]);
+      const dsName = safeDecode(segs[1]);
+      const validJob = /^\d+$/.test(segs[2]);
+      const jobNum = validJob ? Number(segs[2]) : NaN;
       setNavAndCrumbs(
         'explorer',
         [
           { label: 'Bifrost', href: '#/' },
           { label: 'Score Explorer', href: '#/explorer' },
-          { label: `${dsName} · #${jobNum}` },
+          { label: `${dsName} · #${validJob ? jobNum : segs[2]}` },
         ],
         false
       );
-      let pair = consumeCachedPair(dsName, jobNum);
-      if (!pair) {
+      let pair = validJob ? consumeCachedPair(dsName, jobNum) : null;
+      if (validJob && !pair) {
         pageEl.innerHTML = `<div class="center-loading"><div class="spinner"></div><div>Loading ${esc(dsName)} job #${jobNum}…</div></div>`;
         pair = await store.getPairByJob(dsName, jobNum);
       }
@@ -2674,7 +2988,7 @@ async function handleRoute() {
       if (pair) {
         renderPairPage(pageEl, pair);
       } else {
-        pageEl.innerHTML = `<div class="callout warn">Pair <code>${esc(dsName)} #${jobNum}</code> was not found. <a class="prot-link" href="#/explorer">Return to Score Explorer &rarr;</a></div>`;
+        pageEl.innerHTML = `<div class="callout warn">Pair <code>${esc(dsName)} #${esc(segs[2])}</code> was not found. <a class="prot-link" href="#/explorer">Return to Score Explorer &rarr;</a></div>`;
       }
     } else {
       renderHome();
@@ -2691,5 +3005,8 @@ async function handleRoute() {
 }
 
 setupChrome();
-window.addEventListener('hashchange', handleRoute);
+window.addEventListener('hashchange', () => {
+  if (window.location.hash !== '#page') window.__bifrostNavCount++;
+  handleRoute();
+});
 handleRoute();

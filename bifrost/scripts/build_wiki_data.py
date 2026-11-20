@@ -13,6 +13,7 @@ import csv
 import glob
 import gzip
 import json
+import math
 import os
 import struct
 import sys
@@ -44,7 +45,7 @@ PANEL_INFO = {
         "name": "ID2 — Superasterid NLRs",
         "short": "Superasterids",
         "chain": "A",
-        "description": "NLR integrated domains from Helixer-annotated genomes of 230 superasterid species (190 species with retained IDs across 12 orders).",
+        "description": "NLR integrated domains from 230 Helixer-annotated superasterid genome assemblies (190 species with retained IDs across 12 orders).",
         "source": "Toghani et al. (2025)",
         "doi": "https://doi.org/10.5061/dryad.sxksn03d6",
         "color": "#7209b7",
@@ -53,7 +54,7 @@ PANEL_INFO = {
         "name": "ID3 — Solanaceae NLRs",
         "short": "Solanaceae",
         "chain": "A",
-        "description": "NLR integrated domains from Helixer-annotated genomes of 346 Solanaceae species (54 species with retained IDs).",
+        "description": "NLR integrated domains from 346 Helixer-annotated Solanaceae genome assemblies and haplotypes (54 species with retained IDs).",
         "source": "Toghani et al. (2026)",
         "doi": "https://doi.org/10.5281/zenodo.19855162",
         "color": "#f72585",
@@ -100,10 +101,30 @@ PANEL_INFO = {
         "short": "14 Plant Viruses",
         "chain": "B",
         "description": "93 proteins from 14 major plant viruses (ACMV, BBTV, BNYVV, BYDV, CaMV, CMV, MSV, PVX, PVY, SCMV, SMV, ToBRFV, TSWV, TYLCV).",
-        "source": "NCBI Protein",
-        "doi": "https://www.ncbi.nlm.nih.gov/protein",
+        "source": "NCBI Datasets (14 genome assemblies)",
+        "doi": "https://www.ncbi.nlm.nih.gov/datasets/genome/",
         "color": "#7209b7",
     },
+}
+
+# Verified NCBI Datasets genome assemblies for every V1 plant virus
+# (extracted from data/viruses/V1/genomes/ and RefSeq polyprotein DBSOURCE records)
+V1_VIRUS_ASSEMBLIES = {
+    "ACMV": "GCA_031773165.1",
+    "BBTV": "GCF_000847305.1",
+    "BNYVV": "GCF_000854885.1",
+    "BYDV": "GCA_031102425.1",
+    "CMV": "GCF_000864745.1",
+    "CaMV": "GCF_000848745.2",
+    "MSV": "GCF_003048235.1",
+    "PVX": "GCF_000866465.1",
+    "PVY": "GCF_000862905.1",
+    "SCMV": "GCF_000854025.1",
+    "SMV": "GCF_000862465.1",
+    "ToBRFV": "GCF_001461485.1",
+    "ToSWV": "GCF_000854725.1",
+    "YP": "GCF_000854725.1",  # TSWV YP_009225.1
+    "TYLCV": "GCF_000858205.1",
 }
 
 REFERENCES = [
@@ -189,7 +210,9 @@ REFERENCES = [
 
 
 def clamp_u16_score(val: float) -> int:
-    q = int(round(val * SCORE_SCALE))
+    # Conservative 1e-4 floor (with 1e-9 IEEE guard) so scores strictly below any
+    # 4-decimal threshold (e.g. 0.499983 < 0.5000) never round up across the cutoff.
+    q = int(math.floor(val * SCORE_SCALE + 1e-9))
     if q < 0:
         return 0
     if q > 65535:
@@ -348,6 +371,7 @@ def load_proteins():
             if nd:
                 n_with_nlrt += 1
 
+            nlr_cls = "NL" if r["nlr_class"].startswith("NL ") else r["nlr_class"]
             rec = {
                 "i": idx,
                 "s": panel,
@@ -362,7 +386,7 @@ def load_proteins():
                 "hap": r["haplotype"],
                 "pnlr": r["parent_nlr"],
                 "arch": r["architecture"],
-                "cls": r["nlr_class"],
+                "cls": nlr_cls,
                 "sub": r["subclass"],
                 "dom": r["domain_string"],
                 "nd": nd,
@@ -412,9 +436,24 @@ def load_proteins():
 
             # Prefer deposit published source/DOI (fixes internal E2 source label)
             src = dep.get("source") or r["source"]
-            doi = dep.get("source_doi") or r["doi"]
+            doi = (dep.get("source_doi") or r["doi"] or "").strip()
+            if doi in ("-", "NA", "N/A", "none"):
+                doi = ""
             if doi and not doi.startswith("http") and ";" not in doi and doi.startswith("10."):
                 doi = "https://doi.org/" + doi
+
+            acc = dep.get("ncbi_accession", "")
+            asm = ""
+            if panel == "V1":
+                if acc == "009225.1" and name == "YP_009225.1":
+                    acc = "YP_009225.1"
+                prefix = name.split("_")[0]
+                asm = V1_VIRUS_ASSEMBLIES.get(prefix, "")
+                assert asm, f"Missing NCBI Datasets genome assembly for V1 protein {name}"
+                src = "NCBI Datasets"
+                doi = f"https://www.ncbi.nlm.nih.gov/datasets/genome/{asm}/"
+
+            species_clean = r["species"].replace("\xa0", " ").strip()
 
             rec = {
                 "i": idx,
@@ -422,13 +461,14 @@ def load_proteins():
                 "id": name,
                 "af3": af3,
                 "org": r["organism_type"],
-                "sp": r["species"],
+                "sp": species_clean,
                 "kng": r["kingdom"],
                 "ord": r["order"],
                 "fam": r["family"],
                 "cls": r["protein_class"] or dep.get("protein_class", ""),
                 "nwy": int(r["n_WY"]) if r.get("n_WY") else None,
-                "acc": dep.get("ncbi_accession", ""),
+                "acc": acc,
+                "asm": asm,
                 "src": src,
                 "doi": doi,
                 "len": int(r["length"]) if r["length"] else len(r["sequence"]),
@@ -484,34 +524,43 @@ def process_screening_set(
                 failed_jobs.add(int(row["job_num"]))
 
     # 3. Read compiled_ipsae_data.csv.gz (5 rows per job: max, min, mean, asym_A, asym_B)
-    # Compact dict per job: job_num -> list of 19 ints
+    # Compact dict per job: job_num -> [list of 19 u16 ints, raw_ipsae_min, raw_iptm, raw_pdockq]
     # [0:ipsae_min, 1:ipsae_max, 2:ipsae_a, 3:ipsae_b,
     #  4:d0dom_min, 5:d0dom_max, 6:d0chn_min, 7:d0chn_max,
     #  8:iptm, 9:iptm_d0chn, 10:pdockq, 11:pdockq2_min, 12:pdockq2_max,
-    #  13:lis_min, 14:lis_mean, 15:dist1, 16:dist2, 17:nres1, 18:nres2]
+    #  13:lis_min, 14:lis_mean, 15:dist1(ID), 16:dist2(Pathogen), 17:nres1(ID), 18:nres2(Pathogen)]
+    #
+    # Note: dist1/dist2/nres1/nres2 are computed directly from asym_A (Chn1=A, Chn2=B)
+    # and chain-swapped asym_B (Chn1=B, Chn2=A) as chain-aligned conservative minimums
+    # (min(A.1, B.2) for Chain A / ID; min(A.2, B.1) for Chain B / Pathogen), avoiding
+    # the unswapped column-wise min bug in compiled_ipsae_data.csv.gz Type=="min".
     scored = {}
+    asym_counts = {}  # jn -> [a_d1, a_d2, a_n1, a_n2, b_d1_swapped_A, b_d2_swapped_B, b_n1_swapped_A, b_n2_swapped_B, mask]
     with gzip.open(d / "compiled_ipsae_data.csv.gz", "rt", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             jn = int(row["job_num"])
-            rec = scored.get(jn)
-            if rec is None:
-                rec = [0] * 19
-                scored[jn] = rec
+            entry = scored.get(jn)
+            if entry is None:
+                entry = [[0] * 19, 0.0, 0.0, 0.0]
+                scored[jn] = entry
+            rec = entry[0]
             t = row["Type"]
             if t == "min":
-                rec[0] = clamp_u16_score(float(row["ipSAE"]))
+                raw_ipsae = float(row["ipSAE"])
+                raw_iptm = float(row["ipTM_af"])
+                raw_pdq = float(row["pDockQ"])
+                entry[1] = raw_ipsae
+                entry[2] = raw_iptm
+                entry[3] = raw_pdq
+                rec[0] = clamp_u16_score(raw_ipsae)
                 rec[4] = clamp_u16_score(float(row["ipSAE_d0dom"]))
                 rec[6] = clamp_u16_score(float(row["ipSAE_d0chn"]))
-                rec[8] = clamp_u16_score(float(row["ipTM_af"]))
+                rec[8] = clamp_u16_score(raw_iptm)
                 rec[9] = clamp_u16_score(float(row["ipTM_d0chn"]))
-                rec[10] = clamp_u16_score(float(row["pDockQ"]))
+                rec[10] = clamp_u16_score(raw_pdq)
                 rec[11] = clamp_u16_score(float(row["pDockQ2"]))
                 rec[13] = clamp_u16_score(float(row["LIS"]))
-                rec[15] = clamp_u16_int(float(row["dist1"]))
-                rec[16] = clamp_u16_int(float(row["dist2"]))
-                rec[17] = clamp_u16_int(float(row["nres1"]))
-                rec[18] = clamp_u16_int(float(row["nres2"]))
             elif t == "max":
                 rec[1] = clamp_u16_score(float(row["ipSAE"]))
                 rec[5] = clamp_u16_score(float(row["ipSAE_d0dom"]))
@@ -521,8 +570,37 @@ def process_screening_set(
                 rec[14] = clamp_u16_score(float(row["LIS"]))
             elif t == "asym_A":
                 rec[2] = clamp_u16_score(float(row["ipSAE"]))
+                ac = asym_counts.get(jn)
+                if ac is None:
+                    ac = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    asym_counts[jn] = ac
+                ac[0] = clamp_u16_int(float(row["dist1"]))
+                ac[1] = clamp_u16_int(float(row["dist2"]))
+                ac[2] = clamp_u16_int(float(row["nres1"]))
+                ac[3] = clamp_u16_int(float(row["nres2"]))
+                ac[8] |= 1
             elif t == "asym_B":
                 rec[3] = clamp_u16_score(float(row["ipSAE"]))
+                ac = asym_counts.get(jn)
+                if ac is None:
+                    ac = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    asym_counts[jn] = ac
+                # asym_B has Chn1=B (Pathogen), Chn2=A (ID) -> swap 1<->2 to align to (Chain A, Chain B)
+                ac[4] = clamp_u16_int(float(row["dist2"]))  # Chain A (ID)
+                ac[5] = clamp_u16_int(float(row["dist1"]))  # Chain B (Pathogen)
+                ac[6] = clamp_u16_int(float(row["nres2"]))  # Chain A (ID)
+                ac[7] = clamp_u16_int(float(row["nres1"]))  # Chain B (Pathogen)
+                ac[8] |= 2
+
+    # Populate chain-aligned conservative min (dist1_ID, dist2_Pathogen, nres1_ID, nres2_Pathogen)
+    for jn, entry in scored.items():
+        ac = asym_counts.get(jn)
+        assert ac is not None and ac[8] == 3, f"Missing asym_A/asym_B rows for {set_name} job {jn}"
+        rec = entry[0]
+        rec[15] = min(ac[0], ac[4])
+        rec[16] = min(ac[1], ac[5])
+        rec[17] = min(ac[2], ac[6])
+        rec[18] = min(ac[3], ac[7])
 
     # 4. Assemble all manifest jobs, update protein stats & histograms
     rows = []
@@ -539,8 +617,9 @@ def process_screening_set(
         id_rec["n_scr"] += 1
         pa_rec["n_scr"] += 1
 
-        sc = scored.get(jn)
-        if sc is not None:
+        entry = scored.get(jn)
+        if entry is not None:
+            sc, raw_ipsae, raw_iptm, raw_pdq = entry
             status = 0
             n_scored += 1
             id_rec["n_ok"] += 1
@@ -553,16 +632,19 @@ def process_screening_set(
 
             if ipsae_min > max_ipsae_set:
                 max_ipsae_set = ipsae_min
-            if ipsae_min >= 5000:
+            if raw_ipsae >= 0.5:
                 n_ge_05 += 1
                 id_rec["n05"] += 1
                 pa_rec["n05"] += 1
-            if ipsae_min >= 3000:
+            if raw_ipsae >= 0.3:
                 n_ge_03 += 1
                 id_rec["n03"] += 1
                 pa_rec["n03"] += 1
 
-            if ipsae_f > id_rec["max_ipsae"] or (id_rec["top_p"] == -1):
+            # Tie-break top partner by (quantized ipsae_min DESC, quantized iptm DESC) matching detail tables
+            id_key = (ipsae_min, iptm)
+            if id_rec["top_p"] == -1 or id_key > id_rec.get("_top_key", (-1, -1)):
+                id_rec["_top_key"] = id_key
                 id_rec["max_ipsae"] = ipsae_f
                 id_rec["top_p"] = pa_i
                 id_rec["top_set"] = set_idx
@@ -570,7 +652,9 @@ def process_screening_set(
             if iptm_f > id_rec["max_iptm"]:
                 id_rec["max_iptm"] = iptm_f
 
-            if ipsae_f > pa_rec["max_ipsae"] or (pa_rec["top_id"] == -1):
+            pa_key = (ipsae_min, iptm)
+            if pa_rec["top_id"] == -1 or pa_key > pa_rec.get("_top_key", (-1, -1)):
+                pa_rec["_top_key"] = pa_key
                 pa_rec["max_ipsae"] = ipsae_f
                 pa_rec["top_id"] = id_i
                 pa_rec["top_set"] = set_idx
@@ -578,10 +662,10 @@ def process_screening_set(
             if iptm_f > pa_rec["max_iptm"]:
                 pa_rec["max_iptm"] = iptm_f
 
-            # Update global histogram (20 bins of width 0.05 across [0, 1])
-            b_ipsae = min(19, ipsae_min // 500)
-            b_iptm = min(19, iptm // 500)
-            b_pdq = min(19, sc[10] // 500)
+            # Update global histogram (20 bins of width 0.05 across [0, 1]) using exact raw floats
+            b_ipsae = min(19, max(0, int(raw_ipsae * 20.0)))
+            b_iptm = min(19, max(0, int(raw_iptm * 20.0)))
+            b_pdq = min(19, max(0, int(raw_pdq * 20.0)))
             org = pa_rec["org"]
             global_hist["ipsae"]["all"][b_ipsae] += 1
             global_hist["ipsae"][org][b_ipsae] += 1
@@ -590,7 +674,7 @@ def process_screening_set(
             global_hist["pdockq"]["all"][b_pdq] += 1
             global_hist["pdockq"][org][b_pdq] += 1
 
-            if ipsae_f >= TOP_HIT_THRESHOLD:
+            if raw_ipsae >= TOP_HIT_THRESHOLD:
                 top_hits.append([
                     set_idx,
                     jn,
@@ -722,11 +806,13 @@ def main():
     total_ge_03 = sum(d["n_ge_03"] for d in datasets)
     total_bin_bytes = sum(d["bin_bytes"] for d in datasets)
 
-    # Round floats in protein summary stats
+    # Round floats in protein summary stats and strip temporary tie-break keys
     for rec in ids:
+        rec.pop("_top_key", None)
         rec["max_ipsae"] = round(rec["max_ipsae"], 4)
         rec["max_iptm"] = round(rec["max_iptm"], 4)
     for rec in pathogens:
+        rec.pop("_top_key", None)
         rec["max_ipsae"] = round(rec["max_ipsae"], 4)
         rec["max_iptm"] = round(rec["max_iptm"], 4)
 

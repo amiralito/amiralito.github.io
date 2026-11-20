@@ -117,11 +117,12 @@ function smithWatermanAffine(qStr, tStr, gapOpen = -10, gapExt = -1) {
   const cols = n + 1;
 
   const NEG_INF = -30000;
-  // Use Int16Arrays for compact memory; trace byte stores origin of H
+  // Use Int16Arrays for compact memory; packed trace byte stores all 3 Gotoh state origins:
+  //   bits 0..1 (trace & 3): H origin (0=stop, 1=diag, 2=from F, 3=from E)
+  //   bit 2     (trace & 4): F extended from F[i-1, j] (else opened from H[i-1, j])
+  //   bit 3     (trace & 8): E extended from E[i, j-1] (else opened from H[i, j-1])
   const H = new Int16Array((m + 1) * cols);
-  const E = new Int16Array(cols).fill(NEG_INF);
   const F = new Int16Array(cols).fill(NEG_INF);
-  // Trace: 0=stop, 1=diag(match/mismatch), 2=up(gap in t / deletion), 3=left(gap in q / insertion)
   const trace = new Uint8Array((m + 1) * cols);
 
   let bestScore = 0;
@@ -138,14 +139,15 @@ function smithWatermanAffine(qStr, tStr, gapOpen = -10, gapExt = -1) {
       // F[j] = gap in target (coming from top row i-1, j)
       const fOpen = H[prevOff + j] + gapOpen;
       const fExt = F[j] + gapExt;
-      const fVal = fOpen > fExt ? fOpen : fExt;
+      const fIsExt = fExt > fOpen;
+      const fVal = fIsExt ? fExt : fOpen;
       F[j] = fVal;
 
       // eLeft = gap in query (coming from left col i, j-1)
       const eOpen = H[rowOff + j - 1] + gapOpen;
       const eExt = eLeft + gapExt;
-      eLeft = eOpen > eExt ? eOpen : eExt;
-      E[j] = eLeft;
+      const eIsExt = eExt > eOpen;
+      eLeft = eIsExt ? eExt : eOpen;
 
       // Diagonal match/mismatch
       const diag = H[prevOff + j - 1] + B62[qi24 + t[j - 1]];
@@ -166,7 +168,7 @@ function smithWatermanAffine(qStr, tStr, gapOpen = -10, gapExt = -1) {
       }
 
       H[rowOff + j] = best;
-      trace[rowOff + j] = dir;
+      trace[rowOff + j] = dir | (fIsExt ? 4 : 0) | (eIsExt ? 8 : 0);
 
       if (best > bestScore) {
         bestScore = best;
@@ -180,9 +182,10 @@ function smithWatermanAffine(qStr, tStr, gapOpen = -10, gapExt = -1) {
     return null;
   }
 
-  // Traceback
+  // Exact 3-state Gotoh traceback (state: 0 = H, 1 = F / gap in target, 2 = E / gap in query)
   let i = bestI;
   let j = bestJ;
+  let state = 0;
   const qAln = [];
   const mid = [];
   const tAln = [];
@@ -191,35 +194,46 @@ function smithWatermanAffine(qStr, tStr, gapOpen = -10, gapExt = -1) {
 
   while (i > 0 && j > 0) {
     const idx = i * cols + j;
-    const dir = trace[idx];
-    if (dir === 0 || H[idx] === 0) break;
-    if (dir === 1) {
-      const qa = qStr[i - 1];
-      const ta = tStr[j - 1];
-      qAln.push(qa);
-      tAln.push(ta);
-      if (qa === ta) {
-        mid.push('|');
-        matches++;
-        positives++;
-      } else if (B62[q[i - 1] * 24 + t[j - 1]] > 0) {
-        mid.push('+');
-        positives++;
+    const tb = trace[idx];
+    if (state === 0) {
+      const dir = tb & 3;
+      if (dir === 0 || H[idx] === 0) break;
+      if (dir === 1) {
+        const qa = qStr[i - 1];
+        const ta = tStr[j - 1];
+        qAln.push(qa);
+        tAln.push(ta);
+        if (qa === ta) {
+          mid.push('|');
+          matches++;
+          positives++;
+        } else if (B62[q[i - 1] * 24 + t[j - 1]] > 0) {
+          mid.push('+');
+          positives++;
+        } else {
+          mid.push(' ');
+        }
+        i--;
+        j--;
+      } else if (dir === 2) {
+        state = 1;
       } else {
-        mid.push(' ');
+        state = 2;
       }
-      i--;
-      j--;
-    } else if (dir === 2) {
+    } else if (state === 1) {
+      const fIsExt = (tb & 4) !== 0;
       qAln.push(qStr[i - 1]);
       mid.push(' ');
       tAln.push('-');
       i--;
+      if (!fIsExt) state = 0;
     } else {
+      const eIsExt = (tb & 8) !== 0;
       qAln.push('-');
       mid.push(' ');
       tAln.push(tStr[j - 1]);
       j--;
+      if (!eIsExt) state = 0;
     }
   }
 
@@ -340,25 +354,64 @@ export function runHomologySearch(rawQuery, entries, { maxResults = 50, maxCandi
 }
 
 /**
- * Exact substring or motif/regex search (treats `X` as wildcard `.` if regex mode or motif syntax).
+ * Convert a protein motif/regex pattern into valid uppercase regex source:
+ *  - Preserves regex escape sequences verbatim (\w, \d, \s, \X, etc.)
+ *  - Uppercases non-escaped residues so lowercase queries match uppercase sequences
+ *  - Expands wildcard 'X' to [A-Z] outside character classes and A-Z inside [...]
+ */
+function buildMotifRegexSource(pattern) {
+  let out = '';
+  let inClass = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === '\\' && i + 1 < pattern.length) {
+      out += ch + pattern[i + 1];
+      i++;
+      continue;
+    }
+    if (ch === '[' && !inClass) {
+      inClass = true;
+      out += ch;
+      continue;
+    }
+    if (ch === ']' && inClass) {
+      inClass = false;
+      out += ch;
+      continue;
+    }
+    const up = ch.toUpperCase();
+    if (up === 'X') {
+      const inRange =
+        inClass &&
+        ((i > 0 && pattern[i - 1] === '-' && pattern[i - 2] !== '[') ||
+          (i + 1 < pattern.length && pattern[i + 1] === '-' && pattern[i + 2] !== ']'));
+      out += inClass ? (inRange ? 'X' : 'A-Z') : '[A-Z]';
+    } else {
+      out += up;
+    }
+  }
+  return out;
+}
+
+/**
+ * Exact substring or motif/regex search (treats `X` as wildcard if regex mode or motif syntax).
  */
 export function runMotifSearch(rawPattern, entries, { useRegex = true, maxResults = 200 } = {}) {
   const cleaned = (rawPattern || '')
     .split(/\r?\n/)
     .filter((l) => !l.trim().startsWith('>'))
     .join('')
-    .replace(/\s+/g, '')
-    .toUpperCase();
+    .replace(/\s+/g, '');
 
   if (cleaned.length < 3) {
     return { pattern: cleaned, error: 'Please enter at least 3 characters for motif/exact search.', hits: [] };
   }
 
+  const exactNeedle = cleaned.toUpperCase();
   let re = null;
   if (useRegex) {
     try {
-      // Allow bioinformatics wildcard 'X' to match any residue unless inside bracket class
-      const regexSrc = cleaned.replace(/X/g, '[A-Z]');
+      const regexSrc = buildMotifRegexSource(cleaned);
       re = new RegExp(regexSrc, 'g');
     } catch (err) {
       return { pattern: cleaned, error: `Invalid regex pattern: ${err.message}`, hits: [] };
@@ -380,8 +433,8 @@ export function runMotifSearch(rawPattern, entries, { useRegex = true, maxResult
       }
     } else {
       let pos = 0;
-      while ((pos = seq.indexOf(cleaned, pos)) !== -1) {
-        matches.push({ start: pos + 1, end: pos + cleaned.length, match: cleaned });
+      while ((pos = seq.indexOf(exactNeedle, pos)) !== -1) {
+        matches.push({ start: pos + 1, end: pos + exactNeedle.length, match: exactNeedle });
         pos += 1;
         if (matches.length >= 10) break;
       }
@@ -392,9 +445,129 @@ export function runMotifSearch(rawPattern, entries, { useRegex = true, maxResult
   }
 
   return {
-    pattern: cleaned,
+    pattern: useRegex ? cleaned : exactNeedle,
     totalMatches: hits.length,
     totalScanned: entries.length,
     hits: hits.slice(0, maxResults),
   };
+}
+
+const nearestPoolCache = new WeakMap();
+const nearestResultCache = new Map();
+
+function getNearestPool(recs, kind) {
+  let cached = nearestPoolCache.get(recs);
+  if (cached) return cached;
+  const entries = recs.map((rec) => ({ type: kind, rec, seq: rec.seq || '' }));
+  const k3 = buildKmerIndex(entries, 3);
+  const k2 = buildKmerIndex(entries, 2);
+  cached = { entries, k3, k2 };
+  nearestPoolCache.set(recs, cached);
+  return cached;
+}
+
+/**
+ * Find the most similar sequence(s) to `targetRec` inside `recs` (excluding self).
+ * Uses cached 3-mer + 2-mer prefiltering plus Gotoh affine-gap BLOSUM62 Smith-Waterman.
+ */
+export function findNearestSequences(targetRec, recs, kind, { topK = 5, maxCandidates = 64 } = {}) {
+  if (!targetRec || !targetRec.seq || !recs || recs.length < 2) {
+    return { top: null, others: [], all: [] };
+  }
+  const cacheKey = `${kind}:${targetRec.id}:${topK}`;
+  if (nearestResultCache.has(cacheKey)) {
+    return nearestResultCache.get(cacheKey);
+  }
+
+  const { entries, k3, k2 } = getNearestPool(recs, kind);
+  const qSeq = targetRec.seq.length > 1500 ? targetRec.seq.slice(0, 1500) : targetRec.seq;
+  const n = entries.length;
+
+  const counts = new Uint16Array(n);
+  const seen3 = new Set();
+  for (let i = 0; i <= qSeq.length - 3; i++) {
+    const km = qSeq.slice(i, i + 3);
+    if (seen3.has(km)) continue;
+    seen3.add(km);
+    const list = k3.get(km);
+    if (list) {
+      for (let p = 0; p < list.length; p++) counts[list[p]]++;
+    }
+  }
+
+  const candSet = new Set();
+  const scored3 = [];
+  for (let i = 0; i < n; i++) {
+    if (entries[i].rec.id === targetRec.id) continue;
+    if (counts[i] > 0) scored3.push([counts[i], i]);
+  }
+  scored3.sort((a, b) => b[0] - a[0]);
+  for (let i = 0; i < Math.min(maxCandidates, scored3.length); i++) {
+    candSet.add(scored3[i][1]);
+  }
+
+  // For NLR IDs, also ensure peers sharing the same primary InterPro domain are considered
+  if (kind === 'id' && targetRec.ipr) {
+    let addedIpr = 0;
+    for (let i = 0; i < n && addedIpr < 30; i++) {
+      const r = entries[i].rec;
+      if (r.id !== targetRec.id && r.ipr === targetRec.ipr && !candSet.has(i)) {
+        candSet.add(i);
+        addedIpr++;
+      }
+    }
+  }
+
+  // Fallback to 2-mer prefilter if 3-mers returned few candidates (handles divergent/orphan proteins)
+  if (candSet.size < 16) {
+    const c2 = new Uint16Array(n);
+    const seen2 = new Set();
+    for (let i = 0; i <= qSeq.length - 2; i++) {
+      const km = qSeq.slice(i, i + 2);
+      if (seen2.has(km)) continue;
+      seen2.add(km);
+      const list = k2.get(km);
+      if (list) {
+        for (let p = 0; p < list.length; p++) c2[list[p]]++;
+      }
+    }
+    const scored2 = [];
+    for (let i = 0; i < n; i++) {
+      if (entries[i].rec.id === targetRec.id || candSet.has(i)) continue;
+      if (c2[i] > 0) scored2.push([c2[i], i]);
+    }
+    scored2.sort((a, b) => b[0] - a[0]);
+    for (let i = 0; i < Math.min(36, scored2.length); i++) {
+      candSet.add(scored2[i][1]);
+    }
+  }
+
+  const hits = [];
+  for (const idx of candSet) {
+    const rec = entries[idx].rec;
+    if (!rec.seq) continue;
+    const aln = smithWatermanAffine(qSeq, rec.seq);
+    if (!aln) continue;
+    let relation = '';
+    if (kind === 'id') {
+      if (rec.pnlr && rec.pnlr === targetRec.pnlr) relation = 'Same parent NLR';
+      else if (rec.sp === targetRec.sp) relation = 'Same species · putative paralog';
+      else relation = 'Different species · putative ortholog';
+    } else {
+      if (rec.sp === targetRec.sp) relation = 'Same species · putative paralog';
+      else if (rec.org === targetRec.org) relation = `Same group (${rec.org}) · putative ortholog`;
+      else relation = 'Cross-group local match';
+    }
+    const isWeak =
+      aln.score < 55 ||
+      aln.queryCovPct < 20 ||
+      (kind === 'pathogen' && rec.org !== targetRec.org && aln.identityPct < 35);
+    hits.push({ rec, relation, isWeak, ...aln });
+  }
+
+  hits.sort((a, b) => b.score - a.score || b.identityPct - a.identityPct || b.queryCovPct - a.queryCovPct);
+  const sliced = hits.slice(0, topK);
+  const out = { top: sliced[0] || null, others: sliced.slice(1), all: sliced };
+  nearestResultCache.set(cacheKey, out);
+  return out;
 }

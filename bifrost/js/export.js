@@ -52,7 +52,7 @@ export async function copyToClipboard(text, btnEl) {
 function escapeCsvCell(val, sep) {
   if (val === null || val === undefined) return '';
   const str = String(val);
-  if (sep === ',' && (str.includes(',') || str.includes('"') || str.includes('\n'))) {
+  if (sep === ',' && (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r'))) {
     return '"' + str.replace(/"/g, '""') + '"';
   }
   if (sep === '\t') {
@@ -97,7 +97,7 @@ export function exportPairsTable(filename, pairs, meta, sep = '\t') {
     'ipSAE_d0chn_min',
     'ipSAE_d0chn_max',
     'ipTM_af',
-    'ipTM_d0chn',
+    'ipTM_d0chn_min',
     'pDockQ',
     'pDockQ2_min',
     'pDockQ2_max',
@@ -164,7 +164,7 @@ export function exportPairsTable(filename, pairs, meta, sep = '\t') {
 export function buildExtractCommand(info) {
   return `# 1. Download ${info.dataset} archive parts from ${info.doi}
 # 2. Extract only this top-ranked AF3 model (requires zstd + GNU tar; macOS: gtar):
-cat ${info.dataset}.tar.zst.* | zstd -dc | tar -xvf - --occurrence \\
+cat ${info.dataset}.tar.zst.* | zstd -dc --long=31 | tar -xvf - --occurrence \\
   '${info.memberTar}'
 tar -xzf '${info.memberTar}' -C '${info.dataset}/'
 # Top-ranked structure: ${info.dataset}/${info.modelCif}`;
