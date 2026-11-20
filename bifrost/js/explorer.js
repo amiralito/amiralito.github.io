@@ -6,8 +6,8 @@
  * above the fold.
  */
 
-import { store, SCORE_SCALE, STATUS } from './data.js';
-import { renderSimpleHistogramSvg, wireInteractiveCharts, ORG_COLORS } from './charts.js';
+import { store, SCORE_SCALE, STATUS, parseJobQuery } from './data.js?v=3';
+import { renderSimpleHistogramSvg, wireInteractiveCharts, ORG_COLORS } from './charts.js?v=3';
 import {
   esc,
   fmtInt,
@@ -15,8 +15,8 @@ import {
   scoreCellHtml,
   navigateToPair,
   syncFacetedSelects,
-} from './ui.js';
-import { exportPairsTable } from './export.js';
+} from './ui.js?v=3';
+import { exportPairsTable } from './export.js?v=3';
 
 const PAGE_SIZE = 50;
 const MAX_EXPORT_ROWS = 50000;
@@ -111,11 +111,15 @@ function countAdvancedFilters() {
 }
 
 function getNeededSetIndices(meta) {
+  const jq = parseJobQuery(state.text, meta.datasets);
+  if (jq && jq.outOfRange) return [];
   const out = [];
   for (const ds of meta.datasets) {
     if (state.set && ds.id !== state.set) continue;
     if (state.idPanel && ds.id_panel !== state.idPanel) continue;
     if (state.pathPanel && ds.path_panel !== state.pathPanel) continue;
+    if (jq && jq.setIdx !== null && ds.idx !== jq.setIdx) continue;
+    if (jq && jq.setIdx === null && !jq.allowTextFallback && jq.jobNum >= ds.n_total) continue;
     out.push(ds.idx);
   }
   return out;
@@ -176,6 +180,7 @@ function executeQuery(meta) {
   const allNeededLoaded = loadedSets.length === neededSets.length;
 
   const { idMask, idTextHit, pathMask, pathTextHit, hasQuery } = buildMetadataMasks(meta);
+  const jq = hasQuery ? parseJobQuery(state.text, meta.datasets) : null;
   const minIpsaeU = Math.round(state.minIpsae * SCORE_SCALE);
   const maxIpsaeU = Math.round(state.maxIpsae * SCORE_SCALE);
   const minIptmU = Math.round(state.minIptm * SCORE_SCALE);
@@ -197,7 +202,11 @@ function executeQuery(meta) {
       const r = rows[i];
       if (!allowedSet.has(r[0])) continue;
       if (!idMask[r[2]] || !pathMask[r[3]]) continue;
-      if (hasQuery && !idTextHit[r[2]] && !pathTextHit[r[3]]) continue;
+      if (hasQuery) {
+        const jobHit = jq && !jq.outOfRange && (jq.setIdx === null || r[0] === jq.setIdx) && r[1] === jq.jobNum;
+        const textHit = (!jq || jq.allowTextFallback) && (idTextHit[r[2]] || pathTextHit[r[3]]);
+        if (!jobHit && !textHit) continue;
+      }
       if (r[4] < minIpsaeU || r[4] > maxIpsaeU) continue;
       if (r[12] < minIptmU) continue;
       if (r[14] < minPdqU) continue;
@@ -250,6 +259,7 @@ function executeQuery(meta) {
   for (const sIdx of loadedSets) {
     const sBin = store.sets.get(sIdx);
     const n = sBin.n;
+    const jobArr = sBin.job_num;
     const idArr = sBin.id_idx;
     const paArr = sBin.path_idx;
     const stArr = sBin.status;
@@ -271,7 +281,11 @@ function executeQuery(meta) {
       if (!idMask[idI]) continue;
       const paI = paArr[r];
       if (!pathMask[paI]) continue;
-      if (hasQuery && !idTextHit[idI] && !pathTextHit[paI]) continue;
+      if (hasQuery) {
+        const jobHit = jq && !jq.outOfRange && (jq.setIdx === null || sIdx === jq.setIdx) && jobArr[r] === jq.jobNum;
+        const textHit = (!jq || jq.allowTextFallback) && (idTextHit[idI] || pathTextHit[paI]);
+        if (!jobHit && !textHit) continue;
+      }
 
       if (st === STATUS.SCORED) {
         const vIpsae = ipsaeArr[r];
@@ -424,7 +438,7 @@ export async function renderExplorerView(container, queryParams) {
 
     <!-- Clean 1-row primary filter bar -->
     <div class="tools">
-      <input type="search" id="f-text" placeholder="Filter by protein, species, InterPro…" value="${esc(state.text)}" />
+      <input type="search" id="f-text" placeholder="Filter by protein, species, InterPro, job #…" value="${esc(state.text)}" />
 
       <button type="button" class="chip${state.org === '' ? ' on' : ''}" data-org="">All</button>
       ${['Oomycete', 'Nematode', 'Insect', 'Virus']
@@ -742,7 +756,10 @@ export async function renderExplorerView(container, queryParams) {
               : '';
             return `
               <tr class="clickable" data-row-idx="${idx}" tabindex="0">
-                <td class="mono" style="font-size:12px">${esc(ds.id)}</td>
+                <td class="mono" style="font-size:12px">
+                  <a class="prot-link" href="#/pair/${encodeURIComponent(ds.id)}/${p.job_num}" data-stop-row>${esc(ds.id)}</a>
+                  <div class="muted" style="font-size:11px;margin-top:2px">#${p.job_num}</div>
+                </td>
                 <td>
                   <div style="display:flex;align-items:center;gap:6px">
                     ${panelBadge(idR.s)}
@@ -764,13 +781,17 @@ export async function renderExplorerView(container, queryParams) {
             `;
           })
           .join('')
-      : `<tr><td colspan="${state.showSubscores ? 17 : 8}" style="text-align:center;padding:42px" class="muted">No matching predictions for the active filters.</td></tr>`;
+      : `<tr><td colspan="${state.showSubscores ? 17 : 8}" style="text-align:center;padding:42px" class="muted">${
+          parseJobQuery(state.text, meta.datasets) && state.status === 'scored' && res.source === 'full'
+            ? 'No matching scored predictions for this job query — open Filters and set Status to All if checking failed/missing jobs.'
+            : 'No matching predictions for the active filters.'
+        }</td></tr>`;
 
     container.querySelector('#exp-table').innerHTML = `
       <table class="dt">
         <thead>
           <tr>
-            ${th('job_num', 'Set', 'Screening set (click to sort by job number)', false)}
+            ${th('job_num', 'Set / Job', 'Screening set and zero-based job number (click to sort by job number)', false)}
             <th>NLR Integrated Domain (Chain A)</th>
             <th>Pathogen / Pest (Chain B)</th>
             ${th('ipsae_min', 'ipSAE (min) ★', 'Primary conservative ipSAE (min of A→B and B→A)')}

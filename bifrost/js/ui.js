@@ -2,15 +2,15 @@
  * Shared UI helpers, badges, faceted select sync, figure lightbox, and Pair Detail page
  */
 
-import { store, STATUS, STATUS_LABELS } from './data.js';
-import { scoreColor, ORG_COLORS } from './charts.js';
+import { store, STATUS, STATUS_LABELS } from './data.js?v=3';
+import { scoreColor, ORG_COLORS } from './charts.js?v=3';
 import {
   copyToClipboard,
   buildExtractCommand,
   buildReproduceCommand,
   formatFasta,
   triggerDownload,
-} from './export.js';
+} from './export.js?v=3';
 
 export function esc(s) {
   return String(s ?? '')
@@ -288,11 +288,11 @@ export function renderPairPage(container, pair) {
           <td>ipSAE directional</td>
           <td>
             <div class="subscore-list">
-              <span class="subscore-item"><span class="sk">min</span><span class="sv">${pair.ipsae_min.toFixed(4)}</span></span>
-              <span class="subscore-item"><span class="sk">max</span><span class="sv">${pair.ipsae_max.toFixed(4)}</span></span>
-              <span class="subscore-item"><span class="sk">mean</span><span class="sv">${pair.ipsae_mean.toFixed(4)}</span></span>
-              <span class="subscore-item"><span class="sk">A→B (ID)</span><span class="sv">${pair.ipsae_a.toFixed(4)}</span></span>
-              <span class="subscore-item"><span class="sk">B→A (Pathogen)</span><span class="sv">${pair.ipsae_b.toFixed(4)}</span></span>
+              <div class="subscore-item"><span class="sk">min</span><span class="sv">${pair.ipsae_min.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">max</span><span class="sv">${pair.ipsae_max.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">mean</span><span class="sv">${pair.ipsae_mean.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">A→B (ID)</span><span class="sv">${pair.ipsae_a.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">B→A (Pathogen)</span><span class="sv">${pair.ipsae_b.toFixed(4)}</span></div>
             </div>
           </td>
         </tr>
@@ -300,9 +300,11 @@ export function renderPairPage(container, pair) {
           <td>Length-scaled variants</td>
           <td>
             <div class="subscore-list">
-              <span class="subscore-item"><span class="sk">ipSAE d0dom</span><span class="sv">${pair.d0dom_min.toFixed(4)}</span><span class="sk">(max ${pair.d0dom_max.toFixed(4)})</span></span>
-              <span class="subscore-item"><span class="sk">ipSAE d0chn</span><span class="sv">${pair.d0chn_min.toFixed(4)}</span><span class="sk">(max ${pair.d0chn_max.toFixed(4)})</span></span>
-              <span class="subscore-item"><span class="sk">ipTM d0chn (min)</span><span class="sv">${pair.iptm_d0chn.toFixed(4)}</span></span>
+              <div class="subscore-item"><span class="sk">ipSAE d0dom (min)</span><span class="sv">${pair.d0dom_min.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">ipSAE d0dom (max)</span><span class="sv">${pair.d0dom_max.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">ipSAE d0chn (min)</span><span class="sv">${pair.d0chn_min.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">ipSAE d0chn (max)</span><span class="sv">${pair.d0chn_max.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">ipTM d0chn (min)</span><span class="sv">${pair.iptm_d0chn.toFixed(4)}</span></div>
             </div>
           </td>
         </tr>
@@ -310,9 +312,12 @@ export function renderPairPage(container, pair) {
           <td>Interface quality &amp; residues</td>
           <td>
             <div class="subscore-list">
-              <span class="subscore-item"><span class="sk">pDockQ2</span><span class="sv">${pair.pdockq2_min.toFixed(4)}</span><span class="sk">(max ${pair.pdockq2_max.toFixed(4)})</span></span>
-              <span class="subscore-item"><span class="sk">LIS mean</span><span class="sv">${pair.lis_mean.toFixed(4)}</span></span>
-              <span class="subscore-item"><span class="sk">PAE &lt; 10 Å residues</span><span class="sv">${pair.nres1 + pair.nres2}</span><span class="sk">(ID ${pair.nres1} · Pathogen ${pair.nres2})</span></span>
+              <div class="subscore-item"><span class="sk">pDockQ2 (min)</span><span class="sv">${pair.pdockq2_min.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">pDockQ2 (max)</span><span class="sv">${pair.pdockq2_max.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">LIS (mean)</span><span class="sv">${pair.lis_mean.toFixed(4)}</span></div>
+              <div class="subscore-item"><span class="sk">PAE &lt; 10 Å residues (total)</span><span class="sv">${pair.nres1 + pair.nres2}</span></div>
+              <div class="subscore-item"><span class="sk">PAE &lt; 10 Å residues (ID)</span><span class="sv">${pair.nres1}</span></div>
+              <div class="subscore-item"><span class="sk">PAE &lt; 10 Å residues (Pathogen)</span><span class="sv">${pair.nres2}</span></div>
             </div>
           </td>
         </tr>
@@ -323,7 +328,7 @@ export function renderPairPage(container, pair) {
         <b>${esc(STATUS_LABELS[pair.status])}.</b>
         ${
           pair.status === STATUS.FAILED
-            ? 'AlphaFold 3 inference completed, but ipSAE scoring exited with an error (logged in <code>ipsae_failed.tsv</code>). The top-ranked model is still deposited on Harvard Dataverse below.'
+            ? 'AlphaFold 3 inference completed, but ipSAE scoring exited with an error (logged in <code>ipsae_failed.tsv</code>). The top-ranked model is still deposited below on Harvard Dataverse.'
             : 'This job falls in <code>ID2_V1</code> jobs 70070–71070, which carry no scores and are absent from <code>ipsae_failed.tsv</code>.'
         }
       </div>
@@ -331,7 +336,12 @@ export function renderPairPage(container, pair) {
 
   container.innerHTML = `
     <div style="margin-bottom:14px">
-      <button type="button" class="btn btn-sm" id="pair-back-btn">&larr; Back</button>
+      <button type="button" class="btn btn-sm btn-back" id="pair-back-btn">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M13 8H3"/><path d="M7 4L3 8l4 4"/>
+        </svg>
+        <span>Back</span>
+      </button>
     </div>
 
     <div class="eyebrow">
@@ -341,20 +351,16 @@ export function renderPairPage(container, pair) {
       ${statusBadge(pair.status)}
     </div>
 
-    <div class="page-head-row">
-      <div style="min-width:0;flex:1">
-        <h1 style="font-size:clamp(22px,2.6vw,30px)">${esc(idR.ipr_s || idR.ipr)} <span class="muted">×</span> ${esc(paR.id)}</h1>
-        <p class="lede" style="margin-bottom:14px">
-          <span class="italic">${esc(idR.sp)}</span> (${esc(idR.cls)} · ${esc(idR.arch)}) paired with
-          <span class="italic">${esc(paR.sp)}</span> (${esc(paR.cls || paR.org)}).
-        </p>
-      </div>
-      <div class="btn-group">
-        <button type="button" class="btn btn-sm" id="pair-copy-link">Copy link</button>
-        <button type="button" class="btn btn-sm" id="pair-dl-fasta">Pair FASTA</button>
-        <button type="button" class="btn btn-sm" id="pair-gen-json">Generate AF3 JSON</button>
-        <a class="btn btn-sm btn-primary" href="${esc(info.doi)}" target="_blank" rel="noopener">Open on Dataverse &#8599;</a>
-      </div>
+    <h1 class="pair-title">${esc(idR.ipr_s || idR.ipr)} <span class="muted">×</span> ${esc(paR.id)}</h1>
+    <p class="lede" style="margin-bottom:14px">
+      <span class="italic">${esc(idR.sp)}</span> (${esc(idR.cls)} · ${esc(idR.arch)}) paired with
+      <span class="italic">${esc(paR.sp)}</span> (${esc(paR.cls || paR.org)}).
+    </p>
+    <div class="btn-group pair-actions">
+      <button type="button" class="btn btn-sm" id="pair-copy-link">Copy link</button>
+      <button type="button" class="btn btn-sm" id="pair-dl-fasta">Pair FASTA</button>
+      <button type="button" class="btn btn-sm" id="pair-gen-json">Generate AF3 JSON</button>
+      <a class="btn btn-sm btn-primary" href="${esc(info.doi)}" target="_blank" rel="noopener">Open on Dataverse &#8599;</a>
     </div>
 
     ${primaryScoresHtml}
@@ -362,7 +368,7 @@ export function renderPairPage(container, pair) {
     <h2>Interacting proteins</h2>
     <div class="pair-partner-grid">
       <div class="pair-partner-card">
-        <div class="eyebrow" style="margin-bottom:2px">Chain A · NLR Integrated Domain</div>
+        <div class="eyebrow" style="margin-bottom:2px">Chain A</div>
         <div class="p-title"><a class="prot-link" href="#/id/${encodeURIComponent(idR.id)}">${esc(idR.id)}</a></div>
         <div class="p-meta">
           <span class="italic">${esc(idR.sp)}</span> · ${esc(idR.ord || idR.fam)}<br/>
@@ -377,7 +383,7 @@ export function renderPairPage(container, pair) {
       </div>
 
       <div class="pair-partner-card">
-        <div class="eyebrow" style="margin-bottom:2px">Chain B · Pathogen / Pest Protein</div>
+        <div class="eyebrow" style="margin-bottom:2px">Chain B</div>
         <div class="p-title"><a class="prot-link" href="#/pathogen/${encodeURIComponent(paR.id)}">${esc(paR.id)}</a></div>
         <div class="p-meta">
           <span class="italic">${esc(paR.sp)}</span> · ${esc(paR.org)}<br/>
@@ -391,24 +397,46 @@ export function renderPairPage(container, pair) {
       </div>
     </div>
 
-    <h2>
-      <span>3D structure on Harvard Dataverse</span>
-      <div class="btn-group">
-        <div class="seg" id="pair-cmd-tabs">
-          <button type="button" data-cmd="extract" class="on">Extract 3D model</button>
-          <button type="button" data-cmd="repro">Re-run with multiple seeds</button>
+    <details class="pair-collapse" id="pair-dataverse-details">
+      <summary class="pair-collapse-sum">
+        <div class="pair-collapse-bar">
+          <div class="pair-collapse-head">
+            <span class="pair-collapse-kicker">Deposited model · CLI</span>
+            <span class="pair-collapse-title">3D structure on Harvard Dataverse</span>
+            <span class="pair-collapse-sub">Commands to extract the ranked AF3 mmCIF archive or re-run with independent seeds.</span>
+          </div>
+          <span class="pair-collapse-toggle" aria-hidden="true">
+            <span class="lbl-closed">Show instructions</span>
+            <span class="lbl-open">Hide</span>
+            <svg class="pair-collapse-chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6l4 4 4-4"/>
+            </svg>
+          </span>
         </div>
-        <button type="button" class="btn btn-sm" id="pair-copy-cmd">Copy</button>
+      </summary>
+      <div class="pair-collapse-body">
+        <div class="pair-dv-meta">
+          <div class="pair-dv-row">
+            <span class="pair-dv-k">Dataset</span>
+            <span class="pair-dv-v">${doiLinksHtml(info.doi, `${info.dataset} on Harvard Dataverse`)} <span class="muted">·</span> Inference inputs: ${doiLinksHtml(info.inferenceDoi, 'doi:10.7910/DVN/2FUARO')}</span>
+          </div>
+          <div class="pair-dv-row">
+            <span class="pair-dv-k">Archive member</span>
+            <span class="pair-dv-v"><code class="mono" style="word-break:break-all">${esc(info.memberTar)}</code></span>
+          </div>
+        </div>
+        <div class="pair-cmd-bar">
+          <div class="seg" id="pair-cmd-tabs">
+            <button type="button" data-cmd="extract" class="on">Extract 3D model</button>
+            <button type="button" data-cmd="repro">Re-run with multiple seeds</button>
+          </div>
+          <button type="button" class="btn btn-sm" id="pair-copy-cmd">Copy</button>
+        </div>
+        <pre class="code-block" id="pair-cmd-pre">${esc(extractCmd)}</pre>
       </div>
-    </h2>
-    <p style="font-size:13.5px;margin-bottom:10px">
-      Dataset: ${doiLinksHtml(info.doi, `${info.dataset} on Harvard Dataverse`)} ·
-      Inference inputs: ${doiLinksHtml(info.inferenceDoi, 'doi:10.7910/DVN/2FUARO')}<br/>
-      <span class="muted">Archive member:</span> <code class="mono" style="word-break:break-all">${esc(info.memberTar)}</code>
-    </p>
-    <pre class="code-block" id="pair-cmd-pre">${esc(extractCmd)}</pre>
+    </details>
 
-    <div class="callout" style="margin-top:28px">
+    <div class="callout pair-terms-callout">
       <b>AlphaFold 3 v3.0.1 · Reproducibility &amp; Terms.</b>
       Predicted with 1 seed × 5 diffusion samples (top-ranked model scored). Predictions are hypotheses and do not establish biological interaction or disease resistance — verify reproducibility with independent seeds before experimental follow-up.
       Deposited structure files are subject to the <a class="ext-link" href="https://github.com/google-deepmind/alphafold3/blob/main/OUTPUT_TERMS_OF_USE.md" target="_blank" rel="noopener">AlphaFold 3 Output Terms of Use</a>.
@@ -487,7 +515,8 @@ export function renderPairPage(container, pair) {
        or 1 job with `modelSeeds: []` when empty so the server picks a random seed).
    -------------------------------------------------------------------------- */
 let af3DialogWired = false;
-const AF3_MAX_NAME_LEN = 180;
+const AF3_LOCAL_MAX_NAME_LEN = 180;
+const AF3_SERVER_MAX_NAME_LEN = 60;
 const AF3_SERVER_MAX_JOBS = 100;
 
 function sanitizeAf3Name(raw) {
@@ -509,17 +538,20 @@ function shortHash6(str) {
   return (h >>> 0).toString(16).padStart(8, '0').slice(0, 6);
 }
 
-function composeAf3JobName(baseName, seed = null) {
+function composeAf3JobName(baseName, seed = null, maxLen = AF3_LOCAL_MAX_NAME_LEN) {
   const cleanBase = sanitizeAf3Name(baseName);
   const seedTag = seed !== null && seed !== undefined ? `_seed${seed}` : '';
-  const full = seedTag && !cleanBase.endsWith(seedTag) ? `${cleanBase}${seedTag}` : cleanBase;
-  if (full.length <= AF3_MAX_NAME_LEN) return full;
+  const hasSeed = Boolean(seedTag) && !cleanBase.endsWith(seedTag);
+  const full = hasSeed ? `${cleanBase}${seedTag}` : cleanBase;
+  if (full.length <= maxLen) return full;
   const h = shortHash6(full);
-  if (seedTag && !cleanBase.endsWith(seedTag)) {
-    const coreKeep = Math.max(12, AF3_MAX_NAME_LEN - seedTag.length - 7);
-    return `${cleanBase.slice(0, coreKeep)}_${h}${seedTag}`;
+  if (hasSeed) {
+    const coreKeep = Math.max(8, maxLen - seedTag.length - 7);
+    const trimmedCore = cleanBase.slice(0, coreKeep).replace(/_+$/, '') || 'job';
+    return `${trimmedCore}_${h}${seedTag}`;
   }
-  return `${full.slice(0, AF3_MAX_NAME_LEN - 7)}_${h}`;
+  const trimmedFull = full.slice(0, Math.max(8, maxLen - 7)).replace(/_+$/, '') || 'job';
+  return `${trimmedFull}_${h}`;
 }
 
 function parseSeedsInput(raw, { allowEmpty = false, maxCount = 0 } = {}) {
@@ -568,7 +600,15 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   let cachedParent = null;
   let loadingParent = false;
   let parentErr = '';
-  const baseJobName = sanitizeAf3Name(info.outputName || `job_${pair.job_num}_${info.chainA}_${info.chainB}`);
+  let userEditedName = false;
+  const localBaseName = sanitizeAf3Name(info.outputName || `job_${pair.job_num}_${info.chainA}_${info.chainB}`);
+  const serverBaseName = sanitizeAf3Name(`${ds.id}_j${pair.job_num}_${idR.ipr || idR.s}_${paR.id}`);
+  const defaultJobName = () => {
+    if (dialect === 'alphafoldserver') {
+      return chainAMode === 'parent' ? `${serverBaseName}_parent` : serverBaseName;
+    }
+    return chainAMode === 'parent' ? `${localBaseName}_parentNLR` : localBaseName;
+  };
 
   box.innerHTML = `
     <div class="af3-dialog-bar">
@@ -614,8 +654,11 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
       </div>
 
       <div class="field">
-        <label for="af3-name-in">Job name</label>
-        <input type="text" id="af3-name-in" value="${esc(baseJobName)}" autocomplete="off" spellcheck="false" />
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <label for="af3-name-in">Job name</label>
+          <span class="muted mono" style="font-size:11px" id="af3-name-hint"></span>
+        </div>
+        <input type="text" id="af3-name-in" value="${esc(localBaseName)}" autocomplete="off" spellcheck="false" />
       </div>
 
       <div>
@@ -644,6 +687,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   const serverAutoBtn = box.querySelector('#af3-server-auto');
   const serverNoteEl = box.querySelector('#af3-server-note');
   const nameInput = box.querySelector('#af3-name-in');
+  const nameHintEl = box.querySelector('#af3-name-hint');
   const errEl = box.querySelector('#af3-seed-err');
   const preEl = box.querySelector('#af3-json-pre');
   const metaEl = box.querySelector('#af3-meta-line');
@@ -651,7 +695,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   const dlBtn = box.querySelector('#af3-dl-json');
 
   let currentJsonStr = '';
-  let currentFileName = `${baseJobName}.json`;
+  let currentFileName = `${localBaseName}.json`;
 
   const syncDialectUi = () => {
     const isServer = dialect === 'alphafoldserver';
@@ -687,6 +731,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
     }
 
     const isServer = dialect === 'alphafoldserver';
+    const maxNameLen = isServer ? AF3_SERVER_MAX_NAME_LEN : AF3_LOCAL_MAX_NAME_LEN;
     const parsed = parseSeedsInput(seedsInput.value, {
       allowEmpty: isServer,
       maxCount: isServer ? AF3_SERVER_MAX_JOBS : 0,
@@ -704,33 +749,36 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
 
     const seqA = (chainAMode === 'parent' ? cachedParent : idR.seq).replace(/\s+/g, '').toUpperCase();
     const seqB = paR.seq.replace(/\s+/g, '').toUpperCase();
-    const rawName = (nameInput.value || baseJobName).trim() || baseJobName;
+    const rawName = (nameInput.value || defaultJobName()).trim() || defaultJobName();
     const seeds = parsed.seeds;
 
     let obj;
+    let longestEmitted = 0;
+    let wasTrimmed = false;
     if (isServer) {
       const serverSeqs = [
         { proteinChain: { sequence: seqA, count: 1 } },
         { proteinChain: { sequence: seqB, count: 1 } },
       ];
       if (seeds.length === 0) {
-        obj = [
-          {
-            name: composeAf3JobName(rawName, null),
-            modelSeeds: [],
-            sequences: serverSeqs,
-          },
-        ];
+        const nm = composeAf3JobName(rawName, null, maxNameLen);
+        longestEmitted = nm.length;
+        wasTrimmed = sanitizeAf3Name(rawName).length > maxNameLen;
+        obj = [{ name: nm, modelSeeds: [], sequences: serverSeqs }];
       } else {
-        obj = seeds.map((s) => ({
-          name: composeAf3JobName(rawName, s),
-          modelSeeds: [s],
-          sequences: serverSeqs,
-        }));
+        obj = seeds.map((s) => {
+          const nm = composeAf3JobName(rawName, s, maxNameLen);
+          if (nm.length > longestEmitted) longestEmitted = nm.length;
+          if (`${sanitizeAf3Name(rawName)}_seed${s}`.length > maxNameLen) wasTrimmed = true;
+          return { name: nm, modelSeeds: [s], sequences: serverSeqs };
+        });
       }
     } else {
+      const nm = composeAf3JobName(rawName, null, maxNameLen);
+      longestEmitted = nm.length;
+      wasTrimmed = sanitizeAf3Name(rawName).length > maxNameLen;
       obj = {
-        name: composeAf3JobName(rawName, null),
+        name: nm,
         modelSeeds: seeds,
         sequences: [
           { protein: { id: ['A'], sequence: seqA } },
@@ -741,8 +789,14 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
       };
     }
 
+    if (nameHintEl) {
+      nameHintEl.textContent = wasTrimmed
+        ? `Trimmed to ≤${maxNameLen} chars (${longestEmitted}/${maxNameLen})`
+        : `${longestEmitted}/${maxNameLen} chars`;
+    }
+
     currentJsonStr = JSON.stringify(obj, null, 2) + '\n';
-    const safeFile = sanitizeAf3Name(rawName);
+    const safeFile = composeAf3JobName(rawName, null, maxNameLen);
     currentFileName = `${safeFile}${isServer ? '_afserver' : ''}.json`;
     preEl.textContent = currentJsonStr;
     if (isServer) {
@@ -762,6 +816,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
     btn.addEventListener('click', () => {
       dialect = btn.dataset.d;
       box.querySelectorAll('#af3-dialect-seg button').forEach((b) => b.classList.toggle('on', b === btn));
+      if (!userEditedName) nameInput.value = defaultJobName();
       buildPayload();
     });
   });
@@ -770,9 +825,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
     btn.addEventListener('click', async () => {
       chainAMode = btn.dataset.ca;
       box.querySelectorAll('#af3-chaina-seg button').forEach((b) => b.classList.toggle('on', b === btn));
-      const curName = nameInput.value.trim();
-      if (chainAMode === 'parent' && curName === baseJobName) nameInput.value = `${baseJobName}_parentNLR`;
-      else if (chainAMode === 'id' && curName === `${baseJobName}_parentNLR`) nameInput.value = baseJobName;
+      if (!userEditedName) nameInput.value = defaultJobName();
 
       if (chainAMode === 'parent' && !cachedParent) {
         if (!loadingParent) {
@@ -817,7 +870,10 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   });
 
   seedsInput.addEventListener('input', () => { syncPresetChips(); buildPayload(); });
-  nameInput.addEventListener('input', buildPayload);
+  nameInput.addEventListener('input', () => {
+    userEditedName = Boolean(nameInput.value.trim());
+    buildPayload();
+  });
 
   copyBtn.addEventListener('click', (e) => {
     if (currentJsonStr) copyToClipboard(currentJsonStr, e.currentTarget);

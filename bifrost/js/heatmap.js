@@ -8,11 +8,11 @@
  * TSV matrix export.
  */
 
-import { store, SCORE_SCALE, STATUS } from './data.js';
-import { ID_COLORS, ORG_COLORS } from './charts.js';
-import { esc, fmtInt, panelBadge, navigateToPair } from './ui.js';
-import { copyToClipboard, triggerDownload } from './export.js';
-import { findNearestSequences } from './seqsearch.js';
+import { store, SCORE_SCALE, STATUS } from './data.js?v=3';
+import { ID_COLORS, ORG_COLORS } from './charts.js?v=3';
+import { esc, fmtInt, panelBadge, navigateToPair } from './ui.js?v=3';
+import { copyToClipboard, triggerDownload } from './export.js?v=3';
+import { findNearestSequences } from './seqsearch.js?v=3';
 
 const MAX_SOFT_AXIS = 80;
 

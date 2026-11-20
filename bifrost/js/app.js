@@ -5,7 +5,7 @@
  * and amiralito.github.io/thesis.
  */
 
-import { store, STATUS } from './data.js';
+import { store, STATUS, parseJobQuery } from './data.js?v=3';
 import {
   ORG_COLORS,
   ID_COLORS,
@@ -14,7 +14,7 @@ import {
   renderNlrSchematicSvg,
   renderHorizontalBarsHtml,
   wireInteractiveCharts,
-} from './charts.js';
+} from './charts.js?v=3';
 import {
   esc,
   fmtInt,
@@ -31,17 +31,17 @@ import {
   syncFacetedSelects,
   renderFigureHtml,
   wireFigureLightboxes,
-} from './ui.js';
+} from './ui.js?v=3';
 import {
   formatFasta,
   triggerDownload,
   copyToClipboard,
   exportDelimited,
   exportPairsTable,
-} from './export.js';
-import { renderExplorerView } from './explorer.js';
-import { renderHeatmapView } from './heatmap.js';
-import { runHomologySearch, runMotifSearch, findNearestSequences } from './seqsearch.js';
+} from './export.js?v=3';
+import { renderExplorerView } from './explorer.js?v=3';
+import { renderHeatmapView } from './heatmap.js?v=3';
+import { runHomologySearch, runMotifSearch, findNearestSequences } from './seqsearch.js?v=3';
 
 const pageEl = document.getElementById('page');
 const mainEl = document.getElementById('main');
@@ -118,77 +118,164 @@ function setupChrome() {
 
   const runSideSearch = () => {
     if (!store.meta) return;
-    const q = qInput.value.trim().toLowerCase();
-    if (q.length < 2) {
+    const rawTrim = qInput.value.trim();
+    const q = rawTrim.toLowerCase();
+    if (q.length < 2 && !/^\d$/.test(q)) {
       qRes.hidden = true;
       return;
     }
+
     const items = [];
-    for (const p of store.meta.pathogens) {
-      if (p._q.includes(q)) {
+    const jq = parseJobQuery(rawTrim, store.meta.datasets);
+    if (jq) {
+      if (jq.outOfRange) {
         items.push({
-          href: `#/pathogen/${encodeURIComponent(p.id)}`,
-          name: p.id,
-          sub: `${p.org} · ${p.sp}`,
-          dot: ORG_COLORS[p.org],
+          href: null,
+          name: `Job #${jq.jobNum} not found${jq.dsId ? ` in ${jq.dsId}` : ''}`,
+          sub: 'Check screening set and zero-based job number range',
+          dot: '#94a3b8',
         });
-        if (items.length >= 6) break;
+      } else if (jq.setIdx !== null) {
+        const ds = store.meta.datasets[jq.setIdx];
+        const loadedPair = store.getLoadedPairByJob(jq.setIdx, jq.jobNum);
+        let sub = `Open Pair Detail · ${ds.id_panel} × ${ds.path_panel}`;
+        if (loadedPair) {
+          const idR = store.meta.ids[loadedPair.id_idx];
+          const paR = store.meta.pathogens[loadedPair.path_idx];
+          const scoreTxt = loadedPair.status === STATUS.SCORED
+            ? `ipSAE ${loadedPair.ipsae_min.toFixed(3)}`
+            : loadedPair.status === STATUS.FAILED
+              ? 'ipSAE failed'
+              : 'Missing scores';
+          sub = `${idR.ipr_s || idR.ipr} × ${paR.id} · ${scoreTxt}`;
+        }
+        items.push({
+          href: `#/pair/${encodeURIComponent(jq.dsId)}/${jq.jobNum}`,
+          name: `${jq.dsId} · job #${jq.jobNum}`,
+          sub,
+          dot: ID_COLORS[ds.id_panel] || '#4361ee',
+        });
+      } else {
+        const matchingSets = store.meta.datasets.filter((d) => jq.jobNum < d.n_total);
+        if (matchingSets.length === 1) {
+          const ds = matchingSets[0];
+          items.push({
+            href: `#/pair/${encodeURIComponent(ds.id)}/${jq.jobNum}`,
+            name: `${ds.id} · job #${jq.jobNum}`,
+            sub: `Open Pair Detail · ${ds.id_panel} × ${ds.path_panel}`,
+            dot: ID_COLORS[ds.id_panel] || '#4361ee',
+          });
+        } else if (matchingSets.length > 1) {
+          items.push({
+            href: `#/explorer?q=${encodeURIComponent('#' + jq.jobNum)}`,
+            name: `Job #${jq.jobNum} (${matchingSets.length} sets)`,
+            sub: 'View all matching sets in Score Explorer →',
+            dot: 'var(--blue)',
+          });
+          for (const ds of matchingSets.slice(0, 4)) {
+            items.push({
+              href: `#/pair/${encodeURIComponent(ds.id)}/${jq.jobNum}`,
+              name: `${ds.id} · job #${jq.jobNum}`,
+              sub: `Open Pair Detail · ${ds.id_panel} × ${ds.path_panel}`,
+              dot: ID_COLORS[ds.id_panel] || '#4361ee',
+            });
+          }
+        }
       }
     }
-    let iprN = 0;
-    const iprDict = store.meta.interpro || {};
-    for (const [ipr, list] of store.idsByInterpro.entries()) {
-      const info = iprDict[ipr];
-      const f = list[0];
-      const shortN = info?.s || f.ipr_s || '';
-      const fullN = info?.n || f.ipr_n || '';
-      if (`${ipr} ${shortN} ${fullN}`.toLowerCase().includes(q)) {
-        const nScr = list.filter((x) => x.scr).length;
-        items.push({
-          href: `#/domain/${encodeURIComponent(ipr)}`,
-          name: `${ipr} · ${shortN || fullN}`,
-          sub: `InterPro · ${nScr || list.length} IDs`,
-          dot: '#83899a',
-        });
-        if (++iprN >= 4) break;
+
+    if (!jq || jq.allowTextFallback) {
+      let pathN = 0;
+      for (const p of store.meta.pathogens) {
+        if (p._q.includes(q)) {
+          items.push({
+            href: `#/pathogen/${encodeURIComponent(p.id)}`,
+            name: p.id,
+            sub: `${p.org} · ${p.sp}`,
+            dot: ORG_COLORS[p.org],
+          });
+          if (++pathN >= 6) break;
+        }
       }
-    }
-    let idN = 0;
-    for (const r of store.meta.ids) {
-      if (r._q.includes(q)) {
-        items.push({
-          href: `#/id/${encodeURIComponent(r.id)}`,
-          name: r.id,
-          sub: `${r.sp} · ${r.ipr_s || r.ipr}`,
-          dot: ID_COLORS[r.s],
-        });
-        if (++idN >= 7) break;
+      let iprN = 0;
+      const iprDict = store.meta.interpro || {};
+      for (const [ipr, list] of store.idsByInterpro.entries()) {
+        const info = iprDict[ipr];
+        const f = list[0];
+        const shortN = info?.s || f.ipr_s || '';
+        const fullN = info?.n || f.ipr_n || '';
+        if (`${ipr} ${shortN} ${fullN}`.toLowerCase().includes(q)) {
+          const nScr = list.filter((x) => x.scr).length;
+          items.push({
+            href: `#/domain/${encodeURIComponent(ipr)}`,
+            name: `${ipr} · ${shortN || fullN}`,
+            sub: `InterPro · ${nScr || list.length} IDs`,
+            dot: '#83899a',
+          });
+          if (++iprN >= 4) break;
+        }
+      }
+      let idN = 0;
+      for (const r of store.meta.ids) {
+        if (r._q.includes(q)) {
+          items.push({
+            href: `#/id/${encodeURIComponent(r.id)}`,
+            name: r.id,
+            sub: `${r.sp} · ${r.ipr_s || r.ipr}`,
+            dot: ID_COLORS[r.s],
+          });
+          if (++idN >= 7) break;
+        }
       }
     }
 
     qRes.innerHTML =
       (items.length
         ? items
-            .map(
-              (it) => `
+            .map((it) =>
+              it.href
+                ? `
               <a class="sr-item" href="${it.href}">
                 <div class="sr-main">
                   <div class="sr-name"><span class="dot" style="background:${it.dot};margin-right:7px"></span>${esc(it.name)}</div>
                   <div class="sr-sub">${esc(it.sub)}</div>
                 </div>
               </a>`
+                : `
+              <div class="sr-item">
+                <div class="sr-main">
+                  <div class="sr-name muted"><span class="dot" style="background:${it.dot};margin-right:7px"></span>${esc(it.name)}</div>
+                  <div class="sr-sub">${esc(it.sub)}</div>
+                </div>
+              </div>`
             )
             .join('')
         : `<div class="sr-item"><span class="muted">No direct protein match</span></div>`) +
-      `<a class="sr-item" href="#/explorer?q=${encodeURIComponent(qInput.value.trim())}" style="background:var(--bg2)">
-        <span style="font-weight:500">Search all 757k scores for "${esc(qInput.value.trim())}" &rarr;</span>
+      `<a class="sr-item" href="#/explorer?q=${encodeURIComponent(rawTrim)}" style="background:var(--bg2)">
+        <span style="font-weight:500">Search all 757k scores for "${esc(rawTrim)}" &rarr;</span>
       </a>`;
     qRes.hidden = false;
   };
 
   qInput?.addEventListener('input', runSideSearch);
   qInput?.addEventListener('focus', runSideSearch);
-  qRes?.addEventListener('click', () => { qRes.hidden = true; qInput.value = ''; });
+  qInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && qRes && !qRes.hidden) {
+      const firstLink = qRes.querySelector('a.sr-item[href]');
+      if (firstLink) {
+        e.preventDefault();
+        window.location.hash = firstLink.getAttribute('href');
+        qRes.hidden = true;
+        qInput.value = '';
+        qInput.blur();
+      }
+    }
+  });
+  qRes?.addEventListener('click', (e) => {
+    if (!e.target.closest('a.sr-item')) return;
+    qRes.hidden = true;
+    qInput.value = '';
+  });
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.side-search') && qRes) qRes.hidden = true;
   });
@@ -1592,7 +1679,7 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
 
   mount.innerHTML = `
     <div class="tools">
-      <input type="search" id="ps-q" placeholder="${mode === 'id' ? 'Filter pathogen partners…' : 'Filter NLR IDs, species, InterPro…'}" />
+      <input type="search" id="ps-q" placeholder="${mode === 'id' ? 'Filter pathogen partners or job #…' : 'Filter NLR IDs, species, InterPro, or job #…'}" />
       <button type="button" class="chip on" data-pf1="">All</button>
       ${groupChips
         .map((v) => {
@@ -1612,18 +1699,21 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
   let filtered = [];
 
   function draw() {
-    const q = pst.q.trim().toLowerCase();
+    const qTrim = pst.q.trim();
+    const q = qTrim.toLowerCase();
+    const jq = parseJobQuery(qTrim, meta.datasets);
     filtered = pairs.filter((p) => {
+      const ds = meta.datasets[p.setIdx];
+      const partner = mode === 'id' ? meta.pathogens[p.path_idx] : meta.ids[p.id_idx];
       if (mode === 'id') {
-        const pa = meta.pathogens[p.path_idx];
-        if (pst.f1 && pa.org !== pst.f1) return false;
-        if (q && !pa._q.includes(q)) return false;
+        if (pst.f1 && partner.org !== pst.f1) return false;
       } else {
-        const idR = meta.ids[p.id_idx];
-        if (pst.f1 && idR.s !== pst.f1) return false;
-        if (q && !idR._q.includes(q)) return false;
+        if (pst.f1 && partner.s !== pst.f1) return false;
       }
-      return true;
+      if (!q) return true;
+      const jobHit = jq && !jq.outOfRange && (jq.setIdx === null || p.setIdx === jq.setIdx) && p.job_num === jq.jobNum;
+      const textHit = (!jq || jq.allowTextFallback) && (partner._q.includes(q) || ds.id.toLowerCase().includes(q));
+      return Boolean(jobHit || textHit);
     });
 
     const dir = pst.sortDir === 'asc' ? 1 : -1;
@@ -1670,7 +1760,7 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
       <table class="dt">
         <thead>
           <tr>
-            <th>Set</th>
+            <th>Set / Job</th>
             <th>${mode === 'id' ? 'Pathogen / Pest (Chain B)' : 'NLR Integrated Domain (Chain A)'}</th>
             ${th('ipsae_min', 'ipSAE (min) ★')}
             ${th('iptm', 'ipTM')}
@@ -1702,7 +1792,10 @@ function renderPartnerTable({ mount, pairs, mode, entityName, meta, exportTsvBtn
                       : '';
                     return `
                       <tr class="clickable" data-p-idx="${idx}" tabindex="0">
-                        <td class="mono" style="font-size:12px">${esc(ds.id)}</td>
+                        <td class="mono" style="font-size:12px">
+                          <a class="prot-link" href="#/pair/${encodeURIComponent(ds.id)}/${p.job_num}" data-stop-row>${esc(ds.id)}</a>
+                          <div class="muted" style="font-size:11px;margin-top:2px">#${p.job_num}</div>
+                        </td>
                         <td>${cell}</td>
                         <td class="num">${scoreCellHtml(p.ipsae_min, p.status)}</td>
                         <td class="num">${ok ? p.iptm.toFixed(3) : '—'}</td>

@@ -440,12 +440,11 @@ class BifrostStore {
   }
 
   /**
-   * Find a specific pair by dataset name and job number.
+   * Synchronous lookup of a pair by dataset index and job number if that set is already loaded.
    */
-  async getPairByJob(datasetName, jobNum) {
-    const ds = this.datasetByName.get(datasetName);
-    if (!ds) return null;
-    const sBin = await this.loadSet(ds.idx);
+  getLoadedPairByJob(setIdx, jobNum) {
+    const sBin = this.sets.get(setIdx);
+    if (!sBin) return null;
     if (!sBin._byJob) {
       const m = new Map();
       const jobs = sBin.job_num;
@@ -457,6 +456,16 @@ class BifrostStore {
     const r = sBin._byJob.get(Number(jobNum));
     if (r === undefined) return null;
     return this.rowToObject(sBin, r);
+  }
+
+  /**
+   * Find a specific pair by dataset name and job number.
+   */
+  async getPairByJob(datasetName, jobNum) {
+    const ds = this.datasetByName.get(datasetName);
+    if (!ds) return null;
+    await this.loadSet(ds.idx);
+    return this.getLoadedPairByJob(ds.idx, jobNum);
   }
 
   /**
@@ -486,3 +495,59 @@ class BifrostStore {
 }
 
 export const store = new BifrostStore();
+
+/**
+ * Parse a user search query into a Bifrost job-number lookup when applicable.
+ * Supports:
+ *   1. Dataset + job number (e.g. `ID1_E1_j43652_...`, `ID1_E1 #43652`, `ID1_E1/43652`)
+ *   2. Prefixed job number without dataset (e.g. `#43652`, `j43652`, `job_43652`, `job 43652`)
+ *   3. Bare 1–6 digit integer within dataset bounds (with `allowTextFallback: true`)
+ */
+export function parseJobQuery(raw, datasets = []) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+
+  const dsMatch = s.match(/^(ID[1-3]_(?:E[1-4]|V1))[\s/_:·•-]+(?:(?:job[\s_-]*|j|#)\s*)?(\d+)(?:$|[\s_./:-])/i);
+  if (dsMatch) {
+    const targetId = dsMatch[1].toUpperCase();
+    const jobNum = Number(dsMatch[2]);
+    if (!Number.isSafeInteger(jobNum)) return null;
+    const ds = datasets.find((d) => d.id.toUpperCase() === targetId);
+    if (!ds) return null;
+    return {
+      setIdx: ds.idx,
+      dsId: ds.id,
+      jobNum,
+      outOfRange: jobNum >= ds.n_total,
+      allowTextFallback: false,
+    };
+  }
+
+  const prefMatch = s.match(/^(?:job[\s_-]*|j|#)\s*(\d+)(?:$|_)/i);
+  if (prefMatch) {
+    const jobNum = Number(prefMatch[1]);
+    if (!Number.isSafeInteger(jobNum)) return null;
+    return {
+      setIdx: null,
+      dsId: null,
+      jobNum,
+      outOfRange: datasets.length > 0 && !datasets.some((d) => jobNum < d.n_total),
+      allowTextFallback: false,
+    };
+  }
+
+  if (/^\d{1,6}$/.test(s)) {
+    const jobNum = Number(s);
+    if (datasets.length === 0 || datasets.some((d) => jobNum < d.n_total)) {
+      return {
+        setIdx: null,
+        dsId: null,
+        jobNum,
+        outOfRange: false,
+        allowTextFallback: true,
+      };
+    }
+  }
+
+  return null;
+}
