@@ -479,15 +479,59 @@ export function renderPairPage(container, pair) {
 
 /* --------------------------------------------------------------------------
    AlphaFold 3 Input JSON Generator Popup (<dialog>)
+   Follows make_af3_batch_v4.py dialect conventions:
+     - alphafold3 (local CLI): single JSON object with all seeds in modelSeeds,
+       entity `id` lists (["A"], ["B"]), dialect + version.
+     - alphafoldserver (web batch): JSON array of jobs with at most 1 seed per job
+       (multi-seed inputs are split into `<name>_seed<N>` jobs with `modelSeeds: [N]`,
+       or 1 job with `modelSeeds: []` when empty so the server picks a random seed).
    -------------------------------------------------------------------------- */
 let af3DialogWired = false;
+const AF3_MAX_NAME_LEN = 180;
+const AF3_SERVER_MAX_JOBS = 100;
 
-function parseSeedsInput(raw) {
+function sanitizeAf3Name(raw) {
+  return (
+    String(raw || '')
+      .replace(/[.^ -]+/g, '_')
+      .replace(/[^A-Za-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'job'
+  );
+}
+
+function shortHash6(str) {
+  // Deterministic 32-bit FNV-1a hex suffix (6 chars) matching make_af3_batch_v4 name-trimming guard
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0').slice(0, 6);
+}
+
+function composeAf3JobName(baseName, seed = null) {
+  const cleanBase = sanitizeAf3Name(baseName);
+  const seedTag = seed !== null && seed !== undefined ? `_seed${seed}` : '';
+  const full = seedTag && !cleanBase.endsWith(seedTag) ? `${cleanBase}${seedTag}` : cleanBase;
+  if (full.length <= AF3_MAX_NAME_LEN) return full;
+  const h = shortHash6(full);
+  if (seedTag && !cleanBase.endsWith(seedTag)) {
+    const coreKeep = Math.max(12, AF3_MAX_NAME_LEN - seedTag.length - 7);
+    return `${cleanBase.slice(0, coreKeep)}_${h}${seedTag}`;
+  }
+  return `${full.slice(0, AF3_MAX_NAME_LEN - 7)}_${h}`;
+}
+
+function parseSeedsInput(raw, { allowEmpty = false, maxCount = 0 } = {}) {
   const parts = String(raw || '')
     .split(/[\s,;]+/)
     .map((x) => x.trim())
     .filter(Boolean);
-  if (!parts.length) return { error: 'Enter at least one positive integer seed.' };
+  if (!parts.length) {
+    return allowEmpty
+      ? { seeds: [] }
+      : { error: 'Enter at least one positive integer seed for local AF3.' };
+  }
   const seen = new Set();
   const seeds = [];
   for (const p of parts) {
@@ -500,6 +544,9 @@ function parseSeedsInput(raw) {
       seen.add(n);
       seeds.push(n);
     }
+  }
+  if (maxCount > 0 && seeds.length > maxCount) {
+    return { error: `AlphaFold Server accepts at most ${maxCount} jobs (seeds) per JSON file.` };
   }
   return { seeds };
 }
@@ -521,7 +568,7 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   let cachedParent = null;
   let loadingParent = false;
   let parentErr = '';
-  const baseJobName = info.outputName || `job_${pair.job_num}_${info.chainA}_${info.chainB}`;
+  const baseJobName = sanitizeAf3Name(info.outputName || `job_${pair.job_num}_${info.chainA}_${info.chainB}`);
 
   box.innerHTML = `
     <div class="af3-dialog-bar">
@@ -551,13 +598,17 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
       </div>
 
       <div class="field">
-        <label for="af3-seeds-in">Model seeds (comma- or space-separated integers)</label>
+        <label for="af3-seeds-in" id="af3-seeds-lbl">Model seeds (comma- or space-separated integers)</label>
         <input type="text" id="af3-seeds-in" value="1, 2, 3, 4, 5" autocomplete="off" spellcheck="false" />
         <div class="btn-group" style="margin-top:6px">
+          <button type="button" class="chip" data-spreset="" id="af3-server-auto" hidden>Auto []</button>
           <button type="button" class="chip" data-spreset="1">1 seed [1]</button>
           <button type="button" class="chip" data-spreset="1, 2, 3">3 seeds [1–3]</button>
           <button type="button" class="chip on-soft" data-spreset="1, 2, 3, 4, 5">5 seeds [1–5]</button>
           <button type="button" class="chip" id="af3-rand-seeds">Random 5 seeds</button>
+        </div>
+        <div id="af3-server-note" class="muted" style="font-size:11.5px;margin-top:6px;line-height:1.45" hidden>
+          AlphaFold Server accepts at most one seed per job — multiple seeds are split into separate jobs (<code>_seed1</code>, <code>_seed2</code>, …) in one uploadable batch JSON array. Leave empty for a server-chosen random seed (<code>[]</code>).
         </div>
         <div id="af3-seed-err" class="af3-err" hidden></div>
       </div>
@@ -589,6 +640,9 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   `;
 
   const seedsInput = box.querySelector('#af3-seeds-in');
+  const seedsLabel = box.querySelector('#af3-seeds-lbl');
+  const serverAutoBtn = box.querySelector('#af3-server-auto');
+  const serverNoteEl = box.querySelector('#af3-server-note');
   const nameInput = box.querySelector('#af3-name-in');
   const errEl = box.querySelector('#af3-seed-err');
   const preEl = box.querySelector('#af3-json-pre');
@@ -599,7 +653,19 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
   let currentJsonStr = '';
   let currentFileName = `${baseJobName}.json`;
 
+  const syncDialectUi = () => {
+    const isServer = dialect === 'alphafoldserver';
+    if (seedsLabel) {
+      seedsLabel.textContent = isServer
+        ? 'Model seeds (one job per seed in batch JSON; leave empty for server auto-seed)'
+        : 'Model seeds (comma- or space-separated integers)';
+    }
+    if (serverAutoBtn) serverAutoBtn.hidden = !isServer;
+    if (serverNoteEl) serverNoteEl.hidden = !isServer;
+  };
+
   const buildPayload = () => {
+    syncDialectUi();
     if (chainAMode === 'parent' && loadingParent) {
       errEl.hidden = true;
       copyBtn.disabled = true;
@@ -620,7 +686,11 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
       return;
     }
 
-    const parsed = parseSeedsInput(seedsInput.value);
+    const isServer = dialect === 'alphafoldserver';
+    const parsed = parseSeedsInput(seedsInput.value, {
+      allowEmpty: isServer,
+      maxCount: isServer ? AF3_SERVER_MAX_JOBS : 0,
+    });
     if (parsed.error) {
       errEl.textContent = parsed.error;
       errEl.hidden = false;
@@ -632,43 +702,58 @@ export function openAf3JsonDialog({ pair, ds, idR, paR, info, getParentSeq }) {
     copyBtn.disabled = false;
     dlBtn.disabled = false;
 
-    const seqA = chainAMode === 'parent' ? cachedParent : idR.seq;
-    const seqB = paR.seq;
-    const jobName = (nameInput.value || baseJobName).trim() || baseJobName;
+    const seqA = (chainAMode === 'parent' ? cachedParent : idR.seq).replace(/\s+/g, '').toUpperCase();
+    const seqB = paR.seq.replace(/\s+/g, '').toUpperCase();
+    const rawName = (nameInput.value || baseJobName).trim() || baseJobName;
     const seeds = parsed.seeds;
 
     let obj;
-    if (dialect === 'alphafoldserver') {
-      obj = [
-        {
-          name: jobName,
-          modelSeeds: seeds.map(String),
-          sequences: [
-            { proteinChain: { sequence: seqA, count: 1 } },
-            { proteinChain: { sequence: seqB, count: 1 } },
-          ],
-          dialect: 'alphafoldserver',
-          version: 1,
-        },
+    if (isServer) {
+      const serverSeqs = [
+        { proteinChain: { sequence: seqA, count: 1 } },
+        { proteinChain: { sequence: seqB, count: 1 } },
       ];
+      if (seeds.length === 0) {
+        obj = [
+          {
+            name: composeAf3JobName(rawName, null),
+            modelSeeds: [],
+            sequences: serverSeqs,
+          },
+        ];
+      } else {
+        obj = seeds.map((s) => ({
+          name: composeAf3JobName(rawName, s),
+          modelSeeds: [s],
+          sequences: serverSeqs,
+        }));
+      }
     } else {
       obj = {
-        name: jobName,
-        dialect: 'alphafold3',
-        version: 1,
+        name: composeAf3JobName(rawName, null),
         modelSeeds: seeds,
         sequences: [
-          { protein: { id: 'A', sequence: seqA } },
-          { protein: { id: 'B', sequence: seqB } },
+          { protein: { id: ['A'], sequence: seqA } },
+          { protein: { id: ['B'], sequence: seqB } },
         ],
+        dialect: 'alphafold3',
+        version: 1,
       };
     }
 
     currentJsonStr = JSON.stringify(obj, null, 2) + '\n';
-    const safeFile = jobName.replace(/[^A-Za-z0-9._-]+/g, '_');
-    currentFileName = `${safeFile}${dialect === 'alphafoldserver' ? '_afserver' : ''}.json`;
+    const safeFile = sanitizeAf3Name(rawName);
+    currentFileName = `${safeFile}${isServer ? '_afserver' : ''}.json`;
     preEl.textContent = currentJsonStr;
-    metaEl.textContent = `Chain A ${seqA.length} aa · Chain B ${seqB.length} aa · ${seeds.length} seed${seeds.length > 1 ? 's' : ''}`;
+    if (isServer) {
+      const jobSummary =
+        seeds.length === 0
+          ? '1 job (random seed)'
+          : `${seeds.length} job${seeds.length > 1 ? 's' : ''} (1 seed/job)`;
+      metaEl.textContent = `Chain A ${seqA.length} aa · Chain B ${seqB.length} aa · ${jobSummary}`;
+    } else {
+      metaEl.textContent = `Chain A ${seqA.length} aa · Chain B ${seqB.length} aa · ${seeds.length} seed${seeds.length > 1 ? 's' : ''}`;
+    }
   };
 
   box.querySelector('#af3-close')?.addEventListener('click', () => dlg.close());
